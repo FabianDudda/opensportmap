@@ -39,12 +39,14 @@ const SURFACE_TYPES = [
 ] as const
 
 export default function CourtsPage() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const [selectedSport, setSelectedSport] = useState<SportType | 'all'>('all')
   const [selectedSurface, setSelectedSurface] = useState<string | 'all'>('all')
   const [selectedPlace, setSelectedPlace] = useState<PlaceWithCourts | null>(null)
 
-  // Fetch all places (formerly courts)
+  // Fetch all places (formerly courts) — wait for auth to initialize first so the
+  // session is properly set before the query runs, preventing empty RLS responses
+  // from being cached by React Query before auth is ready.
   const { data: places = [], isLoading, isError, error } = useQuery({
     queryKey: ['places'],
     queryFn: async () => {
@@ -53,6 +55,7 @@ export default function CourtsPage() {
       console.log('[Map] Map pins loaded:', result.length, 'places')
       return result
     },
+    enabled: !loading,
   })
 
   useEffect(() => {
