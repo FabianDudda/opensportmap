@@ -24,6 +24,7 @@ export default function SignUpPage() {
     e.preventDefault()
     
     if (password !== confirmPassword) {
+      console.warn('[SignUp] Validation failed: passwords do not match')
       toast({
         title: 'Passwords do not match',
         description: 'Please ensure both password fields are identical.',
@@ -33,6 +34,7 @@ export default function SignUpPage() {
     }
 
     if (password.length < 6) {
+      console.warn('[SignUp] Validation failed: password too short')
       toast({
         title: 'Password too short',
         description: 'Password must be at least 6 characters long.',
@@ -42,17 +44,20 @@ export default function SignUpPage() {
     }
 
     setIsLoading(true)
+    console.log('[SignUp] Sign-up attempt for:', email)
 
     try {
       const { data, error } = await auth.signUp(email, password, name)
-      
+
       if (error) {
+        console.error('[SignUp] Sign-up error:', error.message)
         toast({
           title: 'Sign up failed',
           description: error.message,
           variant: 'destructive',
         })
       } else {
+        console.log('[SignUp] Sign-up success:', { id: data.user?.id, email: data.user?.email })
         toast({
           title: 'Welcome to Court Sports!',
           description: 'Your account has been created successfully.',
@@ -60,6 +65,7 @@ export default function SignUpPage() {
         router.push('/')
       }
     } catch (error) {
+      console.error('[SignUp] Unexpected error during sign-up:', error)
       toast({
         title: 'An error occurred',
         description: 'Please try again later.',
@@ -72,18 +78,23 @@ export default function SignUpPage() {
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
+    console.log('[SignUp] Google sign-up attempt')
 
     try {
       const { error } = await auth.signInWithGoogle()
-      
+
       if (error) {
+        console.error('[SignUp] Google sign-up error:', error.message)
         toast({
           title: 'Sign up failed',
           description: error.message,
           variant: 'destructive',
         })
+      } else {
+        console.log('[SignUp] Google sign-up redirect initiated')
       }
     } catch (error) {
+      console.error('[SignUp] Unexpected error during Google sign-up:', error)
       toast({
         title: 'An error occurred',
         description: 'Please try again later.',

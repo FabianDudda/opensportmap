@@ -20,12 +20,13 @@ export default function AuthCallbackPage() {
       try {
         console.log('Starting OAuth callback processing...')
         console.log('Current URL:', window.location.href)
-        
-        // Check for OAuth errors in URL hash
+
+        // Check for OAuth errors in URL hash (implicit flow) AND query params (PKCE flow)
         const hashParams = new URLSearchParams(window.location.hash.substring(1))
-        const errorCode = hashParams.get('error')
-        const errorDescription = hashParams.get('error_description')
-        
+        const searchParams = new URLSearchParams(window.location.search)
+        const errorCode = hashParams.get('error') || searchParams.get('error')
+        const errorDescription = hashParams.get('error_description') || searchParams.get('error_description')
+
         if (errorCode) {
           console.error('OAuth error from provider:', errorCode, errorDescription)
           setError(`OAuth error: ${errorDescription || errorCode}`)
@@ -38,20 +39,21 @@ export default function AuthCallbackPage() {
           console.error('OAuth session creation timed out after 10 seconds')
           setError('Authentication is taking longer than expected. Please try again.')
           setIsProcessing(false)
-        }, 10000) // 10 seconds timeout
+        }, 10000)
 
         // Listen for auth state changes
+        // Handle both SIGNED_IN (normal case) and INITIAL_SESSION (fast PKCE exchange case)
         const { data } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             console.log('Auth state change:', event, session?.user?.id)
-            
-            if (event === 'SIGNED_IN' && session) {
+
+            if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
               if (timeout) clearTimeout(timeout)
               console.log('Successfully signed in, redirecting to home...')
               router.push('/')
               return
             }
-            
+
             if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
               if (timeout) clearTimeout(timeout)
               setError('Sign in was cancelled or failed. Please try again.')
@@ -63,14 +65,23 @@ export default function AuthCallbackPage() {
         subscription = data.subscription
 
         // Also check if we already have a session (in case the event already fired)
-        const { data: { session } } = await supabase.auth.getSession()
+        // Critically: also check for errors here - a PKCE exchange failure returns
+        // {session: null, error: ...} and the error must NOT be silently ignored
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        if (sessionError) {
+          console.error('Session error after OAuth callback:', sessionError)
+          if (timeout) clearTimeout(timeout)
+          setError(sessionError.message || 'Failed to complete sign in. Please try again.')
+          setIsProcessing(false)
+          return
+        }
         if (session) {
           if (timeout) clearTimeout(timeout)
           console.log('Session already exists, redirecting to home...')
           router.push('/')
           return
         }
-        
+
       } catch (err) {
         console.error('Callback processing error:', err)
         setError('Failed to process authentication. Please try again.')

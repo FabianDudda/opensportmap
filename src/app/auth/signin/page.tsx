@@ -23,6 +23,7 @@ function SignInForm() {
   useEffect(() => {
     const error = searchParams.get('error')
     if (error) {
+      console.error('[SignIn] OAuth/redirect error from URL param:', error)
       const errorMessages: Record<string, string> = {
         auth_error: 'Authentication failed. Please try again.',
         session_error: 'Failed to create session. Please try again.',
@@ -48,17 +49,20 @@ function SignInForm() {
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    console.log('[SignIn] Email sign-in attempt for:', email)
 
     try {
       const { data, error } = await auth.signIn(email, password)
-      
+
       if (error) {
+        console.error('[SignIn] Email sign-in error:', error.message)
         toast({
           title: 'Sign in failed',
           description: error.message,
           variant: 'destructive',
         })
       } else if (data.user) {
+        console.log('[SignIn] Email sign-in success:', { id: data.user.id, email: data.user.email })
         toast({
           title: 'Welcome back!',
           description: 'You have been signed in successfully.',
@@ -66,6 +70,7 @@ function SignInForm() {
         router.push('/')
       }
     } catch (_error) {
+      console.error('[SignIn] Unexpected error during email sign-in:', _error)
       toast({
         title: 'An error occurred',
         description: 'Please try again later.',
@@ -78,18 +83,23 @@ function SignInForm() {
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
+    console.log('[SignIn] Google sign-in attempt')
 
     try {
       const { error } = await auth.signInWithGoogle()
-      
+
       if (error) {
+        console.error('[SignIn] Google sign-in error:', error.message)
         toast({
           title: 'Sign in failed',
           description: error.message,
           variant: 'destructive',
         })
+      } else {
+        console.log('[SignIn] Google sign-in redirect initiated')
       }
     } catch (_error) {
+      console.error('[SignIn] Unexpected error during Google sign-in:', _error)
       toast({
         title: 'An error occurred',
         description: 'Please try again later.',

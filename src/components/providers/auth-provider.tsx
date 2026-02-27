@@ -71,17 +71,19 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
       setSession(session)
       setUser(session?.user ?? null)
-      
+
       if (session?.user) {
+        console.log('[Auth] User logged in:', { id: session.user.id, email: session.user.email })
         const userProfile = await fetchProfile(session.user.id)
         setProfile(userProfile)
       } else {
+        console.log('[Auth] No active session - user is logged out')
         setProfile(null)
       }
-      
+
       setLoading(false)
     } catch (err) {
-      console.error('Auth initialization error:', err)
+      console.error('[Auth] Auth initialization error:', err)
       setError('Failed to initialize authentication. Please refresh the page.')
       setLoading(false)
     }
@@ -97,26 +99,28 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event)
-        
+        console.log('[Auth] State change event:', event, session?.user ? `user: ${session.user.email}` : 'no user')
+
         try {
           setSession(session)
           setUser(session?.user ?? null)
-          
+
           if (session?.user) {
+            console.log('[Auth] User is logged in:', { id: session.user.id, email: session.user.email, event })
             const userProfile = await fetchProfile(session.user.id)
             setProfile(userProfile)
           } else {
+            console.log('[Auth] User is logged out (event: ' + event + ')')
             setProfile(null)
             setError(null) // Clear errors when signing out
           }
-          
+
           // Only set loading to false after we've processed the profile
           if (event !== 'INITIAL_SESSION') {
             setLoading(false)
           }
         } catch (err) {
-          console.error('Error handling auth state change:', err)
+          console.error('[Auth] Error handling auth state change:', err)
           setError('Authentication error occurred. Please try signing in again.')
           setLoading(false)
         }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useAuth } from '@/components/providers/auth-provider'
 import { Button } from '@/components/ui/button'
@@ -45,10 +45,21 @@ export default function CourtsPage() {
   const [selectedPlace, setSelectedPlace] = useState<PlaceWithCourts | null>(null)
 
   // Fetch all places (formerly courts)
-  const { data: places = [], isLoading } = useQuery({
+  const { data: places = [], isLoading, isError, error } = useQuery({
     queryKey: ['places'],
-    queryFn: () => database.courts.getAllCourts(),
+    queryFn: async () => {
+      console.log('[Map] Fetching map pins...')
+      const result = await database.courts.getAllCourts()
+      console.log('[Map] Map pins loaded:', result.length, 'places')
+      return result
+    },
   })
+
+  useEffect(() => {
+    if (isError) {
+      console.error('[Map] Failed to load map pins:', error)
+    }
+  }, [isError, error])
 
   // Filter places based on sport and surface
   const filteredPlaces = places.filter((place) => {
@@ -72,6 +83,12 @@ export default function CourtsPage() {
     
     return matchesCombination
   })
+
+  useEffect(() => {
+    if (!isLoading) {
+      console.log('[Map] Pins displayed on map:', filteredPlaces.length, `(sport: ${selectedSport})`)
+    }
+  }, [filteredPlaces.length, selectedSport, isLoading])
 
   const handlePlaceSelect = (place: PlaceWithCourts) => {
     setSelectedPlace(place)
