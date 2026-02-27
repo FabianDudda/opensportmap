@@ -18,7 +18,7 @@ import { User, Mail, Trophy, TrendingUp, Calendar, Target, Edit2, Save, X } from
 const SPORTS = ['tennis', 'basketball', 'volleyball', 'spikeball', 'badminton', 'squash', 'pickleball'] as const
 
 export default function ProfilePage() {
-  const { user, profile } = useAuth()
+  const { user, profile, loading } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
@@ -109,6 +109,17 @@ export default function ProfilePage() {
       total + (stats?.wins || 0), 0
     )
     return totalMatches > 0 ? totalWins / totalMatches : 0
+  }
+
+  if (loading) {
+    return (
+      <div className="container px-4 py-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Card><CardContent className="p-6"><div className="h-24 animate-pulse bg-muted rounded" /></CardContent></Card>
+          <Card><CardContent className="p-6"><div className="h-20 animate-pulse bg-muted rounded" /></CardContent></Card>
+        </div>
+      </div>
+    )
   }
 
   if (!user || !profile) {

@@ -94,9 +94,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }
 
   useEffect(() => {
-    initializeAuth()
-
-    // Listen for auth changes
+    // onAuthStateChange fires INITIAL_SESSION immediately on mount,
+    // which handles the initial session restore — no need to call initializeAuth() separately.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('[Auth] State change event:', event, session?.user ? `user: ${session.user.email}` : 'no user')
@@ -115,10 +114,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             setError(null) // Clear errors when signing out
           }
 
-          // Only set loading to false after we've processed the profile
-          if (event !== 'INITIAL_SESSION') {
-            setLoading(false)
-          }
+          setLoading(false)
         } catch (err) {
           console.error('[Auth] Error handling auth state change:', err)
           setError('Authentication error occurred. Please try signing in again.')
