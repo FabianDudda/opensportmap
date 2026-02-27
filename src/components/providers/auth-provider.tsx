@@ -43,25 +43,65 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchProfile = async (userId: string): Promise<Profile | null> => {
-    try {
-      const userProfile = await database.profiles.getProfile(userId)
-      setError(null) // Clear any previous errors
-      return userProfile
-    } catch (err) {
-      console.error('Failed to fetch profile:', err)
-      setError('Failed to load user profile. Some features may not work properly.')
-      return null
-    }
-  }
+  // Effect 1: Subscribe to auth state changes.
+  // IMPORTANT: Never make Supabase API calls (e.g. database queries) inside
+  // onAuthStateChange — the client holds an internal auth lock during the callback,
+  // which causes any concurrent Supabase queries to hang indefinitely.
+  // Only update React state here; profile fetching is handled in Effect 2 below.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('[Auth] State change event:', event, session?.user ? `user: ${session.user.email}` : 'no user')
 
-  const initializeAuth = async () => {
+        setSession(session)
+        setUser(session?.user ?? null)
+
+        // If there's no user, we're done — mark loading complete.
+        // If there IS a user, Effect 2 will fetch the profile and set loading=false.
+        if (!session?.user) {
+          setProfile(null)
+          setError(null)
+          setLoading(false)
+        }
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // Effect 2: Fetch profile whenever the authenticated user changes.
+  // This runs after React has processed the auth state change and the Supabase
+  // client's internal auth lock has been released, so the query won't hang.
+  useEffect(() => {
+    if (!user?.id) return
+
+    let cancelled = false
+
+    database.profiles.getProfile(user.id)
+      .then((userProfile) => {
+        if (cancelled) return
+        console.log('[Auth] User logged in:', { id: user.id, email: user.email })
+        setProfile(userProfile)
+        setError(null)
+        setLoading(false)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        console.error('Failed to fetch profile:', err)
+        setError('Failed to load user profile. Some features may not work properly.')
+        setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const retry = async () => {
     try {
       setLoading(true)
       setError(null)
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      
+
       if (sessionError) {
         console.error('Error getting session:', sessionError)
         setError('Failed to restore your session. Please sign in again.')
@@ -72,65 +112,17 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       setSession(session)
       setUser(session?.user ?? null)
 
-      if (session?.user) {
-        console.log('[Auth] User logged in:', { id: session.user.id, email: session.user.email })
-        const userProfile = await fetchProfile(session.user.id)
-        setProfile(userProfile)
-      } else {
-        console.log('[Auth] No active session - user is logged out')
+      if (!session?.user) {
         setProfile(null)
+        setLoading(false)
       }
-
-      setLoading(false)
+      // If user exists, Effect 2 will handle profile fetch and set loading=false
     } catch (err) {
-      console.error('[Auth] Auth initialization error:', err)
+      console.error('[Auth] Retry error:', err)
       setError('Failed to initialize authentication. Please refresh the page.')
       setLoading(false)
     }
   }
-
-  const retry = async () => {
-    await initializeAuth()
-  }
-
-  useEffect(() => {
-    // Initialize auth state explicitly via getSession() — avoids the anti-pattern
-    // of making Supabase calls inside onAuthStateChange (session is in an intermediate
-    // state during that callback, causing profile fetches to fail on page refresh).
-    initializeAuth()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        // INITIAL_SESSION is already handled by initializeAuth() above
-        if (event === 'INITIAL_SESSION') return
-
-        console.log('[Auth] State change event:', event, session?.user ? `user: ${session.user.email}` : 'no user')
-
-        try {
-          setSession(session)
-          setUser(session?.user ?? null)
-
-          if (session?.user) {
-            console.log('[Auth] User is logged in:', { id: session.user.id, email: session.user.email, event })
-            const userProfile = await fetchProfile(session.user.id)
-            setProfile(userProfile)
-          } else {
-            console.log('[Auth] User is logged out (event: ' + event + ')')
-            setProfile(null)
-            setError(null)
-          }
-
-          setLoading(false)
-        } catch (err) {
-          console.error('[Auth] Error handling auth state change:', err)
-          setError('Authentication error occurred. Please try signing in again.')
-          setLoading(false)
-        }
-      }
-    )
-
-    return () => subscription.unsubscribe()
-  }, [])
 
   const signOut = async () => {
     try {
