@@ -50,7 +50,8 @@ const rateLimiter = new RateLimiter()
 
 /**
  * Reverse geocode latitude and longitude coordinates to address information
- * Uses internal API route to proxy Nominatim (OpenStreetMap) service
+ * Calls Nominatim (OpenStreetMap) directly from the browser so requests use
+ * the user's IP rather than Vercel's server IPs, which Nominatim blocks.
  */
 export async function reverseGeocode(
   latitude: number,
@@ -67,12 +68,13 @@ export async function reverseGeocode(
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-    const url = new URL('/api/geocoding/reverse', 
-      typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+    const url = new URL('https://nominatim.openstreetmap.org/reverse')
+    url.searchParams.set('format', 'json')
     url.searchParams.set('lat', latitude.toString())
     url.searchParams.set('lon', longitude.toString())
-    url.searchParams.set('language', language)
-    
+    url.searchParams.set('addressdetails', '1')
+    url.searchParams.set('accept-language', language)
+
     const response = await fetch(url.toString(), {
       signal: controller.signal,
     })
