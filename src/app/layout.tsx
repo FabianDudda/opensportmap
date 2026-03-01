@@ -4,7 +4,6 @@ import "./globals.css"
 import QueryProvider from "@/components/providers/query-provider"
 import AuthProvider from "@/components/providers/auth-provider"
 import Header from "@/components/layout/header"
-import BottomNav from "@/components/layout/bottom-nav"
 import { Toaster } from "@/components/ui/toaster"
 
 const geistSans = Geist({
@@ -36,8 +35,7 @@ export default function RootLayout({
           <AuthProvider>
             <div className="relative flex min-h-screen flex-col">
               <Header />
-              <main className="flex-1 pb-16">{children}</main>
-              <BottomNav />
+              <main className="flex-1">{children}</main>
             </div>
             <Toaster />
           </AuthProvider>

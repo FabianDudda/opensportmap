@@ -101,15 +101,13 @@ export default function CourtsPage() {
     <LeafletCourtMap 
       courts={filteredPlaces}
       onCourtSelect={handlePlaceSelect}
-      height="calc(100dvh - 8rem)"
+      height="calc(100dvh - 4rem)"
       selectedSport={selectedSport}
       onSportChange={(sport) => {
         setSelectedSport(sport)
         setSelectedSurface('all') // Reset surface filter when sport changes
       }}
       placesCount={filteredPlaces.length}
-      showAddCourtButton={true}
-      onAddCourtClick={() => window.location.href = '/map/new'}
     />
   )
 }

@@ -84,10 +84,10 @@ function FilterButtonHandler({ onFilterClick }: { onFilterClick: () => void }) {
       topRightStack = L.DomUtil.create('div', 'map-control-top-right-stack')
       map.getContainer().appendChild(topRightStack)
     }
-    
+
     // Create filter button container
     const filterContainer = L.DomUtil.create('div', 'leaflet-control-filter')
-    
+
     // Create modern filter button
     const filterButton = L.DomUtil.create('button', 'filter-button map-control-button', filterContainer)
     filterButton.innerHTML = `
@@ -96,17 +96,17 @@ function FilterButtonHandler({ onFilterClick }: { onFilterClick: () => void }) {
       </svg>
     `
     filterButton.title = 'Filter'
-    
+
     // Handle click events
     L.DomEvent.on(filterButton, 'click', (e) => {
       L.DomEvent.preventDefault(e)
       onFilterClick()
     })
-    
+
     // Prevent map interactions
     L.DomEvent.disableClickPropagation(filterContainer)
     L.DomEvent.disableScrollPropagation(filterContainer)
-    
+
     // Add to top-right stack
     topRightStack.appendChild(filterContainer)
     
@@ -235,25 +235,25 @@ function LayerToggleHandler({ currentLayerId, onLayerChange }: { currentLayerId:
       bottomRightStack = L.DomUtil.create('div', 'map-control-bottom-right-stack')
       map.getContainer().appendChild(bottomRightStack)
     }
-    
+
     // Create layer toggle button container
     const layerContainer = L.DomUtil.create('div', 'leaflet-control-layer-toggle')
-    
+
     // Create modern layer toggle button
     const layerButton = L.DomUtil.create('button', 'layer-toggle-button map-control-button', layerContainer)
     layerButton.innerHTML = getLayersIcon()
     layerButton.title = 'Toggle Map Style'
-    
+
     // Handle click events
     L.DomEvent.on(layerButton, 'click', (e) => {
       L.DomEvent.preventDefault(e)
       toggleLayer()
     })
-    
+
     // Prevent map interactions
     L.DomEvent.disableClickPropagation(layerContainer)
     L.DomEvent.disableScrollPropagation(layerContainer)
-    
+
     // Add to bottom-right stack (will appear above location button)
     bottomRightStack.appendChild(layerContainer)
     
