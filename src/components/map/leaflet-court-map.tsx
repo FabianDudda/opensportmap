@@ -367,39 +367,36 @@ export default function LeafletCourtMap({
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
   const isClosingExplicitly = useRef(false)
   const isClosingFilterExplicitly = useRef(false)
+  const isBottomSheetOpenRef = useRef(false)
+  const isFilterSheetOpenRef = useRef(false)
 
-  // Debug: Track state changes
+  // Keep refs in sync so stable callbacks can read current values
+  isBottomSheetOpenRef.current = isBottomSheetOpen
+  isFilterSheetOpenRef.current = isFilterSheetOpen
+
+  // Vaul renders via @radix-ui/react-dialog which sets pointer-events:none on the body
+  // when its DismissableLayer fires (modal=true by default in Radix, regardless of vaul's modal=false).
+  // Restore pointer-events so the map remains pannable while a non-modal sheet is open.
   useEffect(() => {
-    console.log('📊 State changed:', {
-      isBottomSheetOpen,
-      selectedCourtId: selectedCourt?.id,
-      selectedCourtName: selectedCourt?.name
+    if (!isBottomSheetOpen && !isFilterSheetOpen) return
+    const raf = requestAnimationFrame(() => {
+      document.body.style.pointerEvents = 'auto'
     })
-  }, [isBottomSheetOpen, selectedCourt])
+    return () => cancelAnimationFrame(raf)
+  }, [isBottomSheetOpen, isFilterSheetOpen])
 
   const handleCourtSelect = useCallback((court: PlaceWithCourts) => {
-    console.log('🎯 handleCourtSelect called:', {
-      courtId: court.id,
-      courtName: court.name,
-      isBottomSheetOpen,
-      previousCourtId: selectedCourt?.id
-    })
-    
     // Close filter sheet if open (mutual exclusion)
-    if (isFilterSheetOpen) {
-      console.log('📂 Closing filter sheet to open marker sheet')
+    if (isFilterSheetOpenRef.current) {
       setIsFilterSheetOpen(false)
     }
-    
+
     setSelectedCourt(court)
-    if (!isBottomSheetOpen) {
-      console.log('📂 Opening bottom sheet')
+    if (!isBottomSheetOpenRef.current) {
       setIsBottomSheetOpen(true)
-    } else {
-      console.log('📂 Bottom sheet already open, just updating content')
     }
     onCourtSelect?.(court)
-  }, [isBottomSheetOpen, isFilterSheetOpen, selectedCourt?.id, onCourtSelect])
+  }, [onCourtSelect])
 
   const handleExplicitClose = useCallback(() => {
     console.log('🗂️ Explicit close requested - clearing selection and closing sheet')
@@ -424,15 +421,12 @@ export default function LeafletCourtMap({
 
   const handleFilterClick = useCallback(() => {
     // Close marker sheet if open (mutual exclusion)
-    if (isBottomSheetOpen) {
-      console.log('📂 Closing marker sheet to open filter sheet')
+    if (isBottomSheetOpenRef.current) {
       setIsBottomSheetOpen(false)
-      setSelectedCourt(null) // Clear selection when closing marker sheet
+      setSelectedCourt(null)
     }
-    
-    console.log('📂 Opening filter sheet')
     setIsFilterSheetOpen(true)
-  }, [isBottomSheetOpen])
+  }, [])
 
 
   // Default center (Germany)

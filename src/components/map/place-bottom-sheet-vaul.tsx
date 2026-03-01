@@ -26,7 +26,7 @@ export default function PlaceBottomSheetVaul({
   profile,
 }: PlaceBottomSheetVaulProps) {
   return (
-    <Drawer open={isOpen} onOpenChange={onOpenChange} modal={false}>
+    <Drawer open={isOpen} onOpenChange={onOpenChange} modal={false} shouldScaleBackground={false}>
       <DrawerContent
         hideOverlay
         className="border-0 h-auto max-w-2xl mx-auto"
@@ -36,7 +36,7 @@ export default function PlaceBottomSheetVaul({
             <DrawerHeader className="px-0 pb-0">
               <div className="flex items-center justify-between">
                 <div className="flex-1 text-left">
-                  <DrawerTitle className="text-lg text-left">
+                  <DrawerTitle className="text-xl text-left">
                     <Link href={`/places/${selectedCourt.id}`} className="hover:underline">
                       {selectedCourt.name}
                     </Link>
@@ -51,7 +51,10 @@ export default function PlaceBottomSheetVaul({
 
                 {/* Button group */}
                 <div className="flex items-center gap-3">
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="rounded-full"
                     onClick={() => {
                       if (!user) {
                         window.location.href = '/auth/signin'
@@ -59,13 +62,15 @@ export default function PlaceBottomSheetVaul({
                         window.location.href = `/places/${selectedCourt.id}/edit`
                       }
                     }}
-                    className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity"
                     title={user && profile?.user_role === 'admin' ? 'Edit Place' : user ? 'Suggest Edit' : 'Sign in to edit'}
                   >
                     <Pencil className="h-[18px] w-[18px]" />
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="rounded-full"
                     onClick={() => {
                       if (navigator.share) {
                         navigator.share({
@@ -75,19 +80,20 @@ export default function PlaceBottomSheetVaul({
                         }).catch(err => console.log('Share failed:', err))
                       }
                     }}
-                    className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity"
                     title="Share"
                   >
                     <Share2 className="h-[18px] w-[18px]" />
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="rounded-full"
                     onClick={() => onOpenChange(false)}
-                    className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity"
                     title="Close"
                   >
                     <X className="h-5 w-5" />
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -97,7 +103,7 @@ export default function PlaceBottomSheetVaul({
                   .filter(Boolean)
                   .join(', ')
                 return quickAddress && (
-                  <DrawerDescription className="text-sm text-muted-foreground text-left">
+                  <DrawerDescription className="text-base text-muted-foreground text-left">
                     {quickAddress}
                   </DrawerDescription>
                 )
@@ -137,8 +143,8 @@ export default function PlaceBottomSheetVaul({
             <div className="flex gap-2">
               <Button
                 variant="default"
-                size="sm"
-                className="flex-1"
+                size="lg"
+                className="flex-1 text-base"
                 onClick={() => {
                   const url = `https://maps.google.com/?q=${selectedCourt.latitude},${selectedCourt.longitude}`
                   window.open(url, '_blank', 'noopener,noreferrer')
@@ -149,8 +155,8 @@ export default function PlaceBottomSheetVaul({
               </Button>
               <Button
                 variant="secondary"
-                size="sm"
-                className="flex-1"
+                size="lg"
+                className="flex-1 text-base"
                 onClick={() => {
                   console.log('Save place:', selectedCourt.id)
                 }}
