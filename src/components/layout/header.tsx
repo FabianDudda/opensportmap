@@ -11,11 +11,11 @@ export default function Header() {
   const { user, profile, signOut, loading, isAdmin } = useAuth()
 
   const navigation = [
-    { name: 'Rankings', href: '/rankings', icon: Trophy },
-    { name: 'Add Match', href: '/matches/new', icon: Plus },
-    { name: 'Add Place', href: '/map/new', icon: MapPin, authOnly: true },
-    { name: 'Events', href: '/events', icon: Calendar },
-    { name: 'Test', href: '/test', icon: TestTube },
+    { name: 'Rankings', href: '/rankings', icon: Trophy, adminOnly: true },
+    { name: 'Add Match', href: '/matches/new', icon: Plus, adminOnly: true },
+    { name: 'Add Place', href: '/map/new', icon: MapPin },
+    { name: 'Events', href: '/events', icon: Calendar, adminOnly: true },
+    { name: 'Test', href: '/test', icon: TestTube, adminOnly: true },
     { name: 'Admin', href: '/admin/places', icon: Shield, adminOnly: true },
     { name: 'Sign In', href: '/auth/signin', icon: LogIn, guestOnly: true },
     { name: 'Profile', href: '/profile', icon: User },
