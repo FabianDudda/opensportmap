@@ -5,11 +5,13 @@ import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-lea
 import { Court, SportType, PlaceWithCourts } from '@/lib/supabase/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+// import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+// import FilterBottomSheet from './filter-bottom-sheet'
 import { Plus, MapPin, Navigation, Share2, Heart, Search, Filter, Edit, Pencil, X } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/components/providers/auth-provider'
-import FilterBottomSheet from './filter-bottom-sheet'
+import FilterBottomSheetVaul from './filter-bottom-sheet-vaul'
+import PlaceBottomSheetVaul from './place-bottom-sheet-vaul'
 import { sportNames, getSportBadgeClasses, sportIcons } from '@/lib/utils/sport-utils'
 import { createSportIcon, createUserLocationIcon, createSelectedLocationIcon } from '@/lib/utils/sport-styles'
 import { MAP_LAYERS, DEFAULT_LAYER_ID, createTileLayer, getSavedLayerPreference, saveLayerPreference } from '@/lib/utils/map-layers'
@@ -558,231 +560,56 @@ export default function LeafletCourtMap({
         </div>
       )}
 
-      {/* Bottom Sheet for Court Details */}
-      <Sheet 
-        open={isBottomSheetOpen} 
+      {/* Bottom Sheet for Court Details — vaul Drawer */}
+      <PlaceBottomSheetVaul
+        isOpen={isBottomSheetOpen}
+        onOpenChange={setIsBottomSheetOpen}
+        selectedCourt={selectedCourt}
+        userLocation={userLocation}
+        user={user}
+        profile={profile}
+      />
+
+      {/* Filter Bottom Sheet — vaul Drawer */}
+      <FilterBottomSheetVaul
+        isOpen={isFilterSheetOpen}
+        onClose={setIsFilterSheetOpen}
+        onExplicitClose={handleExplicitFilterClose}
+        selectedSport={selectedSport}
+        onSportChange={onSportChange ?? (() => {})}
+      />
+
+      {/* OLD Sheet-based bottom sheets (commented out for vaul testing)
+      <Sheet
+        open={isBottomSheetOpen}
         onOpenChange={(open) => {
-          console.log('📋 Sheet onOpenChange triggered:', {
-            open,
-            previousState: isBottomSheetOpen,
-            selectedCourtId: selectedCourt?.id,
-            isClosingExplicitly: isClosingExplicitly.current
-          })
-          
           if (open === false) {
-            // If this is an explicit close (map click), it's already handled
-            if (isClosingExplicitly.current) {
-              console.log('🗂️ Explicit close - already handled by trigger')
-              isClosingExplicitly.current = false
-              return
-            }
-            
-            // Prevent unwanted closes when a court is selected
-            if (selectedCourt) {
-              console.log('🚫 Ignoring close - court is selected, use explicit close instead')
-              return
-            }
+            if (isClosingExplicitly.current) { isClosingExplicitly.current = false; return }
+            if (selectedCourt) return
           }
-          
           setIsBottomSheetOpen(open)
-        }} 
+        }}
         modal={false}
       >
-        <SheetContent 
-          side="bottom" 
-          className="border-0 h-auto max-w-2xl mx-auto rounded-t-xl"
-          hideOverlay
-          onClose={handleExplicitClose}
-        >
-          {/* Drag handle */}
-          <div className="flex justify-center pb-3">
-            <div className="w-10 h-1 rounded-full bg-gray-300" />
-          </div>
-          {selectedCourt && (
-            <div className="space-y-4">
-              <SheetHeader className="text-left">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 text-left">
-                    <SheetTitle className="text-lg text-left">
-                      <Link href={`/places/${selectedCourt.id}`} className="hover:underline">
-                        {selectedCourt.name}
-                      </Link>
-                    </SheetTitle>
-                    {userLocation && (
-                      <p className="text-sm text-muted-foreground mt-1 text-left">
-                        <MapPin className="h-3 w-3 inline mr-1" />
-                        {getDistanceText(userLocation, { lat: selectedCourt.latitude, lng: selectedCourt.longitude })}
-                      </p>
-                    )}
-                  </div>
-                  
-                  {/* Button group */}
-                  <div className="flex items-center gap-3">
-                    {/* Edit button - always visible */}
-                    <button
-                      onClick={() => {
-                        if (!user) {
-                          window.location.href = '/auth/signin'
-                        } else {
-                          window.location.href = `/places/${selectedCourt.id}/edit`
-                        }
-                      }}
-                      className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity"
-                      title={user && profile?.user_role === 'admin' ? 'Edit Place' : user ? 'Suggest Edit' : 'Sign in to edit'}
-                    >
-                      <Pencil className="h-[18px] w-[18px]" />
-                    </button>
-
-                    {/* Share button */}
-                    <button
-                      onClick={() => {
-                        if (navigator.share) {
-                          navigator.share({
-                            title: selectedCourt.name,
-                            text: `Check out ${selectedCourt.name}`,
-                            url: `${window.location.origin}/places/${selectedCourt.id}`
-                          }).catch(err => console.log('Share failed:', err))
-                        } else {
-                          console.log('Share not supported')
-                        }
-                      }}
-                      className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity"
-                      title="Share"
-                    >
-                      <Share2 className="h-[18px] w-[18px]" />
-                    </button>
-
-                    {/* Close button */}
-                    <button
-                      onClick={handleExplicitClose}
-                      className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity"
-                      title="Close"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-                {/* Quick Address */}
-                {(() => {
-                  const quickAddress = [selectedCourt.street, selectedCourt.district || selectedCourt.city]
-                    .filter(Boolean)
-                    .join(', ')
-                  return quickAddress && (
-                    <SheetDescription className="text-sm text-muted-foreground text-left">
-                      {quickAddress}
-                    </SheetDescription>
-                  )
-                })()}
-                {selectedCourt.description && (
-                  <SheetDescription className="text-left">
-                    {selectedCourt.description}
-                  </SheetDescription>
-                )}
-              </SheetHeader>
-              
-              {/* Sports squares */}
-              {(() => {
-                if (!selectedCourt) return null;
-                
-                const sportsWithCounts = selectedCourt.courts?.length > 0 
-                  ? selectedCourt.courts.reduce((acc, c) => {
-                      acc[c.sport] = (acc[c.sport] || 0) + (c.quantity || 1)
-                      return acc
-                    }, {} as Record<string, number>)
-                  : (selectedCourt.sports?.reduce((acc, sport) => ({ ...acc, [sport]: 1 }), {} as Record<string, number>) || {})
-                
-                return Object.keys(sportsWithCounts).length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto -mx-6 px-6">
-                      {Object.entries(sportsWithCounts).map(([sport, count]) => (
-                        <div
-                          key={sport}
-                          className="flex-shrink-0 flex items-center gap-1.5 border border-gray-200 rounded-full px-3 py-1.5"
-                        >
-                          <span className="text-[16px] leading-none">{sportIcons[sport] || '📍'}</span>
-                          <span className="text-[14px] font-medium text-gray-800">{sportNames[sport] || sport}</span>
-                        </div>
-                      ))}
-                  </div>
-                )
-              })()}
-
-              {/* Directions + Save row */}
-              <div className="flex gap-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => {
-                      const url = `https://maps.google.com/?q=${selectedCourt.latitude},${selectedCourt.longitude}`
-                      window.open(url, '_blank', 'noopener,noreferrer')
-                    }}
-                  >
-                    <Navigation className="h-4 w-4 mr-1" />
-                    Directions
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => {
-                      // TODO: Implement save functionality
-                      console.log('Save place:', selectedCourt.id)
-                    }}
-                  >
-                    <Heart className="h-4 w-4 mr-1" />
-                    Save
-                  </Button>
-              </div>
-
-              {selectedCourt.image_url && (
-                <div className="w-full rounded-lg overflow-hidden h-48">
-                  <img
-                    src={selectedCourt.image_url}
-                    alt={selectedCourt.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement
-                      target.parentElement?.remove()
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+        <SheetContent side="bottom" className="border-0 h-auto max-w-2xl mx-auto rounded-t-xl" hideOverlay onClose={handleExplicitClose}>
+          ... (original place sheet content)
         </SheetContent>
       </Sheet>
-      
-      {/* Filter Bottom Sheet */}
-      <FilterBottomSheet 
+
+      <FilterBottomSheet
         isOpen={isFilterSheetOpen}
         onClose={(open) => {
-          console.log('📋 Filter sheet onClose triggered:', {
-            open,
-            previousState: isFilterSheetOpen,
-            isClosingExplicitly: isClosingFilterExplicitly.current
-          })
-          
           if (open === false) {
-            // If this is an explicit close (map click), it's already handled
-            if (isClosingFilterExplicitly.current) {
-              console.log('🗂️ Explicit filter close - already handled by trigger')
-              isClosingFilterExplicitly.current = false
-              return
-            }
-            
-            // Prevent unwanted closes when filter is open
-            if (isFilterSheetOpen) {
-              console.log('🚫 Ignoring filter close - use explicit close instead')
-              return
-            }
+            if (isClosingFilterExplicitly.current) { isClosingFilterExplicitly.current = false; return }
+            if (isFilterSheetOpen) return
           }
-          
           setIsFilterSheetOpen(open)
         }}
         onExplicitClose={handleExplicitFilterClose}
         selectedSport={selectedSport}
         onSportChange={onSportChange}
       />
+      */}
     </div>
   )
 }
