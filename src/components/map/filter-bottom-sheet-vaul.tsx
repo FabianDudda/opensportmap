@@ -21,11 +21,12 @@ const SPORTS: (SportType | 'all')[] = [
   'basketball',
   'tischtennis',
   'tennis',
-  'beachvolleyball',
   'volleyball',
+  'beachvolleyball',
   'skatepark',
-  'boule',
-  'hockey'
+  'calisthenics',
+  'boule'
+
 ]
 
 export default function FilterBottomSheetVaul({
@@ -67,7 +68,7 @@ export default function FilterBottomSheetVaul({
                 <Button
                   key={sport}
                   variant={isSelected ? 'default' : 'outline'}
-                  size="lg"
+                 
                   onClick={() => onSportChange(sport)}
                   className={cn(
                     "px-3 flex items-center gap-3 justify-start relative",
@@ -77,7 +78,7 @@ export default function FilterBottomSheetVaul({
                   {isSelected && (
                     <Check className="w-4 h-4 absolute top-1 right-1 text-primary" />
                   )}
-                  <span className="text-2xl">{sportIcon}</span>
+                  <span className="text-xl">{sportIcon}</span>
                   <span className="text-base font-medium">{sportName}</span>
                 </Button>
               )

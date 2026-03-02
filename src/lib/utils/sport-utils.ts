@@ -70,7 +70,8 @@ export const sportIcons: Record<string, string> = {
   tischtennis: '🏓',   // Ping pong
   beachvolleyball: '🏖️', // Beach with umbrella
   boule: '🔵',         // Blue circle (boule ball)
-  skatepark: '🛹'      // Skateboard
+  skatepark: '🛹',     // Skateboard
+  calisthenics: '💪'   // Calisthenics
 }
 
 // Get color for a court based on its sports

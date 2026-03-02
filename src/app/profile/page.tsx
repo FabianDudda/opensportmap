@@ -163,11 +163,11 @@ export default function ProfilePage() {
                           onChange={(e) => setEditName(e.target.value)}
                           className="text-2xl font-bold h-auto py-1"
                         />
-                        <Button size="sm" onClick={handleSaveName}>
+                        <Button onClick={handleSaveName}>
                           <Save className="h-4 w-4" />
                         </Button>
                         <Button 
-                          size="sm" 
+                          
                           variant="outline" 
                           onClick={() => {
                             setEditName(profile.name)
@@ -181,7 +181,7 @@ export default function ProfilePage() {
                       <>
                         <h1 className="text-3xl font-bold">{profile.name}</h1>
                         <Button 
-                          size="sm" 
+                          
                           variant="outline"
                           onClick={() => setIsEditing(true)}
                         >

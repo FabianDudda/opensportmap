@@ -10,12 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
+import { sportIcons } from '@/lib/utils/sport-utils'
 import { useToast } from '@/hooks/use-toast'
 import { SportType } from '@/lib/supabase/types'
 import { database } from '@/lib/supabase/database'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { reverseGeocode, AddressComponents } from '@/lib/geocoding'
 import { uploadCourtImage, UploadProgress } from '@/lib/supabase/storage'
 // Dynamic import to prevent SSR issues with Leaflet
@@ -35,26 +36,25 @@ import { auth } from '@/lib/supabase/auth'
 
 const SPORTS = [
   { id: 'fußball', label: 'Fußball' },
-  { id: 'tennis', label: 'Tennis' },
-  { id: 'tischtennis', label: 'Tischtennis' },
   { id: 'basketball', label: 'Basketball' },
+  { id: 'tischtennis', label: 'Tischtennis' },
+  { id: 'tennis', label: 'Tennis' },
   { id: 'volleyball', label: 'Volleyball' },
   { id: 'beachvolleyball', label: 'Beachvolleyball' },
-  { id: 'spikeball', label: 'Spikeball' },
-  { id: 'boule', label: 'Boule' },
   { id: 'skatepark', label: 'Skatepark' },
-  { id: 'badminton', label: 'Badminton' },
-  { id: 'squash', label: 'Squash' },
-  { id: 'pickleball', label: 'Pickleball' },
+  { id: 'calisthenics', label: 'Calisthenics' },
+  { id: 'boule', label: 'Boule' },
 ] as const
 
 const SURFACE_TYPES = [
+  'Unbekannt',
   'Rasen',
+  'Kunstrasen',
   'Hartplatz',
   'Asphalt',
   'Kunststoffbelag',
   'Asche',
-  'Kunstrasen',
+  'Sand',
   'Sonstiges',
 ] as const
 
@@ -71,10 +71,15 @@ export default function NewCourtPage() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   
+  const { data: places = [] } = useQuery({
+    queryKey: ['places'],
+    queryFn: () => database.courts.getAllCourts(),
+  })
+
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [selectedSports, setSelectedSports] = useState<SportType[]>([])
-  const [courtDetails, setCourtDetails] = useState<Partial<Record<SportType, CourtDetails>>>({})
+  const [courtSurfaces, setCourtSurfaces] = useState<Partial<Record<SportType, string[]>>>({})
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [address, setAddress] = useState<AddressComponents>({})
   const [isDetectingAddress, setIsDetectingAddress] = useState(false)
@@ -207,38 +212,34 @@ export default function NewCourtPage() {
 
   const handleSportToggle = (sport: SportType) => {
     setSelectedSports(prev => {
-      const isRemoving = prev.includes(sport)
-      
-      if (isRemoving) {
-        // Remove sport and its details
-        const newDetails = { ...courtDetails }
-        delete newDetails[sport]
-        setCourtDetails(newDetails)
+      if (prev.includes(sport)) {
+        setCourtSurfaces(current => {
+          const updated = { ...current }
+          delete updated[sport]
+          return updated
+        })
         return prev.filter(s => s !== sport)
       } else {
-        // Add sport with default details
-        setCourtDetails(prev => ({
-          ...prev,
-          [sport]: {
-            sport,
-            quantity: 1,
-            surface: 'Hard Court',
-            notes: ''
-          }
-        }))
+        setCourtSurfaces(current => ({ ...current, [sport]: ['Unbekannt'] }))
         return [...prev, sport]
       }
     })
   }
-  
-  const updateCourtDetails = (sport: SportType, field: keyof CourtDetails, value: string | number) => {
-    setCourtDetails(prev => ({
-      ...prev,
-      [sport]: {
-        ...prev[sport],
-        [field]: value
-      }
-    }))
+
+  const addCourtForSport = (sport: SportType) => {
+    setCourtSurfaces(prev => ({ ...prev, [sport]: [...(prev[sport] || []), 'Unbekannt'] }))
+  }
+
+  const updateCourtSurface = (sport: SportType, idx: number, surface: string) => {
+    setCourtSurfaces(prev => {
+      const surfaces = [...(prev[sport] || [])]
+      surfaces[idx] = surface
+      return { ...prev, [sport]: surfaces }
+    })
+  }
+
+  const removeCourtForSport = (sport: SportType, idx: number) => {
+    setCourtSurfaces(prev => ({ ...prev, [sport]: (prev[sport] || []).filter((_, i) => i !== idx) }))
   }
 
   const updateAddressField = (field: keyof AddressComponents, value: string) => {
@@ -325,19 +326,6 @@ export default function NewCourtPage() {
       return
     }
 
-    // Validate court details
-    for (const sport of selectedSports) {
-      const details = courtDetails[sport]
-      if (!details || details.quantity < 1) {
-        toast({
-          title: 'Invalid court details',
-          description: `Please specify a valid number of courts for ${sport}.`,
-          variant: 'destructive',
-        })
-        return
-      }
-    }
-
     if (!location) {
       toast({
         title: 'Location required',
@@ -384,7 +372,14 @@ export default function NewCourtPage() {
       }
     }
     
-    const courts = Object.values(courtDetails)
+    const courts: CourtDetails[] = selectedSports.flatMap(sport => {
+      const surfaces = courtSurfaces[sport] || ['Unbekannt']
+      const counts = surfaces.reduce<Record<string, number>>((acc, s) => {
+        acc[s] = (acc[s] || 0) + 1
+        return acc
+      }, {})
+      return Object.entries(counts).map(([surface, quantity]) => ({ sport, quantity, surface, notes: '' }))
+    })
     
     const placeData = {
       name: name.trim(),
@@ -492,20 +487,8 @@ export default function NewCourtPage() {
   }
 
   return (
-    <div className="container px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Add New Court
-            </CardTitle>
-            <CardDescription>
-              Add a sports court to help others discover great places to play
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="p-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
               {/* Court Name */}
               <div className="space-y-2">
                 <Label htmlFor="name">Court Name *</Label>
@@ -521,95 +504,88 @@ export default function NewCourtPage() {
               {/* Sports Selection */}
               <div className="space-y-3">
                 <Label>Sports Available *</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {SPORTS.map((sport) => (
-                    <div key={sport.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={sport.id}
-                        checked={selectedSports.includes(sport.id as SportType)}
-                        onCheckedChange={() => handleSportToggle(sport.id as SportType)}
-                      />
-                      <Label 
-                        htmlFor={sport.id}
-                        className="text-sm font-normal cursor-pointer"
+                <div className="flex flex-wrap gap-2">
+                  {SPORTS.map((sport) => {
+                    const isSelected = selectedSports.includes(sport.id as SportType)
+                    return (
+                      <button
+                        key={sport.id}
+                        type="button"
+                        onClick={() => handleSportToggle(sport.id as SportType)}
+                        className={cn(
+                          'flex items-center gap-1.5 px-3 h-10 rounded-full border transition-all cursor-pointer text-sm font-medium',
+                          isSelected
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                        )}
                       >
-                        {sport.label}
-                      </Label>
-                    </div>
-                  ))}
+                        <span className="text-xl leading-none">{sportIcons[sport.id as SportType] || '📍'}</span>
+                        <span>{sport.label}</span>
+                      </button>
+                    )
+                  })}
                 </div>
-                {selectedSports.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {selectedSports.map((sport) => (
-                      <div key={sport} className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm">
-                        <Check className="h-3 w-3" />
-                        {sport.charAt(0).toUpperCase() + sport.slice(1)}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* Court Details for Each Sport */}
               {selectedSports.length > 0 && (
                 <div className="space-y-4">
                   <Label className="text-base font-medium">Court Details</Label>
-                  <div className="space-y-4">
-                    {selectedSports.map((sport) => (
-                      <Card key={sport} className="p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Check className="h-4 w-4 text-primary" />
-                          <h4 className="font-medium">{sport.charAt(0).toUpperCase() + sport.slice(1)}</h4>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor={`quantity-${sport}`}>Number of Courts</Label>
-                            <Input
-                              id={`quantity-${sport}`}
-                              type="number"
-                              min="1"
-                              max="20"
-                              value={courtDetails[sport]?.quantity || 1}
-                              onChange={(e) => updateCourtDetails(sport, 'quantity', parseInt(e.target.value) || 1)}
-                            />
+                  <div className="space-y-3">
+                    {selectedSports.map((sport) => {
+                      const surfaces = courtSurfaces[sport] || ['Unbekannt']
+                      return (
+                        <div key={sport} className="border rounded-lg p-4 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-primary" />
+                            <h4 className="font-medium">{sport.charAt(0).toUpperCase() + sport.slice(1)}</h4>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor={`surface-${sport}`}>Surface Type</Label>
-                            <Select
-                              value={courtDetails[sport]?.surface || 'Hard Court'}
-                              onValueChange={(value) => updateCourtDetails(sport, 'surface', value)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select surface" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {SURFACE_TYPES.map((surface) => (
-                                  <SelectItem key={surface} value={surface}>
-                                    {surface}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            {surfaces.map((surface, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground min-w-[4.5rem]">Court {idx + 1}</span>
+                                <Select
+                                  value={surface}
+                                  onValueChange={(val) => updateCourtSurface(sport, idx, val)}
+                                >
+                                  <SelectTrigger className="flex-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {SURFACE_TYPES.map((s) => (
+                                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => surfaces.length === 1 ? handleSportToggle(sport) : removeCourtForSport(sport, idx)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
                           </div>
-                          <div className="space-y-2 sm:col-span-2">
-                            <Label htmlFor={`notes-${sport}`}>Notes (Optional)</Label>
-                            <Textarea
-                              id={`notes-${sport}`}
-                              placeholder={`Additional details about the ${sport} court(s)...`}
-                              value={courtDetails[sport]?.notes || ''}
-                              onChange={(e) => updateCourtDetails(sport, 'notes', e.target.value)}
-                              rows={2}
-                            />
-                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                           
+                            onClick={() => addCourtForSport(sport)}
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add another court for this sport
+                          </Button>
                         </div>
-                      </Card>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               )}
 
               {/* Description */}
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="description">Description (Optional)</Label>
                 <Textarea
                   id="description"
@@ -618,7 +594,7 @@ export default function NewCourtPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                 />
-              </div>
+              </div> */}
 
               {/* Image Upload */}
               <div className="space-y-3">
@@ -635,7 +611,7 @@ export default function NewCourtPage() {
                         <Button
                           type="button"
                           variant="destructive"
-                          size="sm"
+                         
                           className="absolute top-2 right-2"
                           onClick={removeImage}
                         >
@@ -650,13 +626,13 @@ export default function NewCourtPage() {
                     <div className="text-center">
                       <Image className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                       <div className="space-y-2">
-                        <Label 
-                          htmlFor="image-upload" 
-                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                        <Button
+                          type="button"
+                          onClick={() => document.getElementById('image-upload')?.click()}
                         >
                           <Upload className="h-4 w-4" />
                           Upload Image
-                        </Label>
+                        </Button>
                         <Input
                           id="image-upload"
                           type="file"
@@ -683,12 +659,13 @@ export default function NewCourtPage() {
                   Click on the map to set the exact location of the court. Use &quot;My Location&quot; button to center on your current position if needed.
                 </p>
                 <div className="border rounded-lg overflow-hidden">
-                  <LeafletCourtMap 
-                    courts={[]}
+                  <LeafletCourtMap
+                    courts={places}
                     onMapClick={handleMapClick}
                     height="300px"
                     allowAddCourt={true}
                     selectedLocation={location}
+                    placesCount={places.length}
                   />
                 </div>
                 {location ? (
@@ -713,7 +690,7 @@ export default function NewCourtPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
+                       
                         onClick={clearAddress}
                         className="text-sm"
                       >
@@ -856,10 +833,7 @@ export default function NewCourtPage() {
                   </div>
                 </div>
               )}
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+      </form>
     </div>
   )
 }

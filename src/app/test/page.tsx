@@ -974,7 +974,7 @@ export default function TestPage() {
             <Button 
               onClick={handleDebugData}
               variant="outline"
-              size="sm"
+             
               className="flex items-center gap-2"
             >
               🔍 Debug Data
@@ -983,7 +983,7 @@ export default function TestPage() {
               onClick={handleBulkDelete}
               disabled={isDeletingPlaces || selectedPlaces.size === 0}
               variant="destructive"
-              size="sm"
+             
               className="flex items-center gap-2"
             >
               {isDeletingPlaces ? (
@@ -1109,7 +1109,7 @@ export default function TestPage() {
                           onClick={() => handleSingleDelete(place)}
                           disabled={deletingPlace === place.id}
                           variant="destructive"
-                          size="sm"
+                         
                           className="h-7 px-2 text-xs"
                           title="Delete place and all courts"
                         >
@@ -1123,7 +1123,7 @@ export default function TestPage() {
                           onClick={() => handleSingleSaveAddress(place)}
                           disabled={!hasAddressData(place) || savingPlace === place.id}
                           variant="outline"
-                          size="sm"
+                         
                           className="h-7 px-2 text-xs"
                         >
                           {savingPlace === place.id ? (
@@ -1136,7 +1136,7 @@ export default function TestPage() {
                           onClick={() => handleSingleGeocode(place)}
                           disabled={geocodingPlace === place.id || Boolean(place.street && place.city)}
                           variant="outline"
-                          size="sm"
+                         
                           className="h-7 px-2 text-xs"
                         >
                           {geocodingPlace === place.id ? (

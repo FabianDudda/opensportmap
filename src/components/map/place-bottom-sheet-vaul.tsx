@@ -1,12 +1,18 @@
 'use client'
 
+import { useState } from 'react'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
-import { MapPin, Navigation, Share2, Heart, Pencil, X } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { MapPin, Navigation, Share2, Heart, Pencil, X, Upload, Image, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { PlaceWithCourts } from '@/lib/supabase/types'
 import { sportNames, sportIcons } from '@/lib/utils/sport-utils'
 import { getDistanceText } from '@/lib/utils/distance'
+import { uploadCourtImage } from '@/lib/supabase/storage'
+import { database } from '@/lib/supabase/database'
+import { useToast } from '@/hooks/use-toast'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface PlaceBottomSheetVaulProps {
   isOpen: boolean
@@ -25,6 +31,46 @@ export default function PlaceBottomSheetVaul({
   user,
   profile,
 }: PlaceBottomSheetVaulProps) {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: 'File too large', description: 'Please select an image smaller than 10MB.', variant: 'destructive' })
+      return
+    }
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Invalid file type', description: 'Please select an image file (JPG, PNG, WebP).', variant: 'destructive' })
+      return
+    }
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onload = () => setImagePreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const handleImageUpload = async () => {
+    if (!imageFile || !selectedCourt) return
+    setIsUploadingImage(true)
+    try {
+      const { url } = await uploadCourtImage(imageFile)
+      await database.courts.updateCourt(selectedCourt.id, { image_url: url })
+      toast({ title: 'Image uploaded', description: 'The photo has been added to this place.' })
+      queryClient.invalidateQueries({ queryKey: ['places'] })
+      setImageFile(null)
+      setImagePreview(null)
+    } catch (error) {
+      toast({ title: 'Upload failed', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' })
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
+
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange} modal={false} shouldScaleBackground={false}>
       <DrawerContent
@@ -143,7 +189,7 @@ export default function PlaceBottomSheetVaul({
             <div className="flex gap-2">
               <Button
                 variant="default"
-                size="lg"
+               
                 className="flex-1 text-base"
                 onClick={() => {
                   const url = `https://maps.google.com/?q=${selectedCourt.latitude},${selectedCourt.longitude}`
@@ -155,7 +201,7 @@ export default function PlaceBottomSheetVaul({
               </Button>
               <Button
                 variant="secondary"
-                size="lg"
+               
                 className="flex-1 text-base"
                 onClick={() => {
                   console.log('Save place:', selectedCourt.id)
@@ -166,7 +212,7 @@ export default function PlaceBottomSheetVaul({
               </Button>
             </div>
 
-            {selectedCourt.image_url && (
+            {selectedCourt.image_url ? (
               <div className="w-full rounded-lg overflow-hidden h-48">
                 <img
                   src={selectedCourt.image_url}
@@ -177,6 +223,44 @@ export default function PlaceBottomSheetVaul({
                     target.parentElement?.remove()
                   }}
                 />
+              </div>
+            ) : user && (
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+                {imagePreview ? (
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <img src={imagePreview} alt="Preview" className="w-full h-40 object-cover rounded-lg" />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={() => { setImageFile(null); setImagePreview(null) }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button className="w-full" onClick={handleImageUpload} disabled={isUploadingImage}>
+                      {isUploadingImage ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading...</> : <>Upload Photo</>}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-3">
+                    <Image className="h-10 w-10 mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">No photo yet — be the first to add one!</p>
+                    <Button type="button" onClick={() => document.getElementById(`upload-${selectedCourt.id}`)?.click()}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Add Photo
+                    </Button>
+                    <Input
+                      id={`upload-${selectedCourt.id}`}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

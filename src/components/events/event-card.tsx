@@ -150,14 +150,14 @@ export default function EventCard({
         {/* Actions */}
         <div className="flex gap-2 pt-2">
           <Link href={`/events/${event.id}`} className="flex-1">
-            <Button variant="outline" size="sm" className="w-full">
+            <Button variant="outline" className="w-full">
               View Details
             </Button>
           </Link>
           
           {!currentUserId && (
             <Link href="/auth/signin" className="flex-1">
-              <Button size="sm" className="w-full">
+              <Button className="w-full">
                 Sign In
               </Button>
             </Link>
@@ -165,7 +165,7 @@ export default function EventCard({
           
           {canJoin && onJoin && (
             <Button 
-              size="sm" 
+              
               onClick={() => onJoin(event.id)}
               disabled={actionLoading}
               className="flex-1"
@@ -177,7 +177,7 @@ export default function EventCard({
           {hasJoined && !isCreator && onLeave && (
             <Button 
               variant="outline" 
-              size="sm" 
+              
               onClick={() => onLeave(event.id)}
               disabled={actionLoading}
               className="flex-1"
@@ -188,7 +188,7 @@ export default function EventCard({
           
           {isCreator && (
             <Link href={`/events/${event.id}/edit`} className="flex-1">
-              <Button variant="secondary" size="sm" className="w-full">
+              <Button variant="secondary" className="w-full">
                 {compact ? 'Edit' : 'Manage'}
               </Button>
             </Link>

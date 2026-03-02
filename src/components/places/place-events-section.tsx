@@ -132,7 +132,7 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
             <CardDescription>Games and activities at this location</CardDescription>
           </div>
           <Link href={`/events/new?place=${placeId}&name=${encodeURIComponent(placeName)}`}>
-            <Button size="sm">
+            <Button>
               <Plus className="h-4 w-4 mr-1" />
               Create Event
             </Button>
@@ -149,7 +149,7 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
               Be the first to organize a game at this location
             </p>
             <Link href={`/events/new?place=${placeId}&name=${encodeURIComponent(placeName)}`}>
-              <Button size="sm">
+              <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Create First Event
               </Button>
@@ -233,14 +233,14 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
                   {/* Actions */}
                   <div className="flex gap-2 pt-2">
                     <Link href={`/events/${event.id}`} className="flex-1">
-                      <Button variant="outline" size="sm" className="w-full">
+                      <Button variant="outline" className="w-full">
                         View Details
                       </Button>
                     </Link>
                     
                     {!user && (
                       <Link href="/auth/signin" className="flex-1">
-                        <Button size="sm" className="w-full">
+                        <Button className="w-full">
                           Sign In to Join
                         </Button>
                       </Link>
@@ -248,7 +248,7 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
                     
                     {canJoin && (
                       <Button 
-                        size="sm" 
+                        
                         onClick={() => handleJoinEvent(event.id)}
                         className="flex-1"
                       >
@@ -259,7 +259,7 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
                     {hasJoined && !isCreator && (
                       <Button 
                         variant="outline" 
-                        size="sm" 
+                        
                         onClick={() => handleLeaveEvent(event.id)}
                         className="flex-1"
                       >
@@ -269,7 +269,7 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
                     
                     {isCreator && (
                       <Link href={`/events/${event.id}`} className="flex-1">
-                        <Button variant="secondary" size="sm" className="w-full">
+                        <Button variant="secondary" className="w-full">
                           Manage
                         </Button>
                       </Link>
@@ -282,7 +282,7 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
             {events.length > 0 && (
               <div className="text-center pt-4">
                 <Link href="/events">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline">
                     View All Events
                   </Button>
                 </Link>

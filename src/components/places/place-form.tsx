@@ -501,7 +501,7 @@ export default function PlaceForm({
                       <Button
                         type="button"
                         variant="destructive"
-                        size="sm"
+                       
                         className="absolute top-2 right-2"
                         onClick={removeImage}
                       >
@@ -576,7 +576,7 @@ export default function PlaceForm({
                     <Button
                       type="button"
                       variant="outline"
-                      size="sm"
+                     
                       onClick={clearAddress}
                       className="text-sm"
                     >

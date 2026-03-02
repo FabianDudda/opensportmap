@@ -72,7 +72,7 @@ export default function FilterBottomSheet({
                   <Button
                     key={sport}
                     variant={isSelected ? 'default' : 'outline'}
-                    size="sm"
+                   
                     onClick={() => onSportChange(sport)}
                     className={cn(
                       "h-10 px-3 flex items-center gap-3 justify-start relative",

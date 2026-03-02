@@ -98,7 +98,7 @@ export default function PlaceMapSelector({
           </div>
           <Button
             variant="ghost"
-            size="sm"
+           
             onClick={handleClearSelection}
             className="text-blue-700 hover:text-blue-900 hover:bg-blue-100 flex-shrink-0"
           >

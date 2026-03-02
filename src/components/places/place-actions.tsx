@@ -39,18 +39,18 @@ export default function PlaceActions({ place }: PlaceActionsProps) {
   return (
     <div className="flex gap-2">
       {canEdit && (
-        <Button variant="outline" size="sm" asChild>
+        <Button variant="outline" asChild>
           <Link href={`/places/${place.id}/edit`}>
             <Edit className="h-4 w-4 mr-2" />
             {isAdmin ? 'Edit' : 'Suggest Edit'}
           </Link>
         </Button>
       )}
-      <Button variant="outline" size="sm" onClick={handleShare}>
+      <Button variant="outline" onClick={handleShare}>
         <Share2 className="h-4 w-4 mr-2" />
         Share
       </Button>
-      <Button variant="outline" size="sm" onClick={handleDirections}>
+      <Button variant="outline" onClick={handleDirections}>
         <Navigation className="h-4 w-4 mr-2" />
         Directions
       </Button>

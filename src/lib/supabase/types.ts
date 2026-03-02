@@ -559,6 +559,7 @@ export type Database = {
         | "beachvolleyball"
         | "boule"
         | "skatepark"
+        | "calisthenics"
     }
     CompositeTypes: {
       [_ in never]: never

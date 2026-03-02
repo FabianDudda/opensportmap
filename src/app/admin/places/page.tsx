@@ -206,7 +206,7 @@ function PlaceCard({
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -293,7 +293,7 @@ function PlaceCard({
         {place.moderation_status === 'pending' && (
           <div className="flex gap-2 pt-2">
             <Button 
-              size="sm" 
+              
               onClick={() => onApprove(place.id)}
               className="flex-1"
             >
@@ -303,7 +303,7 @@ function PlaceCard({
             
             <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" variant="destructive" className="flex-1">
+                <Button variant="destructive" className="flex-1">
                   <XCircle className="h-4 w-4 mr-2" />
                   Reject
                 </Button>
@@ -486,7 +486,7 @@ function PlacesList({ status }: { status: ModerationStatus }) {
             <div className="flex items-center gap-4">
               <Button
                 variant={isBulkMode ? "default" : "outline"}
-                size="sm"
+               
                 onClick={() => {
                   setIsBulkMode(!isBulkMode)
                   setSelectedPlaces(new Set())
@@ -515,7 +515,7 @@ function PlacesList({ status }: { status: ModerationStatus }) {
             {isBulkMode && selectedPlaces.size > 0 && (
               <div className="flex items-center gap-2">
                 <Button
-                  size="sm"
+                 
                   onClick={handleBulkApprove}
                   disabled={bulkApproveMutation.isPending}
                   className="bg-green-600 hover:bg-green-700"
@@ -524,7 +524,7 @@ function PlacesList({ status }: { status: ModerationStatus }) {
                   Approve Selected ({selectedPlaces.size})
                 </Button>
                 <Button
-                  size="sm"
+                 
                   variant="outline"
                   onClick={clearSelection}
                 >
@@ -703,7 +703,7 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
           </div>
           <Button
             variant="outline"
-            size="sm"
+           
             onClick={() => setShowDiff(!showDiff)}
           >
             {showDiff ? 'Hide Changes' : 'Show Changes'}
@@ -768,7 +768,7 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
         
         <div className="flex gap-2 pt-2">
           <Button 
-            size="sm" 
+            
             onClick={() => onApprove(edit.id)}
             className="flex-1"
           >
@@ -778,7 +778,7 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
           
           <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="destructive" className="flex-1">
+              <Button variant="destructive" className="flex-1">
                 <XCircle className="h-4 w-4 mr-2" />
                 Reject
               </Button>

@@ -26,7 +26,7 @@ import { MapPin, Plus, Search, Filter } from 'lucide-react'
 import Link from 'next/link'
 
 
-const SPORTS = [ 'fußball', 'basketball', 'tischtennis', 'tennis', 'beachvolleyball', 'volleyball', 'skatepark', 'boule', 'hockey'] as const
+const SPORTS = [ 'fußball', 'basketball', 'tischtennis', 'tennis', 'volleyball', 'beachvolleyball', 'skatepark', 'calisthenics', 'boule'] as const
 
 const SURFACE_TYPES = [
   'Rasen',
