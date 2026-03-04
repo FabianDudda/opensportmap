@@ -84,13 +84,13 @@ export default function FilterBottomSheetVaul({
                   type="button"
                   onClick={() => toggleSport(sport)}
                   className={cn(
-                    'flex flex-col items-center justify-center gap-2 py-3 rounded-xl border transition-all cursor-pointer',
+                    'flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border transition-all cursor-pointer',
                     isSelected
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
                   )}
                 >
-                  <span className="text-2xl leading-none">{sportIcon}</span>
+                  <span className="text-[20px] leading-none">{sportIcon}</span>
                   <span className="text-sm font-medium">{sportName}</span>
                 </button>
               )

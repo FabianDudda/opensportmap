@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/providers/auth-provider'
-import { Button } from '@/components/ui/button'
-
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
 import { useQuery } from '@tanstack/react-query'
 import { database } from '@/lib/supabase/database'
 import { PlaceWithCourts, SportType } from '@/lib/supabase/types'
-// Dynamic import to prevent SSR issues with Leaflet
+import AddPlaceBottomSheetVaul from '@/components/map/add-place-bottom-sheet-vaul'
+
 const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map'), {
   ssr: false,
   loading: () => (
@@ -22,37 +20,33 @@ const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map
     </div>
   )
 })
-import { MapPin, Plus, Search, Filter } from 'lucide-react'
-import Link from 'next/link'
-
-
-const SPORTS = [ 'fußball', 'basketball', 'tischtennis', 'tennis', 'volleyball', 'beachvolleyball', 'skatepark', 'calisthenics', 'boule'] as const
-
-const SURFACE_TYPES = [
-  'Rasen',
-  'Hartplatz', 
-  'Asphalt',
-  'Kunststoffbelag',
-  'Asche',
-  'Kunstrasen',
-  'Sonstiges',
-] as const
 
 export default function CourtsPage() {
   const { user, loading } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [selectedSports, setSelectedSports] = useState<SportType[]>([])
-  const [selectedSurface, setSelectedSurface] = useState<string | 'all'>('all')
   const [selectedPlace, setSelectedPlace] = useState<PlaceWithCourts | null>(null)
+  const [isAddPlaceOpen, setIsAddPlaceOpen] = useState(false)
 
-  // Fetch all places (formerly courts) — wait for auth to initialize first so the
-  // session is properly set before the query runs, preventing empty RLS responses
-  // from being cached by React Query before auth is ready.
+  // Open sheet when ?addPlace=1 is in the URL
+  useEffect(() => {
+    if (searchParams.get('addPlace') === '1') {
+      setIsAddPlaceOpen(true)
+    }
+  }, [searchParams])
+
+  const handleAddPlaceOpenChange = (open: boolean) => {
+    setIsAddPlaceOpen(open)
+    if (!open) {
+      router.replace('/map')
+    }
+  }
+
   const { data: places = [], isLoading, isError, error } = useQuery({
     queryKey: ['places'],
     queryFn: async () => {
-      console.log('[Map] Fetching map pins...')
       const result = await database.courts.getAllCourts()
-      console.log('[Map] Map pins loaded:', result.length, 'places')
       return result
     },
     enabled: !loading,
@@ -64,26 +58,11 @@ export default function CourtsPage() {
     }
   }, [isError, error])
 
-  // Filter places based on sports and surface
   const filteredPlaces = places.filter((place) => {
-    const noSportFilter = selectedSports.length === 0
-    const noSurfaceFilter = selectedSurface === 'all'
-
-    if (noSportFilter && noSurfaceFilter) return true
-
-    if (noSportFilter) {
-      return place.courts?.some(court => court.surface === selectedSurface)
-    }
-
-    if (noSurfaceFilter) {
-      return selectedSports.some(sport =>
-        place.courts?.some(court => court.sport === sport) ||
-        place.sports?.includes(sport)
-      )
-    }
-
+    if (selectedSports.length === 0) return true
     return selectedSports.some(sport =>
-      place.courts?.some(court => court.sport === sport && court.surface === selectedSurface)
+      place.courts?.some(court => court.sport === sport) ||
+      place.sports?.includes(sport)
     )
   })
 
@@ -93,18 +72,21 @@ export default function CourtsPage() {
     }
   }, [filteredPlaces.length, selectedSports, isLoading])
 
-  const handlePlaceSelect = (place: PlaceWithCourts) => {
-    setSelectedPlace(place)
-  }
-
   return (
-    <LeafletCourtMap
-      courts={filteredPlaces}
-      onCourtSelect={handlePlaceSelect}
-      height="100dvh"
-      selectedSports={selectedSports}
-      onSportsChange={setSelectedSports}
-      placesCount={filteredPlaces.length}
-    />
+    <>
+      <LeafletCourtMap
+        courts={filteredPlaces}
+        onCourtSelect={setSelectedPlace}
+        height="calc(100dvh - 4rem)"
+        selectedSports={selectedSports}
+        onSportsChange={setSelectedSports}
+        placesCount={filteredPlaces.length}
+      />
+      <AddPlaceBottomSheetVaul
+        isOpen={isAddPlaceOpen}
+        onOpenChange={handleAddPlaceOpenChange}
+        user={user}
+      />
+    </>
   )
 }

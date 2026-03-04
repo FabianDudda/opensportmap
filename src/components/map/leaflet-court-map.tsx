@@ -38,6 +38,7 @@ interface LeafletCourtMapProps {
   placesCount?: number
   showAddCourtButton?: boolean
   onAddCourtClick?: () => void
+  showFilter?: boolean
 }
 
 // Component to handle map clicks
@@ -231,11 +232,11 @@ function LayerToggleHandler({ currentLayerId, onLayerChange }: { currentLayerId:
   }
 
   useEffect(() => {
-    // Create bottom-right stack container if it doesn't exist
-    let bottomRightStack = map.getContainer().querySelector('.map-control-bottom-right-stack') as HTMLElement
-    if (!bottomRightStack) {
-      bottomRightStack = L.DomUtil.create('div', 'map-control-bottom-right-stack')
-      map.getContainer().appendChild(bottomRightStack)
+    // Create top-right stack container if it doesn't exist
+    let topRightStack = map.getContainer().querySelector('.map-control-top-right-stack') as HTMLElement
+    if (!topRightStack) {
+      topRightStack = L.DomUtil.create('div', 'map-control-top-right-stack')
+      map.getContainer().appendChild(topRightStack)
     }
 
     // Create layer toggle button container
@@ -256,8 +257,8 @@ function LayerToggleHandler({ currentLayerId, onLayerChange }: { currentLayerId:
     L.DomEvent.disableClickPropagation(layerContainer)
     L.DomEvent.disableScrollPropagation(layerContainer)
 
-    // Add to bottom-right stack (will appear above location button)
-    bottomRightStack.appendChild(layerContainer)
+    // Add to top-right stack, below the filter button
+    topRightStack.appendChild(layerContainer)
     
     return () => {
       layerContainer.remove()
@@ -360,6 +361,7 @@ export default function LeafletCourtMap({
   placesCount = 0,
   showAddCourtButton = false,
   onAddCourtClick,
+  showFilter = true,
 }: LeafletCourtMapProps) {
   const { user, profile } = useAuth()
   const [selectedCourt, setSelectedCourt] = useState<PlaceWithCourts | null>(null)
@@ -525,7 +527,7 @@ export default function LeafletCourtMap({
           <UserLocationHandler onLocationFound={handleLocationFound} />
           
           {/* Filter button */}
-          <FilterButtonHandler onFilterClick={handleFilterClick} isFilterActive={selectedSports.length > 0} />
+          {showFilter && <FilterButtonHandler onFilterClick={handleFilterClick} isFilterActive={selectedSports.length > 0} />}
           
           
           {/* Custom attribution control */}

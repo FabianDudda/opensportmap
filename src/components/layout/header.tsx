@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/providers/auth-provider'
-import { MapPin, Trophy, Plus, User, LogOut, Menu, TestTube, Shield, Calendar, LogIn } from 'lucide-react'
+import { MapPin, Trophy, Plus, User, LogOut, TestTube, Shield, Calendar, LogIn } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import Image from 'next/image'
 import '@/components/map/map-controls.css'
 
 export default function Header() {
-  const { user, signOut, loading, isAdmin } = useAuth()
+  const { user, signOut, loading, isAdmin, profile } = useAuth()
   const [open, setOpen] = useState(false)
 
   const navigation = [
@@ -29,8 +30,19 @@ export default function Header() {
     <div className="fixed top-4 left-4 z-50">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <button className="map-control-button">
-            <Menu className="h-5 w-5" />
+          <button className="map-control-button !p-0 overflow-hidden">
+            {profile?.avatar ? (
+              <div className="relative h-full w-full">
+                <Image
+                  src={profile.avatar}
+                  alt={profile.name ?? 'Profile'}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <User className="h-5 w-5" />
+            )}
             <span className="sr-only">Toggle menu</span>
           </button>
         </SheetTrigger>
