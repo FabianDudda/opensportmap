@@ -1,5 +1,5 @@
 import { supabase } from './client'
-import { Profile, Place, Court, LegacyCourt, PlaceWithCourts, Match, MatchParticipant, SportType, MatchResult, LeaderboardEntry, ModerationStatus, PendingPlaceChange, PlaceChangeType, Event, EventParticipant, EventStatus, SkillLevel, EventWithDetails } from './types'
+import { Profile, Place, Court, LegacyCourt, PlaceWithCourts, Match, MatchParticipant, SportType, MatchResult, LeaderboardEntry, ModerationStatus, PendingPlaceChange, PlaceChangeType, Event, EventParticipant, EventStatus, SkillLevel, EventWithDetails, UserFavorite } from './types'
 
 // Helper function to fetch all records with automatic pagination
 async function fetchAllRecords<T>(queryBuilder: any): Promise<T[]> {
@@ -1287,6 +1287,65 @@ export const database = {
       }
       return data || []
     }
+  },
+
+  // Favorites operations
+  favorites: {
+    getFavorites: async (userId: string): Promise<UserFavorite[]> => {
+      const { data, error } = await supabase
+        .from('user_favorites')
+        .select(`
+          *,
+          places (
+            *,
+            courts (
+              id,
+              place_id,
+              sport,
+              quantity,
+              surface,
+              notes,
+              created_at
+            )
+          )
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching favorites:', error)
+        return []
+      }
+      return data || []
+    },
+
+    addFavorite: async (userId: string, placeId: string) => {
+      const { data, error } = await supabase
+        .from('user_favorites')
+        .insert({ user_id: userId, place_id: placeId })
+        .select()
+        .single()
+      return { data, error }
+    },
+
+    removeFavorite: async (userId: string, placeId: string) => {
+      const { data, error } = await supabase
+        .from('user_favorites')
+        .delete()
+        .eq('user_id', userId)
+        .eq('place_id', placeId)
+      return { data, error }
+    },
+
+    isFavorite: async (userId: string, placeId: string): Promise<boolean> => {
+      const { data } = await supabase
+        .from('user_favorites')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('place_id', placeId)
+        .maybeSingle()
+      return !!data
+    },
   },
 }
 

@@ -1,18 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
-import { Map, MapPin, Heart } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { Map, Plus, User } from 'lucide-react'
 
 export default function BottomNav() {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const isAddPlaceOpen = pathname === '/map' && searchParams.get('addPlace') === '1'
 
   const items = [
-    { name: 'Map', href: '/map', icon: Map, active: pathname === '/map' && !isAddPlaceOpen },
-    { name: 'Favorites', href: '/favorites', icon: Heart, active: pathname.startsWith('/favorites') },
-    { name: 'Add Place', href: '/map?addPlace=1', icon: MapPin, active: isAddPlaceOpen },
+    { name: 'Map', href: '/map', icon: Map, active: pathname === '/map' },
+    { name: 'Add Place', href: '/map?addPlace=1', icon: Plus, active: false },
+    { name: 'Profile', href: '/profile', icon: User, active: pathname === '/profile' },
   ]
 
   return (
@@ -22,7 +20,7 @@ export default function BottomNav() {
           <Link
             key={item.name}
             href={item.href}
-            className={`flex flex-col items-center gap-1 text-xs font-medium transition-colors ${
+            className={`flex flex-1 flex-col items-center gap-1 text-xs font-medium transition-colors ${
               item.active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
             }`}
           >

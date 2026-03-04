@@ -39,6 +39,10 @@ interface LeafletCourtMapProps {
   showAddCourtButton?: boolean
   onAddCourtClick?: () => void
   showFilter?: boolean
+  // External place selection (e.g. from favorites sheet)
+  openPlace?: PlaceWithCourts | null
+  onOpenPlaceHandled?: () => void
+  onFavoritesClick?: () => void
 }
 
 // Component to handle map clicks
@@ -348,10 +352,49 @@ function AddCourtButtonHandler({ onAddCourtClick, user }: { onAddCourtClick: () 
   return null
 }
 
-export default function LeafletCourtMap({ 
-  courts, 
-  onCourtSelect, 
-  onMapClick, 
+// Component to handle saved/favorites button at center-right
+function FavoritesButtonHandler({ onClick }: { onClick: () => void }) {
+  const map = useMap()
+
+  useEffect(() => {
+    let centerRightStack = map.getContainer().querySelector('.map-control-center-right-stack') as HTMLElement
+    if (!centerRightStack) {
+      centerRightStack = L.DomUtil.create('div', 'map-control-center-right-stack')
+      map.getContainer().appendChild(centerRightStack)
+    }
+
+    const container = L.DomUtil.create('div', 'leaflet-control-favorites')
+    const button = L.DomUtil.create('button', 'favorites-button map-control-button', container)
+    button.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    `
+    button.title = 'Saved Places'
+
+    L.DomEvent.on(button, 'click', (e) => {
+      L.DomEvent.preventDefault(e)
+      onClick()
+    })
+
+    L.DomEvent.disableClickPropagation(container)
+    L.DomEvent.disableScrollPropagation(container)
+
+    centerRightStack.appendChild(container)
+
+    return () => {
+      container.remove()
+    }
+  }, [map, onClick])
+
+  return null
+}
+
+
+export default function LeafletCourtMap({
+  courts,
+  onCourtSelect,
+  onMapClick,
   height = '400px',
   allowAddCourt = false,
   selectedLocation = null,
@@ -362,6 +405,9 @@ export default function LeafletCourtMap({
   showAddCourtButton = false,
   onAddCourtClick,
   showFilter = true,
+  openPlace,
+  onOpenPlaceHandled,
+  onFavoritesClick,
 }: LeafletCourtMapProps) {
   const { user, profile } = useAuth()
   const [selectedCourt, setSelectedCourt] = useState<PlaceWithCourts | null>(null)
@@ -401,6 +447,13 @@ export default function LeafletCourtMap({
     }
     onCourtSelect?.(court)
   }, [onCourtSelect])
+
+  useEffect(() => {
+    if (openPlace) {
+      handleCourtSelect(openPlace)
+      onOpenPlaceHandled?.()
+    }
+  }, [openPlace, handleCourtSelect, onOpenPlaceHandled])
 
   const handleExplicitClose = useCallback(() => {
     console.log('🗂️ Explicit close requested - clearing selection and closing sheet')
@@ -528,6 +581,9 @@ export default function LeafletCourtMap({
           
           {/* Filter button */}
           {showFilter && <FilterButtonHandler onFilterClick={handleFilterClick} isFilterActive={selectedSports.length > 0} />}
+
+          {/* Center-right action buttons */}
+          {onFavoritesClick && <FavoritesButtonHandler onClick={onFavoritesClick} />}
           
           
           {/* Custom attribution control */}

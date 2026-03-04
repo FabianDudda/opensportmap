@@ -140,7 +140,7 @@ export default function ProfilePage() {
   const overallWinRate = getOverallWinRate()
 
   return (
-    <div className="container px-4 py-8">
+    <div className="container px-4 py-8 overflow-x-hidden">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Profile Header */}
         <Card>
@@ -153,44 +153,40 @@ export default function ProfilePage() {
                 </AvatarFallback>
               </Avatar>
               
-              <div className="flex-1 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {isEditing ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="text-2xl font-bold h-auto py-1"
-                        />
-                        <Button onClick={handleSaveName}>
-                          <Save className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          
-                          variant="outline" 
-                          onClick={() => {
-                            setEditName(profile.name)
-                            setIsEditing(false)
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <h1 className="text-3xl font-bold">{profile.name}</h1>
-                        <Button 
-                          
-                          variant="outline"
-                          onClick={() => setIsEditing(true)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
+              <div className="flex-1 min-w-0 space-y-4">
+                {isEditing ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="text-2xl font-bold h-auto py-1 min-w-0"
+                    />
+                    <Button className="shrink-0" onClick={handleSaveName}>
+                      <Save className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      className="shrink-0"
+                      variant="outline"
+                      onClick={() => {
+                        setEditName(profile.name)
+                        setIsEditing(false)
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center gap-3 min-w-0">
+                    <h1 className="text-3xl font-bold truncate min-w-0">{profile.name}</h1>
+                    <Button
+                      variant="outline"
+                      className="shrink-0"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
                 
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Mail className="h-4 w-4" />

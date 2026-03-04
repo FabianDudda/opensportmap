@@ -750,6 +750,14 @@ export interface LeaderboardEntry {
   rank: number
 }
 
+export interface UserFavorite {
+  id: string
+  user_id: string
+  place_id: string
+  created_at: string
+  places?: PlaceWithCourts
+}
+
 export interface EventWithDetails extends Event {
   participant_count: number
   user_joined: boolean

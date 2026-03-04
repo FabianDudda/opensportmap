@@ -288,7 +288,7 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[98dvh] max-w-2xl mx-auto">
-        <DrawerHeader className="pb-0">
+        <DrawerHeader>
           <div className="flex items-center justify-between">
             <DrawerTitle className="text-xl">Add a Place</DrawerTitle>
             <Button variant="secondary" size="icon" onClick={() => onOpenChange(false)} title="Close" className="rounded-full">

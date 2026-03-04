@@ -12,7 +12,7 @@ import { getDistanceText } from '@/lib/utils/distance'
 import { uploadCourtImage } from '@/lib/supabase/storage'
 import { database } from '@/lib/supabase/database'
 import { useToast } from '@/hooks/use-toast'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 interface PlaceBottomSheetVaulProps {
   isOpen: boolean
@@ -34,6 +34,26 @@ export default function PlaceBottomSheetVaul({
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [imageFile, setImageFile] = useState<File | null>(null)
+
+  const { data: isFavorited = false } = useQuery({
+    queryKey: ['favorite', user?.id, selectedCourt?.id],
+    queryFn: () => database.favorites.isFavorite(user!.id, selectedCourt!.id),
+    enabled: !!user && !!selectedCourt,
+  })
+
+  const favoriteMutation = useMutation({
+    mutationFn: () => isFavorited
+      ? database.favorites.removeFavorite(user!.id, selectedCourt!.id)
+      : database.favorites.addFavorite(user!.id, selectedCourt!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['favorite', user?.id, selectedCourt?.id] })
+      queryClient.invalidateQueries({ queryKey: ['favorites', user?.id] })
+      toast({ title: isFavorited ? 'Removed from saved places' : 'Saved!' })
+    },
+    onError: () => {
+      toast({ title: 'Something went wrong', variant: 'destructive' })
+    },
+  })
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
 
@@ -79,7 +99,7 @@ export default function PlaceBottomSheetVaul({
       >
         {selectedCourt && (
           <div className="space-y-4 px-4 pb-4">
-            <DrawerHeader className="px-0 pb-0">
+            <DrawerHeader className="px-0">
               <div className="flex items-center justify-between">
                 <div className="flex-1 text-left">
                   <DrawerTitle className="text-xl text-left">
@@ -201,14 +221,20 @@ export default function PlaceBottomSheetVaul({
               </Button>
               <Button
                 variant="secondary"
-               
                 className="flex-1 text-base"
                 onClick={() => {
-                  console.log('Save place:', selectedCourt.id)
+                  if (!user) {
+                    window.location.href = '/auth/signin'
+                    return
+                  }
+                  favoriteMutation.mutate()
                 }}
+                disabled={favoriteMutation.isPending}
               >
-                <Heart className="h-4 w-4 mr-1" />
-                Save
+                {favoriteMutation.isPending
+                  ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  : <Heart className={`h-4 w-4 mr-1 ${isFavorited ? 'fill-rose-500 text-rose-500' : ''}`} />}
+                {isFavorited ? 'Saved' : 'Save'}
               </Button>
             </div>
 

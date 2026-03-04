@@ -49,7 +49,7 @@ export default function FilterBottomSheetVaul({
         hideOverlay
         className="h-auto max-w-2xl mx-auto"
       >
-        <DrawerHeader className="pb-0">
+        <DrawerHeader>
           <div className="flex items-center justify-between">
             <DrawerTitle className="text-xl">Filter</DrawerTitle>
             <div className="flex items-center gap-2">
