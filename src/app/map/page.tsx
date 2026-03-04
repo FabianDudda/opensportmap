@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/providers/auth-provider'
@@ -21,7 +21,7 @@ const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map
   )
 })
 
-export default function CourtsPage() {
+function MapPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -29,7 +29,6 @@ export default function CourtsPage() {
   const [selectedPlace, setSelectedPlace] = useState<PlaceWithCourts | null>(null)
   const [isAddPlaceOpen, setIsAddPlaceOpen] = useState(false)
 
-  // Open sheet when ?addPlace=1 is in the URL
   useEffect(() => {
     if (searchParams.get('addPlace') === '1') {
       setIsAddPlaceOpen(true)
@@ -45,17 +44,12 @@ export default function CourtsPage() {
 
   const { data: places = [], isLoading, isError, error } = useQuery({
     queryKey: ['places'],
-    queryFn: async () => {
-      const result = await database.courts.getAllCourts()
-      return result
-    },
+    queryFn: () => database.courts.getAllCourts(),
     enabled: !loading,
   })
 
   useEffect(() => {
-    if (isError) {
-      console.error('[Map] Failed to load map pins:', error)
-    }
+    if (isError) console.error('[Map] Failed to load map pins:', error)
   }, [isError, error])
 
   const filteredPlaces = places.filter((place) => {
@@ -88,5 +82,13 @@ export default function CourtsPage() {
         user={user}
       />
     </>
+  )
+}
+
+export default function CourtsPage() {
+  return (
+    <Suspense>
+      <MapPage />
+    </Suspense>
   )
 }
