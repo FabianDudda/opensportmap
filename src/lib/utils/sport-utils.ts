@@ -32,7 +32,8 @@ export const sportNames: Record<string, string> = {
   tischtennis: 'Tischtennis',
   beachvolleyball: 'Beachvolleyball',
   boule: 'Boule',
-  skatepark: 'Skatepark'
+  skatepark: 'Skatepark',
+  calisthenics: 'Calisthenics'
 }
 
 // Modern badge styling with subtle backgrounds and default text color using Tailwind

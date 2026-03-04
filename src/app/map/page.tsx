@@ -40,7 +40,7 @@ const SURFACE_TYPES = [
 
 export default function CourtsPage() {
   const { user, loading } = useAuth()
-  const [selectedSport, setSelectedSport] = useState<SportType | 'all'>('all')
+  const [selectedSports, setSelectedSports] = useState<SportType[]>([])
   const [selectedSurface, setSelectedSurface] = useState<string | 'all'>('all')
   const [selectedPlace, setSelectedPlace] = useState<PlaceWithCourts | null>(null)
 
@@ -64,49 +64,46 @@ export default function CourtsPage() {
     }
   }, [isError, error])
 
-  // Filter places based on sport and surface
+  // Filter places based on sports and surface
   const filteredPlaces = places.filter((place) => {
-    // Check if place matches the sport+surface combination
-    const matchesCombination = 
-      // Both filters are "all" - show all places
-      (selectedSport === 'all' && selectedSurface === 'all') ||
-      // Only sport filter is active
-      (selectedSport !== 'all' && selectedSurface === 'all' && (
-        place.courts?.some(court => court.sport === selectedSport) ||
-        place.sports?.includes(selectedSport) // fallback to legacy sports array
-      )) ||
-      // Only surface filter is active (shouldn't happen with current UI, but for completeness)
-      (selectedSport === 'all' && selectedSurface !== 'all' && 
-        place.courts?.some(court => court.surface === selectedSurface)
-      ) ||
-      // Both filters are active - find courts with BOTH the sport AND surface
-      (selectedSport !== 'all' && selectedSurface !== 'all' &&
-        place.courts?.some(court => court.sport === selectedSport && court.surface === selectedSurface)
+    const noSportFilter = selectedSports.length === 0
+    const noSurfaceFilter = selectedSurface === 'all'
+
+    if (noSportFilter && noSurfaceFilter) return true
+
+    if (noSportFilter) {
+      return place.courts?.some(court => court.surface === selectedSurface)
+    }
+
+    if (noSurfaceFilter) {
+      return selectedSports.some(sport =>
+        place.courts?.some(court => court.sport === sport) ||
+        place.sports?.includes(sport)
       )
-    
-    return matchesCombination
+    }
+
+    return selectedSports.some(sport =>
+      place.courts?.some(court => court.sport === sport && court.surface === selectedSurface)
+    )
   })
 
   useEffect(() => {
     if (!isLoading) {
-      console.log('[Map] Pins displayed on map:', filteredPlaces.length, `(sport: ${selectedSport})`)
+      console.log('[Map] Pins displayed on map:', filteredPlaces.length, `(sports: ${selectedSports.join(', ') || 'all'})`)
     }
-  }, [filteredPlaces.length, selectedSport, isLoading])
+  }, [filteredPlaces.length, selectedSports, isLoading])
 
   const handlePlaceSelect = (place: PlaceWithCourts) => {
     setSelectedPlace(place)
   }
 
   return (
-    <LeafletCourtMap 
+    <LeafletCourtMap
       courts={filteredPlaces}
       onCourtSelect={handlePlaceSelect}
-      height="calc(100dvh - 4rem)"
-      selectedSport={selectedSport}
-      onSportChange={(sport) => {
-        setSelectedSport(sport)
-        setSelectedSurface('all') // Reset surface filter when sport changes
-      }}
+      height="100dvh"
+      selectedSports={selectedSports}
+      onSportsChange={setSelectedSports}
       placesCount={filteredPlaces.length}
     />
   )

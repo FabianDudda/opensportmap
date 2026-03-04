@@ -2,7 +2,7 @@
 
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
-import { Check, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { SportType } from '@/lib/supabase/types'
 import { sportNames, sportIcons } from '@/lib/utils/sport-utils'
 import { cn } from '@/lib/utils'
@@ -11,12 +11,11 @@ interface FilterBottomSheetVaulProps {
   isOpen: boolean
   onClose: (open: boolean) => void
   onExplicitClose: () => void
-  selectedSport: SportType | 'all'
-  onSportChange: (sport: SportType | 'all') => void
+  selectedSports: SportType[]
+  onSportsChange: (sports: SportType[]) => void
 }
 
-const SPORTS: (SportType | 'all')[] = [
-  'all',
+const SPORTS: SportType[] = [
   'fußball',
   'basketball',
   'tischtennis',
@@ -33,9 +32,17 @@ export default function FilterBottomSheetVaul({
   isOpen,
   onClose,
   onExplicitClose,
-  selectedSport,
-  onSportChange
+  selectedSports,
+  onSportsChange
 }: FilterBottomSheetVaulProps) {
+  const toggleSport = (sport: SportType) => {
+    if (selectedSports.includes(sport)) {
+      onSportsChange(selectedSports.filter(s => s !== sport))
+    } else {
+      onSportsChange([...selectedSports, sport])
+    }
+  }
+
   return (
     <Drawer open={isOpen} onOpenChange={onClose} modal={false} shouldScaleBackground={false}>
       <DrawerContent
@@ -45,42 +52,47 @@ export default function FilterBottomSheetVaul({
         <DrawerHeader className="pb-0">
           <div className="flex items-center justify-between">
             <DrawerTitle className="text-xl">Filter</DrawerTitle>
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={onExplicitClose}
-              title="Close"
-              className="rounded-full"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {selectedSports.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={() => onSportsChange([])}>
+                  Zurücksetzen
+                </Button>
+              )}
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={onExplicitClose}
+                title="Close"
+                className="rounded-full"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </DrawerHeader>
 
-        <div className="space-y-6 px-4 py-6 max-h-[70vh] overflow-y-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="px-4 py-4 max-h-[70vh] overflow-y-auto">
+          <div className="grid grid-cols-3 gap-2">
             {SPORTS.map((sport) => {
-              const isSelected = selectedSport === sport
-              const sportName = sport === 'all' ? 'Alle Sportarten' : sportNames[sport] || sport
-              const sportIcon = sport === 'all' ? '🏟️' : sportIcons[sport] || '📍'
+              const isSelected = selectedSports.includes(sport)
+              const sportName = sportNames[sport] || sport
+              const sportIcon = sportIcons[sport] || '📍'
 
               return (
-                <Button
+                <button
                   key={sport}
-                  variant={isSelected ? 'default' : 'outline'}
-                 
-                  onClick={() => onSportChange(sport)}
+                  type="button"
+                  onClick={() => toggleSport(sport)}
                   className={cn(
-                    "px-3 flex items-center gap-3 justify-start relative",
-                    isSelected && "ring-2 ring-primary ring-offset-2"
+                    'flex flex-col items-center justify-center gap-2 py-3 rounded-xl border transition-all cursor-pointer',
+                    isSelected
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
                   )}
                 >
-                  {isSelected && (
-                    <Check className="w-4 h-4 absolute top-1 right-1 text-primary" />
-                  )}
-                  <span className="text-xl">{sportIcon}</span>
-                  <span className="text-base font-medium">{sportName}</span>
-                </Button>
+                  <span className="text-2xl leading-none">{sportIcon}</span>
+                  <span className="text-sm font-medium">{sportName}</span>
+                </button>
               )
             })}
           </div>

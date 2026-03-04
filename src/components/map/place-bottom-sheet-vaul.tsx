@@ -78,7 +78,7 @@ export default function PlaceBottomSheetVaul({
         className="border-0 h-auto max-w-2xl mx-auto"
       >
         {selectedCourt && (
-          <div className="space-y-4 px-6 pb-6">
+          <div className="space-y-4 px-4 pb-4">
             <DrawerHeader className="px-0 pb-0">
               <div className="flex items-center justify-between">
                 <div className="flex-1 text-left">
@@ -171,7 +171,7 @@ export default function PlaceBottomSheetVaul({
                 : (selectedCourt.sports?.reduce((acc, sport) => ({ ...acc, [sport]: 1 }), {} as Record<string, number>) || {})
 
               return Object.keys(sportsWithCounts).length > 0 && (
-                <div className="flex gap-2 overflow-x-auto -mx-6 px-6">
+                <div className="flex gap-2 overflow-x-auto -mx-4 px-4">
                   {Object.entries(sportsWithCounts).map(([sport, count]) => (
                     <div
                       key={sport}
@@ -248,7 +248,7 @@ export default function PlaceBottomSheetVaul({
                   <div className="text-center space-y-3">
                     <Image className="h-10 w-10 mx-auto text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">No photo yet — be the first to add one!</p>
-                    <Button type="button" onClick={() => document.getElementById(`upload-${selectedCourt.id}`)?.click()}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById(`upload-${selectedCourt.id}`)?.click()}>
                       <Upload className="h-4 w-4 mr-2" />
                       Add Photo
                     </Button>

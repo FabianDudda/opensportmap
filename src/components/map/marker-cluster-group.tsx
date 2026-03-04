@@ -13,7 +13,7 @@ interface MarkerClusterGroupProps {
   courts: PlaceWithCourts[]
   onCourtSelect?: (court: PlaceWithCourts) => void
   selectedCourt?: PlaceWithCourts | null
-  selectedSport?: SportType | 'all'
+  selectedSports?: SportType[]
 }
 
 // Create custom cluster icon
@@ -39,7 +39,7 @@ function createClusterIcon(cluster: L.MarkerCluster) {
   })
 }
 
-export default function MarkerClusterGroup({ courts, onCourtSelect, selectedCourt, selectedSport = 'all' }: MarkerClusterGroupProps) {
+export default function MarkerClusterGroup({ courts, onCourtSelect, selectedCourt, selectedSports = [] }: MarkerClusterGroupProps) {
   const map = useMap()
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null)
   const markersRef = useRef<L.Marker[]>([])
@@ -74,12 +74,8 @@ export default function MarkerClusterGroup({ courts, onCourtSelect, selectedCour
         ? [...new Set(court.courts.map(c => c.sport))]
         : (court.sports || [])
       
-      // Filter sports for icon display based on selected sport filter
-      const sportsForIcon = selectedSport === 'all' 
-        ? availableSports
-        : availableSports.includes(selectedSport) 
-          ? [selectedSport]
-          : availableSports
+      const matchingSports = availableSports.filter(s => selectedSports.includes(s))
+      const sportsForIcon = selectedSports.length === 0 ? availableSports : matchingSports.length > 0 ? matchingSports : availableSports
       
       const marker = L.marker([court.latitude, court.longitude], {
         icon: createSportIcon(sportsForIcon, false), // Use filtered sports for icon
@@ -107,7 +103,7 @@ export default function MarkerClusterGroup({ courts, onCourtSelect, selectedCour
       clusterGroup.clearLayers()
       markersRef.current = []
     }
-  }, [courts, map, onCourtSelect, selectedSport])
+  }, [courts, map, onCourtSelect, selectedSports])
 
   // Handle court selection events from popups
   useEffect(() => {

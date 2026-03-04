@@ -32,9 +32,9 @@ interface LeafletCourtMapProps {
   allowAddCourt?: boolean
   selectedLocation?: { lat: number; lng: number } | null
   enableClustering?: boolean
-  selectedSport?: SportType | 'all'
+  selectedSports?: SportType[]
   // Filter props
-  onSportChange?: (sport: SportType | 'all') => void
+  onSportsChange?: (sports: SportType[]) => void
   placesCount?: number
   showAddCourtButton?: boolean
   onAddCourtClick?: () => void
@@ -74,9 +74,9 @@ function MapClickHandler({
 
 
 // Component to handle filter button in top right corner
-function FilterButtonHandler({ onFilterClick }: { onFilterClick: () => void }) {
+function FilterButtonHandler({ onFilterClick, isFilterActive }: { onFilterClick: () => void, isFilterActive: boolean }) {
   const map = useMap()
-  
+
   useEffect(() => {
     // Create top-right stack container if it doesn't exist
     let topRightStack = map.getContainer().querySelector('.map-control-top-right-stack') as HTMLElement
@@ -94,6 +94,7 @@ function FilterButtonHandler({ onFilterClick }: { onFilterClick: () => void }) {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
       </svg>
+      ${isFilterActive ? '<span class="filter-active-dot"></span>' : ''}
     `
     filterButton.title = 'Filter'
 
@@ -109,12 +110,12 @@ function FilterButtonHandler({ onFilterClick }: { onFilterClick: () => void }) {
 
     // Add to top-right stack
     topRightStack.appendChild(filterContainer)
-    
+
     return () => {
       filterContainer.remove()
     }
-  }, [map, onFilterClick])
-  
+  }, [map, onFilterClick, isFilterActive])
+
   return null
 }
 
@@ -190,17 +191,17 @@ function AttributionControlHandler({ attribution }: { attribution: string }) {
       bottomLeftStack = L.DomUtil.create('div', 'map-control-bottom-left-stack')
       map.getContainer().appendChild(bottomLeftStack)
     }
-    
+
     const container = L.DomUtil.create('div', 'leaflet-control-attribution leaflet-control')
     container.innerHTML = attribution
-    
+
     // Prevent map interactions
     L.DomEvent.disableClickPropagation(container)
     L.DomEvent.disableScrollPropagation(container)
-    
+
     // Add to bottom-left stack
     bottomLeftStack.appendChild(container)
-    
+
     return () => {
       container.remove()
     }
@@ -214,8 +215,9 @@ function LayerToggleHandler({ currentLayerId, onLayerChange }: { currentLayerId:
   const map = useMap()
   
   const toggleLayer = () => {
-    const newLayerId = currentLayerId === 'light' ? 'satellite' : 'light'
-    onLayerChange(newLayerId)
+    const cycle = ['light', 'satellite']
+    const nextIndex = (cycle.indexOf(currentLayerId) + 1) % cycle.length
+    onLayerChange(cycle[nextIndex])
   }
   
   const getLayersIcon = () => {
@@ -278,7 +280,7 @@ function PlacesCountHandler({ count }: { count: number }) {
     }
     
     const container = L.DomUtil.create('div', 'leaflet-control-places-count')
-    container.innerHTML = count.toString()
+    container.innerHTML = `${count} Plätze gefunden`
     
     // Prevent map interactions
     L.DomEvent.disableClickPropagation(container)
@@ -353,8 +355,8 @@ export default function LeafletCourtMap({
   allowAddCourt = false,
   selectedLocation = null,
   enableClustering = true,
-  selectedSport = 'all',
-  onSportChange,
+  selectedSports = [],
+  onSportsChange,
   placesCount = 0,
   showAddCourtButton = false,
   onAddCourtClick,
@@ -457,24 +459,21 @@ export default function LeafletCourtMap({
           {useMemo(() => {
             if (enableClustering && courts.length > 10) {
               return (
-                <MarkerClusterGroup 
+                <MarkerClusterGroup
                   courts={courts}
                   onCourtSelect={handleCourtSelect}
                   selectedCourt={selectedCourt}
-                  selectedSport={selectedSport}
+                  selectedSports={selectedSports}
                 />
               )
             }
             
             // Individual markers when not clustering
             return courts.map((court) => {
-              // Filter sports for icon display based on selected sport filter
-              const sportsForIcon = selectedSport === 'all' 
-                ? (court.sports || [])
-                : (court.sports || []).includes(selectedSport) 
-                  ? [selectedSport]
-                  : (court.sports || [])
-              
+              const allSports = court.sports || []
+              const matchingSports = allSports.filter(s => selectedSports.includes(s))
+              const sportsForIcon = selectedSports.length === 0 ? allSports : matchingSports.length > 0 ? matchingSports : allSports
+
               return (
               <Marker 
                 key={court.id} 
@@ -493,7 +492,7 @@ export default function LeafletCourtMap({
               />
             )
             })
-          }, [enableClustering, courts, selectedSport, handleCourtSelect])}
+          }, [enableClustering, courts, selectedSports, handleCourtSelect])}
           
           {/* User location marker */}
           {userLocation && (
@@ -526,7 +525,7 @@ export default function LeafletCourtMap({
           <UserLocationHandler onLocationFound={handleLocationFound} />
           
           {/* Filter button */}
-          <FilterButtonHandler onFilterClick={handleFilterClick} />
+          <FilterButtonHandler onFilterClick={handleFilterClick} isFilterActive={selectedSports.length > 0} />
           
           
           {/* Custom attribution control */}
@@ -569,8 +568,8 @@ export default function LeafletCourtMap({
         isOpen={isFilterSheetOpen}
         onClose={setIsFilterSheetOpen}
         onExplicitClose={handleExplicitFilterClose}
-        selectedSport={selectedSport}
-        onSportChange={onSportChange ?? (() => {})}
+        selectedSports={selectedSports}
+        onSportsChange={onSportsChange ?? (() => {})}
       />
 
       {/* OLD Sheet-based bottom sheets (commented out for vaul testing)
