@@ -9,7 +9,7 @@ export default function BottomNav() {
 
   const items = [
     { name: 'Map', href: '/map', icon: Map, active: pathname === '/map' },
-    { name: 'Add Place', href: '/map?addPlace=1', icon: Plus, active: false },
+    { name: 'Add Place', href: '/map/new', icon: Plus, active: pathname === '/map/new' },
     { name: 'Profile', href: '/profile', icon: User, active: pathname === '/profile' },
   ]
 

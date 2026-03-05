@@ -7,7 +7,6 @@ import { useAuth } from '@/components/providers/auth-provider'
 import { useQuery } from '@tanstack/react-query'
 import { database } from '@/lib/supabase/database'
 import { PlaceWithCourts, SportType } from '@/lib/supabase/types'
-import AddPlaceBottomSheetVaul from '@/components/map/add-place-bottom-sheet-vaul'
 import FavoritesBottomSheetVaul from '@/components/map/favorites-bottom-sheet-vaul'
 
 const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map'), {
@@ -28,15 +27,11 @@ function MapPage() {
   const searchParams = useSearchParams()
   const [selectedSports, setSelectedSports] = useState<SportType[]>([])
   const [selectedPlace, setSelectedPlace] = useState<PlaceWithCourts | null>(null)
-  const [isAddPlaceOpen, setIsAddPlaceOpen] = useState(false)
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false)
   const [openPlace, setOpenPlace] = useState<PlaceWithCourts | null>(null)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
-    if (searchParams.get('addPlace') === '1') {
-      setIsAddPlaceOpen(true)
-    }
     if (searchParams.get('favorites') === '1') {
       setIsFavoritesOpen(true)
     }
@@ -50,11 +45,6 @@ function MapPage() {
       )
     }
   }, [])
-
-  const handleAddPlaceOpenChange = (open: boolean) => {
-    setIsAddPlaceOpen(open)
-    if (!open) router.replace('/map')
-  }
 
   const handleFavoritesOpenChange = (open: boolean) => {
     setIsFavoritesOpen(open)
@@ -100,14 +90,9 @@ function MapPage() {
         selectedSports={selectedSports}
         onSportsChange={setSelectedSports}
         placesCount={filteredPlaces.length}
+        onFavoritesClick={() => setIsFavoritesOpen(true)}
         openPlace={openPlace}
         onOpenPlaceHandled={() => setOpenPlace(null)}
-        onFavoritesClick={() => setIsFavoritesOpen(true)}
-      />
-      <AddPlaceBottomSheetVaul
-        isOpen={isAddPlaceOpen}
-        onOpenChange={handleAddPlaceOpenChange}
-        user={user}
       />
       <FavoritesBottomSheetVaul
         isOpen={isFavoritesOpen}

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 // import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 // import FilterBottomSheet from './filter-bottom-sheet'
-import { Plus, MapPin, Navigation, Share2, Heart, Search, Filter, Edit, Pencil, X } from 'lucide-react'
+import { Plus, MapPin, Navigation, Share2, Search, Filter, Edit, Pencil, X } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/components/providers/auth-provider'
 import FilterBottomSheetVaul from './filter-bottom-sheet-vaul'
@@ -39,10 +39,10 @@ interface LeafletCourtMapProps {
   showAddCourtButton?: boolean
   onAddCourtClick?: () => void
   showFilter?: boolean
+  onFavoritesClick?: () => void
   // External place selection (e.g. from favorites sheet)
   openPlace?: PlaceWithCourts | null
   onOpenPlaceHandled?: () => void
-  onFavoritesClick?: () => void
 }
 
 // Component to handle map clicks
@@ -120,6 +120,44 @@ function FilterButtonHandler({ onFilterClick, isFilterActive }: { onFilterClick:
       filterContainer.remove()
     }
   }, [map, onFilterClick, isFilterActive])
+
+  return null
+}
+
+// Component to handle favorites button in top right corner below filter
+function FavoritesButtonHandler({ onClick }: { onClick: () => void }) {
+  const map = useMap()
+
+  useEffect(() => {
+    let topRightStack = map.getContainer().querySelector('.map-control-top-right-stack') as HTMLElement
+    if (!topRightStack) {
+      topRightStack = L.DomUtil.create('div', 'map-control-top-right-stack')
+      map.getContainer().appendChild(topRightStack)
+    }
+
+    const container = L.DomUtil.create('div', 'leaflet-control-favorites')
+    const button = L.DomUtil.create('button', 'favorites-button map-control-button', container)
+    button.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    `
+    button.title = 'Saved Places'
+
+    L.DomEvent.on(button, 'click', (e) => {
+      L.DomEvent.preventDefault(e)
+      onClick()
+    })
+
+    L.DomEvent.disableClickPropagation(container)
+    L.DomEvent.disableScrollPropagation(container)
+
+    topRightStack.appendChild(container)
+
+    return () => {
+      container.remove()
+    }
+  }, [map, onClick])
 
   return null
 }
@@ -236,11 +274,11 @@ function LayerToggleHandler({ currentLayerId, onLayerChange }: { currentLayerId:
   }
 
   useEffect(() => {
-    // Create top-right stack container if it doesn't exist
-    let topRightStack = map.getContainer().querySelector('.map-control-top-right-stack') as HTMLElement
-    if (!topRightStack) {
-      topRightStack = L.DomUtil.create('div', 'map-control-top-right-stack')
-      map.getContainer().appendChild(topRightStack)
+    // Create bottom-right stack container if it doesn't exist
+    let bottomRightStack = map.getContainer().querySelector('.map-control-bottom-right-stack') as HTMLElement
+    if (!bottomRightStack) {
+      bottomRightStack = L.DomUtil.create('div', 'map-control-bottom-right-stack')
+      map.getContainer().appendChild(bottomRightStack)
     }
 
     // Create layer toggle button container
@@ -261,8 +299,8 @@ function LayerToggleHandler({ currentLayerId, onLayerChange }: { currentLayerId:
     L.DomEvent.disableClickPropagation(layerContainer)
     L.DomEvent.disableScrollPropagation(layerContainer)
 
-    // Add to top-right stack, below the filter button
-    topRightStack.appendChild(layerContainer)
+    // Add to bottom-right stack above the location button (column-reverse: appended later = visually higher)
+    bottomRightStack.appendChild(layerContainer)
     
     return () => {
       layerContainer.remove()
@@ -352,44 +390,6 @@ function AddCourtButtonHandler({ onAddCourtClick, user }: { onAddCourtClick: () 
   return null
 }
 
-// Component to handle saved/favorites button at center-right
-function FavoritesButtonHandler({ onClick }: { onClick: () => void }) {
-  const map = useMap()
-
-  useEffect(() => {
-    let centerRightStack = map.getContainer().querySelector('.map-control-center-right-stack') as HTMLElement
-    if (!centerRightStack) {
-      centerRightStack = L.DomUtil.create('div', 'map-control-center-right-stack')
-      map.getContainer().appendChild(centerRightStack)
-    }
-
-    const container = L.DomUtil.create('div', 'leaflet-control-favorites')
-    const button = L.DomUtil.create('button', 'favorites-button map-control-button', container)
-    button.innerHTML = `
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-      </svg>
-    `
-    button.title = 'Saved Places'
-
-    L.DomEvent.on(button, 'click', (e) => {
-      L.DomEvent.preventDefault(e)
-      onClick()
-    })
-
-    L.DomEvent.disableClickPropagation(container)
-    L.DomEvent.disableScrollPropagation(container)
-
-    centerRightStack.appendChild(container)
-
-    return () => {
-      container.remove()
-    }
-  }, [map, onClick])
-
-  return null
-}
-
 
 export default function LeafletCourtMap({
   courts,
@@ -406,8 +406,8 @@ export default function LeafletCourtMap({
   onAddCourtClick,
   showFilter = true,
   openPlace,
-  onOpenPlaceHandled,
   onFavoritesClick,
+  onOpenPlaceHandled,
 }: LeafletCourtMapProps) {
   const { user, profile } = useAuth()
   const [selectedCourt, setSelectedCourt] = useState<PlaceWithCourts | null>(null)
@@ -582,10 +582,9 @@ export default function LeafletCourtMap({
           {/* Filter button */}
           {showFilter && <FilterButtonHandler onFilterClick={handleFilterClick} isFilterActive={selectedSports.length > 0} />}
 
-          {/* Center-right action buttons */}
+          {/* Favorites button */}
           {onFavoritesClick && <FavoritesButtonHandler onClick={onFavoritesClick} />}
-          
-          
+
           {/* Custom attribution control */}
           <AttributionControlHandler attribution={currentLayer.attribution} />
           

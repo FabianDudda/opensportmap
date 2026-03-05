@@ -4,7 +4,6 @@ import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import QueryProvider from "@/components/providers/query-provider"
 import AuthProvider from "@/components/providers/auth-provider"
-import Header from "@/components/layout/header"
 import BottomNav from "@/components/layout/bottom-nav"
 import { Toaster } from "@/components/ui/toaster"
 
@@ -36,7 +35,6 @@ export default function RootLayout({
         <QueryProvider>
           <AuthProvider>
             <div className="relative flex min-h-screen flex-col">
-              <Header />
               <main className="flex-1 pb-16">{children}</main>
               <Suspense><BottomNav /></Suspense>
             </div>
