@@ -1014,20 +1014,18 @@ export const database = {
 
     // Reject a place (delete it from database)
     rejectPlace: async (placeId: string, moderatorId: string, reason: string) => {
-      // First delete any related courts
-      await supabase
-        .from('courts')
-        .delete()
-        .eq('place_id', placeId)
-      
-      // Then delete the place itself
       const { data, error } = await supabase
         .from('places')
-        .delete()
+        .update({
+          moderation_status: 'rejected',
+          rejection_reason: reason,
+          moderated_by: moderatorId,
+          moderated_at: new Date().toISOString(),
+        })
         .eq('id', placeId)
         .select()
         .single()
-      
+
       return { data, error }
     },
 
@@ -1116,6 +1114,26 @@ export const database = {
     },
 
     // Submit a place edit as community contribution
+    submitPlaceImageEdit: async (placeId: string, imageUrl: string, userId: string) => {
+      const currentPlace = await database.community.getPlaceForEdit(placeId)
+      if (!currentPlace) throw new Error('Place not found')
+
+      const { data, error } = await supabase
+        .from('pending_place_changes')
+        .insert({
+          place_id: placeId,
+          submitted_by: userId,
+          change_type: 'update',
+          proposed_data: { place: { image_url: imageUrl } },
+          current_data: { place: currentPlace, courts: currentPlace.courts },
+          status: 'pending'
+        })
+        .select()
+        .single()
+
+      return { data, error }
+    },
+
     submitPlaceEdit: async (placeId: string, proposedData: Partial<Place>, courts: Partial<Court>[], userId: string) => {
       // Get current place data for comparison
       const currentPlace = await database.community.getPlaceForEdit(placeId)
@@ -1286,6 +1304,27 @@ export const database = {
         return []
       }
       return data || []
+    },
+
+    getUserContributions: async (userId: string) => {
+      const [placesResult, editsResult] = await Promise.all([
+        supabase
+          .from('places')
+          .select('id, name, moderation_status, created_at, rejection_reason, image_url, street, house_number, city, postcode, sports')
+          .eq('added_by_user', userId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('pending_place_changes')
+          .select('id, place_id, status, created_at, rejection_reason, places(name, image_url, street, house_number, city, postcode, sports)')
+          .eq('submitted_by', userId)
+          .eq('change_type', 'update')
+          .order('created_at', { ascending: false }),
+      ])
+
+      return {
+        submittedPlaces: placesResult.data || [],
+        submittedEdits: editsResult.data || [],
+      }
     }
   },
 

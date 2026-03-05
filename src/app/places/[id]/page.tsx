@@ -94,7 +94,7 @@ export default async function PlacePage({ params }: PlacePageProps) {
   const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : null
 
   return (
-    <div className="container px-4 py-6 max-w-6xl mx-auto">
+    <div className="container px-4 py-6 max-w-xl mx-auto">
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2 mb-6">
         <Link 

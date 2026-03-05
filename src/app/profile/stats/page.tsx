@@ -41,7 +41,7 @@ export default function StatsPage() {
   if (loading) {
     return (
       <div className="container px-4 py-8">
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-xl mx-auto space-y-6">
           <Card><CardContent className="p-6"><div className="h-24 animate-pulse bg-muted rounded" /></CardContent></Card>
           <Card><CardContent className="p-6"><div className="h-20 animate-pulse bg-muted rounded" /></CardContent></Card>
         </div>
@@ -51,7 +51,7 @@ export default function StatsPage() {
 
   if (!user || !profile) {
     return (
-      <div className="container flex items-center justify-center min-h-screen py-8">
+      <div className="container px-4 py-12 max-w-xl mx-auto">
         <SignInForm />
       </div>
     )
@@ -66,7 +66,7 @@ export default function StatsPage() {
 
   return (
     <div className="container px-4 py-8 overflow-x-hidden">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-xl mx-auto space-y-6">
         {/* Best Sport Badge */}
         {bestSport && (
           <div className="flex flex-wrap gap-2">

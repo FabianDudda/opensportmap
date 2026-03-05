@@ -1,70 +1,60 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { SportType, PlaceWithCourts } from '@/lib/supabase/types'
 import { reverseGeocode, AddressComponents } from '@/lib/geocoding'
 import { uploadCourtImage, UploadProgress } from '@/lib/supabase/storage'
-import { MapPin, Check, Upload, X, Image, Loader2, RefreshCcw, Save, AlertCircle } from 'lucide-react'
+import { sportIcons } from '@/lib/utils/sport-utils'
+import { cn } from '@/lib/utils'
+import { MapPin, Plus, Check, Upload, X, Image, Loader2, RefreshCcw, AlertCircle } from 'lucide-react'
 
-// Dynamic import to prevent SSR issues with Leaflet
 const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map'), {
   ssr: false,
   loading: () => (
-    <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
+    <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2" />
         <p className="text-sm text-muted-foreground">Loading map...</p>
       </div>
     </div>
-  )
+  ),
 })
 
 const SPORTS = [
   { id: 'fußball', label: 'Fußball' },
-  { id: 'tennis', label: 'Tennis' },
-  { id: 'tischtennis', label: 'Tischtennis' },
   { id: 'basketball', label: 'Basketball' },
+  { id: 'tischtennis', label: 'Tischtennis' },
+  { id: 'tennis', label: 'Tennis' },
   { id: 'volleyball', label: 'Volleyball' },
   { id: 'beachvolleyball', label: 'Beachvolleyball' },
-  { id: 'spikeball', label: 'Spikeball' },
-  { id: 'boule', label: 'Boule' },
   { id: 'skatepark', label: 'Skatepark' },
-  { id: 'badminton', label: 'Badminton' },
-  { id: 'squash', label: 'Squash' },
-  { id: 'pickleball', label: 'Pickleball' },
+  { id: 'calisthenics', label: 'Calisthenics' },
+  { id: 'boule', label: 'Boule' },
 ] as const
 
 const SURFACE_TYPES = [
-  'Rasen',
-  'Hartplatz',
-  'Asphalt',
-  'Kunststoffbelag',
-  'Asche',
-  'Kunstrasen',
-  'Sonstiges',
+  'Unbekannt', 'Rasen', 'Kunstrasen', 'Hartplatz', 'Asphalt',
+  'Kunststoffbelag', 'Asche', 'Sand', 'Sonstiges',
 ] as const
 
-interface CourtDetails {
+export interface PlaceFormCourt {
   sport: SportType
   quantity: number
   surface: string
   notes: string
 }
 
-interface PlaceFormData {
+export interface PlaceFormData {
   name: string
   description: string
   selectedSports: SportType[]
-  courtDetails: Partial<Record<SportType, CourtDetails>>
+  courts: PlaceFormCourt[]
   location: { lat: number; lng: number } | null
   address: AddressComponents
   imageFile: File | null
@@ -88,39 +78,34 @@ export default function PlaceForm({
   onSubmit,
   isLoading,
   submitButtonText,
-  title,
-  description,
-  showCommunityMessage = false
+  showCommunityMessage = false,
 }: PlaceFormProps) {
   const { toast } = useToast()
-  
-  // Initialize form state from props or defaults
+
   const [name, setName] = useState(initialData?.name || '')
-  const [desc, setDesc] = useState(initialData?.description || '')
+
   const [selectedSports, setSelectedSports] = useState<SportType[]>(() => {
-    if (initialData?.courts?.length > 0) {
-      return [...new Set(initialData.courts.map(court => court.sport))]
+    if (initialData?.courts?.length) {
+      return [...new Set(initialData.courts.map(c => c.sport))]
     }
     return initialData?.sports || []
   })
-  const [courtDetails, setCourtDetails] = useState<Partial<Record<SportType, CourtDetails>>>(() => {
-    const details: Partial<Record<SportType, CourtDetails>> = {}
-    if (initialData?.courts) {
-      initialData.courts.forEach(court => {
-        details[court.sport] = {
-          sport: court.sport,
-          quantity: court.quantity,
-          surface: court.surface || 'Hard Court',
-          notes: court.notes || ''
-        }
-      })
-    }
-    return details
+
+  // Each sport maps to an array of surface strings, one entry per court
+  const [courtSurfaces, setCourtSurfaces] = useState<Partial<Record<SportType, string[]>>>(() => {
+    if (!initialData?.courts?.length) return {}
+    const surfaces: Partial<Record<SportType, string[]>> = {}
+    initialData.courts.forEach(court => {
+      const expanded = Array(court.quantity || 1).fill(court.surface || 'Unbekannt')
+      surfaces[court.sport] = [...(surfaces[court.sport] || []), ...expanded]
+    })
+    return surfaces
   })
+
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
     initialData ? { lat: initialData.latitude, lng: initialData.longitude } : null
   )
-  const [address, setAddress] = useState<AddressComponents>(() => ({
+  const [address, setAddress] = useState<AddressComponents>({
     street: initialData?.street || undefined,
     house_number: initialData?.house_number || undefined,
     city: initialData?.city || undefined,
@@ -128,10 +113,11 @@ export default function PlaceForm({
     state: initialData?.state || undefined,
     country: initialData?.country || undefined,
     postcode: initialData?.postcode || undefined,
-    district: initialData?.district || undefined
-  }))
+    district: initialData?.district || undefined,
+  })
   const [isDetectingAddress, setIsDetectingAddress] = useState(false)
   const [addressAutoDetected, setAddressAutoDetected] = useState(false)
+
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.image_url || null)
   const [imageRemoved, setImageRemoved] = useState(false)
@@ -142,587 +128,322 @@ export default function PlaceForm({
     setLocation({ lat, lng })
     setIsDetectingAddress(true)
     setAddressAutoDetected(false)
-    
     try {
-      const addressComponents = await reverseGeocode(lat, lng)
-      
-      if (addressComponents) {
-        setAddress(addressComponents)
+      const components = await reverseGeocode(lat, lng)
+      if (components) {
+        setAddress(components)
         setAddressAutoDetected(true)
-        toast({
-          title: 'Address detected',
-          description: 'Address information has been auto-filled. You can edit it if needed.',
-        })
       } else {
         setAddress({})
-        toast({
-          title: 'Address detection failed',
-          description: 'Please enter the address manually.',
-          variant: 'destructive',
-        })
       }
-    } catch (error) {
-      console.error('Error detecting address:', error)
+    } catch {
       setAddress({})
-      toast({
-        title: 'Address detection error',
-        description: 'Failed to detect address. Please enter it manually.',
-        variant: 'destructive',
-      })
     } finally {
       setIsDetectingAddress(false)
     }
-  }, [toast])
+  }, [])
 
   const handleSportToggle = (sport: SportType) => {
     setSelectedSports(prev => {
-      const isRemoving = prev.includes(sport)
-      
-      if (isRemoving) {
-        const newDetails = { ...courtDetails }
-        delete newDetails[sport]
-        setCourtDetails(newDetails)
+      if (prev.includes(sport)) {
+        setCourtSurfaces(cur => { const u = { ...cur }; delete u[sport]; return u })
         return prev.filter(s => s !== sport)
       } else {
-        setCourtDetails(prev => ({
-          ...prev,
-          [sport]: {
-            sport,
-            quantity: 1,
-            surface: 'Hard Court',
-            notes: ''
-          }
-        }))
+        setCourtSurfaces(cur => ({ ...cur, [sport]: [''] }))
         return [...prev, sport]
       }
     })
   }
-  
-  const updateCourtDetails = (sport: SportType, field: keyof CourtDetails, value: string | number) => {
-    setCourtDetails(prev => ({
-      ...prev,
-      [sport]: {
-        ...prev[sport],
-        [field]: value
-      } as CourtDetails
-    }))
+
+  const addCourtForSport = (sport: SportType) =>
+    setCourtSurfaces(prev => ({ ...prev, [sport]: [...(prev[sport] || []), ''] }))
+
+  const updateCourtSurface = (sport: SportType, idx: number, surface: string) =>
+    setCourtSurfaces(prev => {
+      const surfaces = [...(prev[sport] || [])]
+      surfaces[idx] = surface
+      return { ...prev, [sport]: surfaces }
+    })
+
+  const removeCourtForSport = (sport: SportType, idx: number) => {
+    const surfaces = courtSurfaces[sport] || []
+    if (surfaces.length === 1) {
+      handleSportToggle(sport)
+    } else {
+      setCourtSurfaces(prev => ({ ...prev, [sport]: surfaces.filter((_, i) => i !== idx) }))
+    }
   }
 
   const updateAddressField = (field: keyof AddressComponents, value: string) => {
-    setAddress(prev => ({
-      ...prev,
-      [field]: value.trim() || undefined
-    }))
-    if (addressAutoDetected && value.trim()) {
-      setAddressAutoDetected(false)
-    }
+    setAddress(prev => ({ ...prev, [field]: value.trim() || undefined }))
+    if (addressAutoDetected && value.trim()) setAddressAutoDetected(false)
   }
 
-  const clearAddress = () => {
-    setAddress({})
-    setAddressAutoDetected(false)
-  }
-  
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        toast({
-          title: 'File too large',
-          description: 'Please select an image smaller than 10MB.',
-          variant: 'destructive',
-        })
-        return
-      }
-      
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: 'Invalid file type',
-          description: 'Please select an image file (JPG, PNG, WebP).',
-          variant: 'destructive',
-        })
-        return
-      }
-      
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onload = () => {
-        setImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: 'File too large', description: 'Max 10MB.', variant: 'destructive' }); return
     }
-  }
-  
-  const removeImage = () => {
-    setImageFile(null)
-    setImagePreview(null)
-    setImageRemoved(true)
-    setUploadProgress(null)
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Invalid file type', description: 'Select an image file.', variant: 'destructive' }); return
+    }
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onload = () => setImagePreview(reader.result as string)
+    reader.readAsDataURL(file)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!name.trim()) { toast({ title: 'Name required', variant: 'destructive' }); return }
+    if (selectedSports.length === 0) { toast({ title: 'Select at least one sport', variant: 'destructive' }); return }
+    if (!location) { toast({ title: 'Location required', description: 'Tap the map to set a location.', variant: 'destructive' }); return }
 
-    if (!name.trim()) {
-      toast({
-        title: 'Place name required',
-        description: 'Please enter a name for the place.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    if (selectedSports.length === 0) {
-      toast({
-        title: 'Sports required',
-        description: 'Please select at least one sport.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    for (const sport of selectedSports) {
-      const details = courtDetails[sport]
-      if (!details || details.quantity < 1) {
-        toast({
-          title: 'Invalid court details',
-          description: `Please specify a valid number of courts for ${sport}.`,
-          variant: 'destructive',
-        })
-        return
-      }
-    }
-
-    if (!location) {
-      toast({
-        title: 'Location required',
-        description: 'Please click on the map to set the location.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    // Handle image upload if present
     let finalImageUrl = imageRemoved ? null : (initialData?.image_url || null)
-    
     if (imageFile) {
       try {
         setIsUploadingImage(true)
         setUploadProgress({ loaded: 0, total: 100, percentage: 0 })
-        
-        const uploadResult = await uploadCourtImage(imageFile, (progress) => {
-          setUploadProgress(progress)
-        })
-        
-        finalImageUrl = uploadResult.url
-        
-        toast({
-          title: 'Image uploaded successfully',
-          description: 'Your image has been uploaded.',
-        })
-      } catch (error) {
-        console.error('Image upload failed:', error)
-        const errorMessage = error instanceof Error ? error.message : 'Unknown upload error'
-        
-        toast({
-          title: 'Image upload failed',
-          description: errorMessage,
-          variant: 'destructive',
-        })
-        
-        finalImageUrl = undefined
+        const result = await uploadCourtImage(imageFile, p => setUploadProgress(p))
+        finalImageUrl = result.url
+      } catch (err) {
+        toast({ title: 'Image upload failed', description: err instanceof Error ? err.message : '', variant: 'destructive' })
       } finally {
         setIsUploadingImage(false)
         setUploadProgress(null)
       }
     }
-    
-    const formData: PlaceFormData = {
+
+    // Convert courtSurfaces to courts array (same logic as /map/new)
+    const courts: PlaceFormCourt[] = selectedSports.flatMap(sport => {
+      const surfaces = (courtSurfaces[sport] || ['']).map(s => s || 'Unbekannt')
+      const counts = surfaces.reduce<Record<string, number>>((acc, s) => { acc[s] = (acc[s] || 0) + 1; return acc }, {})
+      return Object.entries(counts).map(([surface, quantity]) => ({ sport, quantity, surface, notes: '' }))
+    })
+
+    await onSubmit({
       name: name.trim(),
-      description: desc.trim(),
+      description: '',
       selectedSports,
-      courtDetails,
+      courts,
       location,
       address: Object.values(address).some(v => v) ? address : {},
       imageFile,
-      imageUrl: finalImageUrl
-    }
-
-    await onSubmit(formData)
+      imageUrl: finalImageUrl,
+    })
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Save className="h-5 w-5" />
-            {title}
-          </CardTitle>
-          <CardDescription>{description}</CardDescription>
-          {showCommunityMessage && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div className="text-sm">
-                  <div className="font-medium text-blue-800">Community Contribution</div>
-                  <div className="text-blue-700">Your edits will be reviewed by administrators before being visible to other users. Thank you for helping improve our community data!</div>
-                </div>
-              </div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {showCommunityMessage && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm">
+              <div className="font-medium text-blue-800">Community Contribution</div>
+              <div className="text-blue-700">Your edits will be reviewed by administrators before being visible to other users.</div>
             </div>
-          )}
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Place Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name">Place Name *</Label>
-              <Input
-                id="name"
-                placeholder="e.g., Central Park Tennis Courts"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
+          </div>
+        </div>
+      )}
 
-            {/* Sports Selection */}
-            <div className="space-y-3">
-              <Label>Sports Available *</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {SPORTS.map((sport) => (
-                  <div key={sport.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={sport.id}
-                      checked={selectedSports.includes(sport.id as SportType)}
-                      onCheckedChange={() => handleSportToggle(sport.id as SportType)}
-                    />
-                    <Label 
-                      htmlFor={sport.id}
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      {sport.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-              {selectedSports.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {selectedSports.map((sport) => (
-                    <div key={sport} className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm">
-                      <Check className="h-3 w-3" />
-                      {sport.charAt(0).toUpperCase() + sport.slice(1)}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+      {/* Name */}
+      <div className="space-y-2">
+        <Label htmlFor="pf-name">Place Name *</Label>
+        <Input id="pf-name" placeholder="e.g., Central Park Tennis Courts" value={name} onChange={e => setName(e.target.value)} required />
+      </div>
 
-            {/* Court Details for Each Sport */}
-            {selectedSports.length > 0 && (
-              <div className="space-y-4">
-                <Label className="text-base font-medium">Court Details</Label>
-                <div className="space-y-4">
-                  {selectedSports.map((sport) => (
-                    <Card key={sport} className="p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Check className="h-4 w-4 text-primary" />
-                        <h4 className="font-medium">{sport.charAt(0).toUpperCase() + sport.slice(1)}</h4>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor={`quantity-${sport}`}>Number of Courts</Label>
-                          <Input
-                            id={`quantity-${sport}`}
-                            type="number"
-                            min="1"
-                            max="20"
-                            value={courtDetails[sport]?.quantity || 1}
-                            onChange={(e) => updateCourtDetails(sport, 'quantity', parseInt(e.target.value) || 1)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor={`surface-${sport}`}>Surface Type</Label>
-                          <Select
-                            value={courtDetails[sport]?.surface || 'Hard Court'}
-                            onValueChange={(value) => updateCourtDetails(sport, 'surface', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select surface" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {SURFACE_TYPES.map((surface) => (
-                                <SelectItem key={surface} value={surface}>
-                                  {surface}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2 sm:col-span-2">
-                          <Label htmlFor={`notes-${sport}`}>Notes (Optional)</Label>
-                          <Textarea
-                            id={`notes-${sport}`}
-                            placeholder={`Additional details about the ${sport} court(s)...`}
-                            value={courtDetails[sport]?.notes || ''}
-                            onChange={(e) => updateCourtDetails(sport, 'notes', e.target.value)}
-                            rows={2}
-                          />
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
+      {/* Sports */}
+      <div className="space-y-2">
+        <Label>Sports Available *</Label>
+        <div className="grid grid-cols-3 gap-2">
+          {SPORTS.map(sport => {
+            const isSelected = selectedSports.includes(sport.id as SportType)
+            return (
+              <button
+                key={sport.id}
+                type="button"
+                onClick={() => handleSportToggle(sport.id as SportType)}
+                className={cn(
+                  'flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border transition-all cursor-pointer',
+                  isSelected
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                )}
+              >
+                <span className="text-[20px] leading-none">{sportIcons[sport.id as SportType] || '📍'}</span>
+                <span className="text-sm font-medium">{sport.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea
-                id="description"
-                placeholder="Add details about the place (facilities, lighting, surface type, etc.)"
-                value={desc}
-                onChange={(e) => setDesc(e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            {/* Image Upload */}
-            <div className="space-y-3">
-              <Label>Place Image (Optional)</Label>
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
-                {imagePreview ? (
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <img 
-                        src={imagePreview} 
-                        alt="Place preview" 
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                       
-                        className="absolute top-2 right-2"
-                        onClick={removeImage}
-                      >
+      {/* Court Details */}
+      {selectedSports.length > 0 && (
+        <div className="space-y-3">
+          <Label>Court Details</Label>
+          {selectedSports.map(sport => {
+            const surfaces = courtSurfaces[sport] || ['']
+            return (
+              <div key={sport} className="border rounded-lg p-4 space-y-3">
+                <h4 className="font-medium">{sport.charAt(0).toUpperCase() + sport.slice(1)}</h4>
+                <div className="space-y-2">
+                  {surfaces.map((surface, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground min-w-[4.5rem]">Court {idx + 1}</span>
+                      <Select value={surface || 'Unbekannt'} onValueChange={val => updateCourtSurface(sport, idx, val)}>
+                        <SelectTrigger className="flex-1"><SelectValue placeholder="Surface type..." /></SelectTrigger>
+                        <SelectContent>
+                          {SURFACE_TYPES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeCourtForSport(sport, idx)}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                    <p className="text-sm text-muted-foreground text-center">
-                      {imageFile?.name || 'Current image'}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <Image className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <div className="space-y-2">
-                      <Label 
-                        htmlFor="image-upload" 
-                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-                      >
-                        <Upload className="h-4 w-4" />
-                        Upload Image
-                      </Label>
-                      <Input
-                        id="image-upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Upload a photo of the place (JPG, PNG, WebP up to 10MB)
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={() => addCourtForSport(sport)}>
+                  <Plus className="h-4 w-4 mr-1" />Add another court
+                </Button>
               </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Image */}
+      <div className="space-y-2">
+        <Label>Court Image (Optional)</Label>
+        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+          {imagePreview ? (
+            <div className="space-y-2">
+              <div className="relative">
+                <img src={imagePreview} alt="Preview" className="w-full h-40 object-cover rounded-lg" />
+                <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2"
+                  onClick={() => { setImageFile(null); setImagePreview(null); setImageRemoved(true) }}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">{imageFile?.name || 'Current image'}</p>
             </div>
-
-            {/* Location Selection */}
-            <div className="space-y-3">
-              <Label>Location *</Label>
-              <p className="text-sm text-muted-foreground">
-                Click on the map to set the exact location of the place.
-              </p>
-              <div className="border rounded-lg overflow-hidden">
-                <LeafletCourtMap 
-                  courts={[]}
-                  onMapClick={handleMapClick}
-                  height="300px"
-                  allowAddCourt={true}
-                  selectedLocation={location}
-                />
-              </div>
-              {location ? (
-                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg border border-green-200">
-                  <MapPin className="h-4 w-4" />
-                  <span className="font-medium">Location set:</span> {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
-                  <MapPin className="h-4 w-4" />
-                  <span className="font-medium">Click on the map to set location</span>
-                </div>
-              )}
+          ) : (
+            <div className="text-center space-y-2">
+              <Image className="h-10 w-10 mx-auto text-muted-foreground" />
+              <Button type="button" size="sm" onClick={() => document.getElementById('pf-image-upload')?.click()}>
+                <Upload className="h-4 w-4 mr-1" />Upload Image
+              </Button>
+              <Input id="pf-image-upload" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+              <p className="text-xs text-muted-foreground">JPG, PNG, WebP up to 10MB</p>
             </div>
+          )}
+        </div>
+      </div>
 
-            {/* Address Information */}
-            {location && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">Address Information</Label>
-                  {address && Object.values(address).some(v => v) && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                     
-                      onClick={clearAddress}
-                      className="text-sm"
-                    >
-                      <RefreshCcw className="h-3 w-3 mr-1" />
-                      Clear
-                    </Button>
-                  )}
-                </div>
-                
-                {isDetectingAddress && (
-                  <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Detecting address information...</span>
-                  </div>
-                )}
-                
-                {addressAutoDetected && !isDetectingAddress && (
-                  <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg border border-green-200">
-                    <Check className="h-4 w-4" />
-                    <span>Address auto-detected. You can edit the fields below if needed.</span>
-                  </div>
-                )}
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="street">Street Address</Label>
-                    <Input
-                      id="street"
-                      placeholder="e.g., 123 Main Street"
-                      value={address.street && address.house_number ? 
-                        `${address.street} ${address.house_number}` : 
-                        address.street || ''
-                      }
-                      onChange={(e) => {
-                        const value = e.target.value
-                        const parts = value.trim().split(' ')
-                        const possibleNumber = parts[parts.length - 1]
-                        if (parts.length > 1 && /^\d+[a-zA-Z]?$/.test(possibleNumber)) {
-                          updateAddressField('street', parts.slice(0, -1).join(' '))
-                          updateAddressField('house_number', possibleNumber)
-                        } else {
-                          updateAddressField('street', value)
-                        }
-                      }}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      placeholder="e.g., New York"
-                      value={address.city || ''}
-                      onChange={(e) => updateAddressField('city', e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="state">State/Province</Label>
-                    <Input
-                      id="state"
-                      placeholder="e.g., NY"
-                      value={address.state || ''}
-                      onChange={(e) => updateAddressField('state', e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      placeholder="e.g., United States"
-                      value={address.country || ''}
-                      onChange={(e) => updateAddressField('country', e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="postcode">Postal Code</Label>
-                    <Input
-                      id="postcode"
-                      placeholder="e.g., 10001"
-                      value={address.postcode || ''}
-                      onChange={(e) => updateAddressField('postcode', e.target.value)}
-                    />
-                  </div>
-                </div>
-                
-                {address.district && (
-                  <div className="space-y-2">
-                    <Label htmlFor="district">District/Neighborhood</Label>
-                    <Input
-                      id="district"
-                      placeholder="e.g., Manhattan"
-                      value={address.district || ''}
-                      onChange={(e) => updateAddressField('district', e.target.value)}
-                    />
-                  </div>
-                )}
-              </div>
+      {/* Location */}
+      <div className="space-y-2">
+        <Label>Location *</Label>
+        <p className="text-xs text-muted-foreground">Tap the map to set the exact location.</p>
+        <div className="border rounded-lg overflow-hidden">
+          <LeafletCourtMap
+            courts={[]}
+            onMapClick={handleMapClick}
+            height="260px"
+            allowAddCourt={true}
+            selectedLocation={location}
+            placesCount={0}
+            showFilter={false}
+          />
+        </div>
+        {location ? (
+          <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg border border-green-200">
+            <MapPin className="h-4 w-4 shrink-0" />
+            <span><span className="font-medium">Location set:</span> {location.lat.toFixed(5)}, {location.lng.toFixed(5)}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
+            <MapPin className="h-4 w-4 shrink-0" />
+            <span className="font-medium">Tap the map to set location</span>
+          </div>
+        )}
+      </div>
+
+      {/* Address */}
+      {location && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label>Address</Label>
+            {Object.values(address).some(v => v) && (
+              <Button type="button" variant="outline" size="sm" onClick={() => { setAddress({}); setAddressAutoDetected(false) }}>
+                <RefreshCcw className="h-3 w-3 mr-1" />Clear
+              </Button>
             )}
+          </div>
+          {isDetectingAddress && (
+            <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-200">
+              <Loader2 className="h-4 w-4 animate-spin" /><span>Detecting address...</span>
+            </div>
+          )}
+          {addressAutoDetected && !isDetectingAddress && (
+            <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg border border-green-200">
+              <Check className="h-4 w-4" /><span>Address auto-detected.</span>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 space-y-1">
+              <Label htmlFor="pf-street" className="text-xs">Street</Label>
+              <Input id="pf-street" placeholder="Street & number"
+                value={address.street && address.house_number ? `${address.street} ${address.house_number}` : address.street || ''}
+                onChange={e => {
+                  const parts = e.target.value.trim().split(' ')
+                  const num = parts[parts.length - 1]
+                  if (parts.length > 1 && /^\d+[a-zA-Z]?$/.test(num)) {
+                    updateAddressField('street', parts.slice(0, -1).join(' '))
+                    updateAddressField('house_number', num)
+                  } else {
+                    updateAddressField('street', e.target.value)
+                  }
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="pf-city" className="text-xs">City</Label>
+              <Input id="pf-city" placeholder="City" value={address.city || ''} onChange={e => updateAddressField('city', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="pf-postcode" className="text-xs">Postal Code</Label>
+              <Input id="pf-postcode" placeholder="Postcode" value={address.postcode || ''} onChange={e => updateAddressField('postcode', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="pf-state" className="text-xs">State</Label>
+              <Input id="pf-state" placeholder="State" value={address.state || ''} onChange={e => updateAddressField('state', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="pf-country" className="text-xs">Country</Label>
+              <Input id="pf-country" placeholder="Country" value={address.country || ''} onChange={e => updateAddressField('country', e.target.value)} />
+            </div>
+          </div>
+        </div>
+      )}
 
-            {/* Submit Button */}
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading || isUploadingImage}
-            >
-              {isUploadingImage ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Uploading Image...
-                  {uploadProgress && (
-                    <span className="text-sm">({uploadProgress.percentage.toFixed(0)}%)</span>
-                  )}
-                </div>
-              ) : isLoading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {mode === 'create' ? 'Creating...' : 'Saving...'}
-                </div>
-              ) : (
-                submitButtonText || (mode === 'create' ? 'Create Place' : 'Save Changes')
-              )}
-            </Button>
+      {/* Submit */}
+      <Button type="submit" className="w-full" disabled={isLoading || isUploadingImage}>
+        {isUploadingImage ? (
+          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Uploading... {uploadProgress && `${uploadProgress.percentage.toFixed(0)}%`}</>
+        ) : isLoading ? (
+          <><Loader2 className="h-4 w-4 animate-spin mr-2" />{mode === 'create' ? 'Adding...' : 'Saving...'}</>
+        ) : (
+          submitButtonText || (mode === 'create' ? 'Add Place' : 'Save Changes')
+        )}
+      </Button>
 
-            {/* Upload Progress Bar */}
-            {isUploadingImage && uploadProgress && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Uploading image...</span>
-                  <span>{uploadProgress.percentage.toFixed(0)}%</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div 
-                    className="bg-primary h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${uploadProgress.percentage}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+      {isUploadingImage && uploadProgress && (
+        <div className="w-full bg-muted rounded-full h-2">
+          <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress.percentage}%` }} />
+        </div>
+      )}
+    </form>
   )
 }

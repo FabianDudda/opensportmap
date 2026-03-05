@@ -186,7 +186,7 @@ export default function EventPage({ params }: EventPageProps) {
 
   if (loading) {
     return (
-      <div className="container px-4 py-6 max-w-4xl mx-auto">
+      <div className="container px-4 py-6 max-w-xl mx-auto">
         <div className="flex justify-center items-center h-64">
           <div className="text-lg">Loading event...</div>
         </div>
@@ -196,7 +196,7 @@ export default function EventPage({ params }: EventPageProps) {
 
   if (!event) {
     return (
-      <div className="container px-4 py-6 max-w-4xl mx-auto">
+      <div className="container px-4 py-6 max-w-xl mx-auto">
         <Card>
           <CardContent className="p-8 text-center">
             <h3 className="text-lg font-semibold mb-2">Event not found</h3>
@@ -220,7 +220,7 @@ export default function EventPage({ params }: EventPageProps) {
   const isPastEvent = fullDate < new Date()
 
   return (
-    <div className="container px-4 py-6 max-w-4xl mx-auto pb-20">
+    <div className="container px-4 py-6 max-w-xl mx-auto pb-20">
       {/* Header */}
       <div className="flex items-center gap-2 mb-6">
         <Link href="/events" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
@@ -229,7 +229,7 @@ export default function EventPage({ params }: EventPageProps) {
         </Link>
       </div>
 
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-xl mx-auto space-y-6">
           {/* Event Details */}
           <Card>
             <CardHeader className="pb-3">

@@ -97,7 +97,7 @@ export default function EventsPage() {
 
   if (loading) {
     return (
-      <div className="container px-4 py-6 max-w-6xl mx-auto">
+      <div className="container px-4 py-6 max-w-xl mx-auto">
         <div className="flex justify-center items-center h-64">
           <div className="text-lg">Loading events...</div>
         </div>
@@ -106,7 +106,7 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="container px-4 py-6 max-w-6xl mx-auto pb-20">
+    <div className="container px-4 py-6 max-w-xl mx-auto pb-20">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>

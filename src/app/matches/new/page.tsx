@@ -166,7 +166,7 @@ export default function NewMatchPage() {
 
   if (!user) {
     return (
-      <div className="container px-4 py-8">
+      <div className="container px-4 py-8 max-w-xl mx-auto">
         <Card>
           <CardHeader>
             <CardTitle>Authentication Required</CardTitle>
@@ -178,7 +178,7 @@ export default function NewMatchPage() {
   }
 
   return (
-    <div className="container px-4 py-8">
+    <div className="container px-4 py-8 max-w-xl mx-auto">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

@@ -55,7 +55,7 @@ export default function RankingsPage() {
   const userRank = user ? leaderboard.find(entry => entry.user_id === user.id) : null
 
   return (
-    <div className="container px-4 py-8">
+    <div className="container px-4 py-8 max-w-xl mx-auto">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">

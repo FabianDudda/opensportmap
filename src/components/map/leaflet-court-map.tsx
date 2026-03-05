@@ -40,6 +40,8 @@ interface LeafletCourtMapProps {
   showAddCourtButton?: boolean
   onAddCourtClick?: () => void
   showFilter?: boolean
+  showFavorite?: boolean
+  disableMarkerClick?: boolean
   defaultFavoritesOpen?: boolean
   onFavoritesClose?: () => void
 }
@@ -404,6 +406,8 @@ export default function LeafletCourtMap({
   showAddCourtButton = false,
   onAddCourtClick,
   showFilter = true,
+  showFavorite = true,
+  disableMarkerClick = false,
   defaultFavoritesOpen = false,
   onFavoritesClose,
 }: LeafletCourtMapProps) {
@@ -437,12 +441,13 @@ export default function LeafletCourtMap({
   }, [isBottomSheetOpen, isFilterSheetOpen, isFavoritesOpen])
 
   const handleCourtSelect = useCallback((court: PlaceWithCourts) => {
+    if (disableMarkerClick) return
     if (isFilterSheetOpenRef.current) setIsFilterSheetOpen(false)
     if (isFavoritesOpenRef.current) setIsFavoritesOpen(false)
     setSelectedCourt(court)
     if (!isBottomSheetOpenRef.current) setIsBottomSheetOpen(true)
     onCourtSelect?.(court)
-  }, [onCourtSelect])
+  }, [onCourtSelect, disableMarkerClick])
 
 
   const handleExplicitClose = useCallback(() => {
@@ -529,8 +534,8 @@ export default function LeafletCourtMap({
               const sportsForIcon = selectedSports.length === 0 ? allSports : matchingSports.length > 0 ? matchingSports : allSports
 
               return (
-              <Marker 
-                key={court.id} 
+              <Marker
+                key={court.id}
                 position={[court.latitude, court.longitude]}
                 icon={createSportIcon(sportsForIcon, false)}
                 eventHandlers={{
@@ -582,13 +587,13 @@ export default function LeafletCourtMap({
           {showFilter && <FilterButtonHandler onFilterClick={handleFilterClick} isFilterActive={selectedSports.length > 0} />}
 
           {/* Favorites button */}
-          <FavoritesButtonHandler onClick={handleFavoritesClick} />
+          {showFavorite && <FavoritesButtonHandler onClick={handleFavoritesClick} />}
 
           {/* Custom attribution control */}
           <AttributionControlHandler attribution={currentLayer.attribution} />
           
           {/* Layer toggle button */}
-          <LayerToggleHandler currentLayerId={currentLayerId} onLayerChange={handleLayerChange} />
+          {/* <LayerToggleHandler currentLayerId={currentLayerId} onLayerChange={handleLayerChange} /> */}
           
           {/* Places count display */}
           <PlacesCountHandler count={placesCount} />
@@ -617,6 +622,7 @@ export default function LeafletCourtMap({
         userLocation={userLocation}
         user={user}
         profile={profile}
+        showFavorite={showFavorite}
       />
 
       {/* Filter Bottom Sheet — vaul Drawer */}

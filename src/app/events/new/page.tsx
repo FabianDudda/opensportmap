@@ -172,7 +172,7 @@ function NewEventForm() {
   }
 
   return (
-    <div className="container px-4 py-6 max-w-2xl mx-auto pb-20">
+    <div className="container px-4 py-6 max-w-xl mx-auto pb-20">
       {/* Header */}
       <div className="flex items-center gap-2 mb-6">
         <Link href="/events" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
@@ -479,7 +479,7 @@ function NewEventForm() {
 export default function NewEventPage() {
   return (
     <Suspense fallback={
-      <div className="container px-4 py-6 max-w-2xl mx-auto pb-20">
+      <div className="container px-4 py-6 max-w-xl mx-auto pb-20">
         <div className="flex items-center gap-2 mb-6">
           <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
           <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>

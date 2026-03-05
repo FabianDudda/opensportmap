@@ -243,7 +243,7 @@ export default function AddPlacePage() {
 
   if (loading) {
     return (
-      <div className="container px-4 py-8">
+      <div className="container px-4 py-8 max-w-xl mx-auto">
         <Card><CardContent className="p-6"><div className="h-24 animate-pulse bg-muted rounded" /></CardContent></Card>
       </div>
     )
@@ -251,7 +251,7 @@ export default function AddPlacePage() {
 
   if (!user) {
     return (
-      <div className="container px-4 py-12 max-w-sm mx-auto space-y-6">
+      <div className="container px-4 py-12 max-w-xl mx-auto space-y-6">
         {/* Placeholder icon */}
         <div className="flex justify-center">
           <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center">
@@ -284,7 +284,7 @@ export default function AddPlacePage() {
 
   return (
     <div className="container px-4 py-8 overflow-x-hidden">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Add a Place</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -394,6 +394,8 @@ export default function AddPlacePage() {
                 selectedLocation={location}
                 placesCount={places.length}
                 showFilter={false}
+                showFavorite={false}
+                disableMarkerClick={true}
               />
             </div>
             {location ? (

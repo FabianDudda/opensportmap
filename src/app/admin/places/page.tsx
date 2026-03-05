@@ -223,14 +223,55 @@ function PlaceCard({
       </CardHeader>
       
       <CardContent className="space-y-4">
+        {/* Image */}
+        {place.image_url && (
+          <img
+            src={place.image_url}
+            alt={place.name}
+            className="w-full h-40 object-cover rounded-lg"
+          />
+        )}
+
         {/* Description */}
         {place.description && (
-          <p className="text-sm text-muted-foreground">{place.description}</p>
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground">Description</Label>
+            <p className="text-sm mt-1">{place.description}</p>
+          </div>
         )}
-        
+
+        {/* Address */}
+        {(place.street || place.city || place.postcode || place.country) && (
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground">Address</Label>
+            <div className="mt-1 text-sm space-y-0.5">
+              {(place.street || place.house_number) && (
+                <div>{[place.street, place.house_number].filter(Boolean).join(' ')}</div>
+              )}
+              {(place.postcode || place.city) && (
+                <div>{[place.postcode, place.city].filter(Boolean).join(' ')}</div>
+              )}
+              {place.district && <div className="text-muted-foreground">{place.district}</div>}
+              {place.county && <div className="text-muted-foreground">{place.county}</div>}
+              {place.state && <div className="text-muted-foreground">{place.state}</div>}
+              {place.country && <div className="text-muted-foreground">{place.country}</div>}
+            </div>
+          </div>
+        )}
+
+        {/* Location */}
+        {(place.latitude != null && place.longitude != null) && (
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground">Coordinates</Label>
+            <p className="text-xs font-mono mt-1 text-muted-foreground">
+              {Number(place.latitude).toFixed(6)}, {Number(place.longitude).toFixed(6)}
+            </p>
+          </div>
+        )}
+
         {/* Sports */}
         <div>
-          <Label className="text-xs font-medium text-muted-foreground">Available Sports:</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Sports</Label>
           <div className="flex flex-wrap gap-1 mt-1">
             {availableSports.length > 0 ? (
               availableSports.map((sport) => (
@@ -243,13 +284,13 @@ function PlaceCard({
             )}
           </div>
         </div>
-        
-        {/* Courts Details */}
+
+        {/* Courts */}
         {place.courts && place.courts.length > 0 && (
           <div>
-            <Label className="text-xs font-medium text-muted-foreground">Courts:</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Courts</Label>
             <div className="space-y-2 mt-1">
-              {place.courts.map((court, index) => (
+              {place.courts.map((court) => (
                 <div key={court.id} className="text-xs bg-muted p-2 rounded">
                   <div className="flex justify-between">
                     <span className="font-medium">{sportNames[court.sport] || court.sport}</span>
@@ -260,17 +301,6 @@ function PlaceCard({
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Image */}
-        {place.image_url && (
-          <div>
-            <img 
-              src={place.image_url} 
-              alt={place.name}
-              className="w-full h-32 object-cover rounded-lg"
-            />
           </div>
         )}
         
@@ -682,6 +712,28 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
   const proposedData = edit.proposed_data as any
   const currentData = edit.current_data as any
 
+  const addressFields: { key: string; label: string }[] = [
+    { key: 'street', label: 'Street' },
+    { key: 'house_number', label: 'House No.' },
+    { key: 'city', label: 'City' },
+    { key: 'district', label: 'District' },
+    { key: 'county', label: 'County' },
+    { key: 'state', label: 'State' },
+    { key: 'postcode', label: 'Postcode' },
+    { key: 'country', label: 'Country' },
+  ]
+  const changedAddressFields = addressFields.filter(
+    ({ key }) => proposedData?.place?.[key] !== currentData?.place?.[key]
+  )
+  const proposedSports: string[] = proposedData?.place?.sports || []
+  const currentSports: string[] = currentData?.place?.sports || []
+  const sportsChanged = JSON.stringify([...proposedSports].sort()) !== JSON.stringify([...currentSports].sort())
+  const currentCourts: any[] = currentData?.courts || currentData?.place?.courts || []
+  const proposedCourts: any[] = proposedData?.courts || []
+  const locationChanged =
+    proposedData?.place?.latitude !== currentData?.place?.latitude ||
+    proposedData?.place?.longitude !== currentData?.place?.longitude
+
   return (
     <Card className="border-l-4 border-l-blue-400">
       <CardHeader>
@@ -713,56 +765,144 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
       
       <CardContent className="space-y-4">
         {showDiff && (
-          <div className="space-y-4">
-            <div className="border rounded-lg p-4 bg-muted/50">
-              <h4 className="font-medium mb-2">Proposed Changes:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <strong>Name:</strong> 
-                  <div className="font-mono bg-green-100 text-green-800 px-2 py-1 rounded mt-1">
-                    {proposedData.place?.name || 'No change'}
-                  </div>
+          <div className="border rounded-lg p-4 bg-muted/50 space-y-4">
+            <div className="grid grid-cols-2 gap-2 text-xs font-medium text-muted-foreground">
+              <span className="text-green-700">▲ Proposed</span>
+              <span className="text-red-700">▼ Current</span>
+            </div>
+
+            {/* Name */}
+            {proposedData?.place?.name !== currentData?.place?.name && (
+              <div>
+                <p className="text-xs font-medium mb-1">Name</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="font-mono bg-green-100 text-green-800 px-2 py-1 rounded">{proposedData?.place?.name || '—'}</div>
+                  <div className="font-mono bg-red-100 text-red-800 px-2 py-1 rounded">{currentData?.place?.name || '—'}</div>
                 </div>
-                <div>
-                  <strong>Current:</strong> 
-                  <div className="font-mono bg-red-100 text-red-800 px-2 py-1 rounded mt-1">
-                    {currentData.place?.name || 'N/A'}
+              </div>
+            )}
+
+            {/* Description */}
+            {proposedData?.place?.description !== currentData?.place?.description && (
+              <div>
+                <p className="text-xs font-medium mb-1">Description</p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="font-mono bg-green-100 text-green-800 px-2 py-1 rounded whitespace-pre-wrap">{proposedData?.place?.description || '—'}</div>
+                  <div className="font-mono bg-red-100 text-red-800 px-2 py-1 rounded whitespace-pre-wrap">{currentData?.place?.description || '—'}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Image */}
+            {proposedData?.place?.image_url !== currentData?.place?.image_url && (
+              <div>
+                <p className="text-xs font-medium mb-1">Image</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    {proposedData?.place?.image_url ? (
+                      <img src={proposedData.place.image_url} alt="Proposed" className="w-full h-32 object-cover rounded border-2 border-green-400" />
+                    ) : (
+                      <div className="w-full h-32 bg-green-100 text-green-800 rounded flex items-center justify-center text-xs">No image</div>
+                    )}
+                  </div>
+                  <div>
+                    {currentData?.place?.image_url ? (
+                      <img src={currentData.place.image_url} alt="Current" className="w-full h-32 object-cover rounded border-2 border-red-400" />
+                    ) : (
+                      <div className="w-full h-32 bg-red-100 text-red-800 rounded flex items-center justify-center text-xs">No image</div>
+                    )}
                   </div>
                 </div>
               </div>
-              
-              {proposedData.place?.description !== currentData.place?.description && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-4">
-                  <div>
-                    <strong>Description:</strong>
-                    <div className="font-mono bg-green-100 text-green-800 px-2 py-1 rounded mt-1 text-xs">
-                      {proposedData.place?.description || 'No description'}
-                    </div>
-                  </div>
-                  <div>
-                    <strong>Current:</strong>
-                    <div className="font-mono bg-red-100 text-red-800 px-2 py-1 rounded mt-1 text-xs">
-                      {currentData.place?.description || 'No description'}
-                    </div>
-                  </div>
-                </div>
-              )}
+            )}
 
-              {proposedData.courts && (
-                <div className="mt-4">
-                  <strong>Court Changes:</strong>
-                  <div className="mt-2 space-y-2">
-                    {proposedData.courts.map((court: any, index: number) => (
-                      <div key={index} className="text-xs bg-green-50 border border-green-200 rounded p-2">
-                        <div className="font-medium">{court.sport}</div>
-                        <div>Quantity: {court.quantity}, Surface: {court.surface}</div>
-                        {court.notes && <div>Notes: {court.notes}</div>}
-                      </div>
-                    ))}
+            {/* Location */}
+            {locationChanged && (
+              <div>
+                <p className="text-xs font-medium mb-1">Location</p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="font-mono bg-green-100 text-green-800 px-2 py-1 rounded">
+                    {proposedData?.place?.latitude != null
+                      ? `${Number(proposedData.place.latitude).toFixed(6)}, ${Number(proposedData.place.longitude).toFixed(6)}`
+                      : '—'}
+                  </div>
+                  <div className="font-mono bg-red-100 text-red-800 px-2 py-1 rounded">
+                    {currentData?.place?.latitude != null
+                      ? `${Number(currentData.place.latitude).toFixed(6)}, ${Number(currentData.place.longitude).toFixed(6)}`
+                      : '—'}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* Address fields */}
+            {changedAddressFields.length > 0 && (
+              <div>
+                <p className="text-xs font-medium mb-1">Address</p>
+                <div className="space-y-1">
+                  {changedAddressFields.map(({ key, label }) => (
+                    <div key={key} className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="font-mono bg-green-100 text-green-800 px-2 py-1 rounded">
+                        <span className="font-medium">{label}: </span>{proposedData?.place?.[key] || '—'}
+                      </div>
+                      <div className="font-mono bg-red-100 text-red-800 px-2 py-1 rounded">
+                        <span className="font-medium">{label}: </span>{currentData?.place?.[key] || '—'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sports */}
+            {sportsChanged && (
+              <div>
+                <p className="text-xs font-medium mb-1">Sports</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-wrap gap-1">
+                    {proposedSports.length > 0 ? proposedSports.map((sport: string) => (
+                      <Badge key={sport} className={`text-xs ${getSportBadgeClasses(sport)}`}>
+                        {sportIcons[sport] || '📍'} {sportNames[sport] || sport}
+                      </Badge>
+                    )) : <span className="text-xs text-muted-foreground">—</span>}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {currentSports.length > 0 ? currentSports.map((sport: string) => (
+                      <Badge key={sport} className={`text-xs ${getSportBadgeClasses(sport)}`}>
+                        {sportIcons[sport] || '📍'} {sportNames[sport] || sport}
+                      </Badge>
+                    )) : <span className="text-xs text-muted-foreground">—</span>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Courts */}
+            {(proposedCourts.length > 0 || currentCourts.length > 0) && (
+              <div>
+                <p className="text-xs font-medium mb-1">Courts</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    {proposedCourts.length > 0 ? proposedCourts.map((court: any, i: number) => (
+                      <div key={i} className="text-xs bg-green-50 border border-green-200 rounded p-2">
+                        <div className="font-medium">{sportNames[court.sport] || court.sport}</div>
+                        <div>Qty: {court.quantity}{court.surface ? `, ${court.surface}` : ''}</div>
+                        {court.notes && <div className="text-muted-foreground">{court.notes}</div>}
+                      </div>
+                    )) : <span className="text-xs text-muted-foreground">—</span>}
+                  </div>
+                  <div className="space-y-1">
+                    {currentCourts.length > 0 ? currentCourts.map((court: any, i: number) => (
+                      <div key={i} className="text-xs bg-red-50 border border-red-200 rounded p-2">
+                        <div className="font-medium">{sportNames[court.sport] || court.sport}</div>
+                        <div>Qty: {court.quantity}{court.surface ? `, ${court.surface}` : ''}</div>
+                        {court.notes && <div className="text-muted-foreground">{court.notes}</div>}
+                      </div>
+                    )) : <span className="text-xs text-muted-foreground">—</span>}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
         
@@ -822,7 +962,7 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
 
 function AdminPlacesPage() {
   return (
-    <div className="container px-4 py-6 max-w-6xl mx-auto">
+    <div className="container px-4 py-6 max-w-xl mx-auto">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Place Moderation</h1>
         <p className="text-muted-foreground mt-2">

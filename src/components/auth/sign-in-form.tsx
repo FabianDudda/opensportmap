@@ -99,7 +99,7 @@ function SignInFormInner() {
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-xl">
       <CardHeader className="text-center">
         <CardTitle className="flex items-center justify-center gap-2">
           <LogIn className="h-5 w-5" />

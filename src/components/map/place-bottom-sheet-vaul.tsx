@@ -5,7 +5,6 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MapPin, Navigation, Share2, Heart, Pencil, X, Upload, Image, Loader2 } from 'lucide-react'
-import Link from 'next/link'
 import { PlaceWithCourts } from '@/lib/supabase/types'
 import { sportNames, sportIcons } from '@/lib/utils/sport-utils'
 import { getDistanceText } from '@/lib/utils/distance'
@@ -21,6 +20,7 @@ interface PlaceBottomSheetVaulProps {
   userLocation: { lat: number; lng: number } | null
   user: { id: string } | null
   profile: { user_role?: string } | null
+  showFavorite?: boolean
 }
 
 export default function PlaceBottomSheetVaul({
@@ -30,6 +30,7 @@ export default function PlaceBottomSheetVaul({
   userLocation,
   user,
   profile,
+  showFavorite = true,
 }: PlaceBottomSheetVaulProps) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -74,14 +75,21 @@ export default function PlaceBottomSheetVaul({
     reader.readAsDataURL(file)
   }
 
+  const isAdmin = profile?.user_role === 'admin'
+
   const handleImageUpload = async () => {
-    if (!imageFile || !selectedCourt) return
+    if (!imageFile || !selectedCourt || !user) return
     setIsUploadingImage(true)
     try {
       const { url } = await uploadCourtImage(imageFile)
-      await database.courts.updateCourt(selectedCourt.id, { image_url: url })
-      toast({ title: 'Image uploaded', description: 'The photo has been added to this place.' })
-      queryClient.invalidateQueries({ queryKey: ['places'] })
+      if (isAdmin) {
+        await database.courts.updateCourt(selectedCourt.id, { image_url: url })
+        toast({ title: 'Image uploaded', description: 'The photo has been added to this place.' })
+        queryClient.invalidateQueries({ queryKey: ['places'] })
+      } else {
+        await database.community.submitPlaceImageEdit(selectedCourt.id, url, user.id)
+        toast({ title: 'Photo submitted for review', description: 'Your photo will be visible once an admin approves it.' })
+      }
       setImageFile(null)
       setImagePreview(null)
     } catch (error) {
@@ -103,9 +111,7 @@ export default function PlaceBottomSheetVaul({
               <div className="flex items-center justify-between">
                 <div className="flex-1 text-left">
                   <DrawerTitle className="text-xl text-left">
-                    <Link href={`/places/${selectedCourt.id}`} className="hover:underline">
-                      {selectedCourt.name}
-                    </Link>
+                    {selectedCourt.name}
                   </DrawerTitle>
                 </div>
 
@@ -216,23 +222,25 @@ export default function PlaceBottomSheetVaul({
                 <Navigation className="h-4 w-4 mr-1" />
                 Directions
               </Button>
-              <Button
-                variant="secondary"
-                className="flex-1 text-base"
-                onClick={() => {
-                  if (!user) {
-                    window.location.href = '/auth/signin'
-                    return
-                  }
-                  favoriteMutation.mutate()
-                }}
-                disabled={favoriteMutation.isPending}
-              >
-                {favoriteMutation.isPending
-                  ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  : <Heart className={`h-4 w-4 mr-1 ${isFavorited ? 'fill-rose-500 text-rose-500' : ''}`} />}
-                {isFavorited ? 'Saved' : 'Save'}
-              </Button>
+              {showFavorite && (
+                <Button
+                  variant="secondary"
+                  className="flex-1 text-base"
+                  onClick={() => {
+                    if (!user) {
+                      window.location.href = '/auth/signin'
+                      return
+                    }
+                    favoriteMutation.mutate()
+                  }}
+                  disabled={favoriteMutation.isPending}
+                >
+                  {favoriteMutation.isPending
+                    ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    : <Heart className={`h-4 w-4 mr-1 ${isFavorited ? 'fill-rose-500 text-rose-500' : ''}`} />}
+                  {isFavorited ? 'Saved' : 'Save'}
+                </Button>
+              )}
             </div>
 
             {selectedCourt.image_url ? (
