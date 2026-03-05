@@ -23,7 +23,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="container px-4 py-8">
+      <div className="container px-4 py-4">
         <div className="max-w-xl mx-auto space-y-6">
           <Card><CardContent className="p-6"><div className="h-24 animate-pulse bg-muted rounded" /></CardContent></Card>
           <Card><CardContent className="p-6"><div className="h-20 animate-pulse bg-muted rounded" /></CardContent></Card>
@@ -34,7 +34,7 @@ export default function ProfilePage() {
 
   if (!user || !profile) {
     return (
-      <div className="container px-4 py-12 max-w-xl mx-auto space-y-6">
+      <div className="container px-4 py-4 max-w-xl mx-auto space-y-6">
         {/* Placeholder avatar */}
         <div className="flex justify-center">
           <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center">
@@ -66,11 +66,11 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="p-0">
             <div className="flex flex-col divide-y">
-              <button className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+              <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 <span>Give feedback</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
-              </button>
+              </Link>
               <Link href="/impressum" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <Info className="h-4 w-4 text-muted-foreground" />
                 <span>Impressum</span>
@@ -87,7 +87,7 @@ export default function ProfilePage() {
   const visibleNavItems = NAV_ITEMS.filter(item => !(item.adminOnly && !isAdmin))
 
   return (
-    <div className="container px-4 py-8 overflow-x-hidden">
+    <div className="container px-4 py-4 overflow-x-hidden">
       <div className="max-w-xl mx-auto space-y-6">
         {/* Profile Header */}
         <Card>
@@ -136,11 +136,11 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="p-0">
             <div className="flex flex-col divide-y">
-              <button className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+              <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 <span>Give feedback</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
-              </button>
+              </Link>
               <Link href="/impressum" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <Info className="h-4 w-4 text-muted-foreground" />
                 <span>Impressum</span>

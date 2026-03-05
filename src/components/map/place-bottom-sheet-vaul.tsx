@@ -100,10 +100,10 @@ export default function PlaceBottomSheetVaul({
   }
 
   return (
-    <Drawer open={isOpen} onOpenChange={onOpenChange} modal={false} shouldScaleBackground={false}>
+    <Drawer open={isOpen} onOpenChange={onOpenChange} modal={false} shouldScaleBackground={false} snapPoints={[0.4, 1]} defaultSnap={0.75}>
       <DrawerContent
         hideOverlay
-        className="h-auto max-w-2xl mx-auto"
+        className="h-full max-w-2xl mx-auto"
       >
         {selectedCourt && (
           <>
@@ -165,83 +165,84 @@ export default function PlaceBottomSheetVaul({
 
             </DrawerHeader>
 
-            <div className="space-y-4 p-4">
+            <div className="space-y-4 p-4 overflow-y-auto">
 
-            {(() => {
-              const quickAddress = [selectedCourt.street, selectedCourt.district || selectedCourt.city]
-                .filter(Boolean)
-                .join(', ')
-              return quickAddress && (
-                <p className="text-base text-muted-foreground">{quickAddress}</p>
-              )
-            })()}
+            <div className="flex flex-col gap-2">
+              {userLocation && (
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  {getDistanceText(userLocation, { lat: selectedCourt.latitude, lng: selectedCourt.longitude })}
+                </p>
+              )}
+              {(() => {
+                const quickAddress = [selectedCourt.street, selectedCourt.district || selectedCourt.city]
+                  .filter(Boolean)
+                  .join(', ')
+                return quickAddress && (
+                  <p className="text-base text-muted-foreground">{quickAddress}</p>
+                )
+              })()}
+              {/* Sports pills */}
+              {(() => {
+                const sportsWithCounts = (selectedCourt.courts?.length ?? 0) > 0
+                  ? selectedCourt.courts!.reduce((acc, c) => {
+                      acc[c.sport] = (acc[c.sport] || 0) + (c.quantity || 1)
+                      return acc
+                    }, {} as Record<string, number>)
+                  : (selectedCourt.sports?.reduce((acc, sport) => ({ ...acc, [sport]: 1 }), {} as Record<string, number>) || {})
+
+                return Object.keys(sportsWithCounts).length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(sportsWithCounts).map(([sport, count]) => (
+                      <div
+                        key={sport}
+                        className="flex items-center gap-1 border border-border rounded-full px-3 py-1.5"
+                      >
+                        <span className="text-[16px] leading-none">{sportIcons[sport] || '📍'}</span>
+                        <span className="text-[14px] font-medium text-muted-foreground">{sportNames[sport] || sport}</span>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+
             {selectedCourt.description && (
               <p className="text-sm text-muted-foreground">{selectedCourt.description}</p>
             )}
-            {userLocation && (
-              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                <MapPin className="h-3 w-3 shrink-0" />
-                {getDistanceText(userLocation, { lat: selectedCourt.latitude, lng: selectedCourt.longitude })}
-              </p>
-            )}
-
-            {/* Sports pills */}
-            {(() => {
-              const sportsWithCounts = (selectedCourt.courts?.length ?? 0) > 0
-                ? selectedCourt.courts!.reduce((acc, c) => {
-                    acc[c.sport] = (acc[c.sport] || 0) + (c.quantity || 1)
-                    return acc
-                  }, {} as Record<string, number>)
-                : (selectedCourt.sports?.reduce((acc, sport) => ({ ...acc, [sport]: 1 }), {} as Record<string, number>) || {})
-
-              return Object.keys(sportsWithCounts).length > 0 && (
-                <div className="flex gap-2 overflow-x-auto -mx-4 px-4">
-                  {Object.entries(sportsWithCounts).map(([sport, count]) => (
-                    <div
-                      key={sport}
-                      className="flex-shrink-0 flex items-center gap-1.5 border border-border rounded-full px-3 py-1.5"
-                    >
-                      <span className="text-[16px] leading-none">{sportIcons[sport] || '📍'}</span>
-                      <span className="text-[14px] font-medium text-muted-foreground">{sportNames[sport] || sport}</span>
-                    </div>
-                  ))}
-                </div>
-              )
-            })()}
 
             <div className="flex gap-2">
-              <Button
-                variant="default"
-               
-                className="flex-1 text-base"
-                onClick={() => {
-                  const url = `https://maps.google.com/?q=${selectedCourt.latitude},${selectedCourt.longitude}`
-                  window.open(url, '_blank', 'noopener,noreferrer')
-                }}
-              >
-                <Navigation className="h-4 w-4 mr-1" />
-                Directions
-              </Button>
-              {showFavorite && (
                 <Button
-                  variant="secondary"
+                  variant="default"
                   className="flex-1 text-base"
                   onClick={() => {
-                    if (!user) {
-                      window.location.href = '/auth/signin'
-                      return
-                    }
-                    favoriteMutation.mutate()
+                    const url = `https://maps.google.com/?q=${selectedCourt.latitude},${selectedCourt.longitude}`
+                    window.open(url, '_blank', 'noopener,noreferrer')
                   }}
-                  disabled={favoriteMutation.isPending}
                 >
-                  {favoriteMutation.isPending
-                    ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    : <Heart className={`h-4 w-4 mr-1 ${isFavorited ? 'fill-rose-500 text-rose-500' : ''}`} />}
-                  {isFavorited ? 'Saved' : 'Save'}
+                  <Navigation className="h-4 w-4 mr-1" />
+                  Directions
                 </Button>
-              )}
-            </div>
+                {showFavorite && (
+                  <Button
+                    variant="secondary"
+                    className="flex-1 text-base"
+                    onClick={() => {
+                      if (!user) {
+                        window.location.href = '/auth/signin'
+                        return
+                      }
+                      favoriteMutation.mutate()
+                    }}
+                    disabled={favoriteMutation.isPending}
+                  >
+                    {favoriteMutation.isPending
+                      ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      : <Heart className={`h-4 w-4 mr-1 ${isFavorited ? 'fill-rose-500 text-rose-500' : ''}`} />}
+                    {isFavorited ? 'Saved' : 'Save'}
+                  </Button>
+                )}
+              </div>
 
             {selectedCourt.image_url ? (
               <div className="w-full rounded-lg overflow-hidden h-48">
@@ -256,11 +257,11 @@ export default function PlaceBottomSheetVaul({
                 />
               </div>
             ) : user && (
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg h-48 flex flex-col">
                 {imagePreview ? (
-                  <div className="space-y-3">
-                    <div className="relative">
-                      <img src={imagePreview} alt="Preview" className="w-full h-40 object-cover rounded-lg" />
+                  <div className="flex flex-col h-full gap-2 p-2">
+                    <div className="relative flex-1 min-h-0">
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-lg" />
                       <Button
                         type="button"
                         variant="destructive"
@@ -271,13 +272,13 @@ export default function PlaceBottomSheetVaul({
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                    <Button className="w-full" onClick={handleImageUpload} disabled={isUploadingImage}>
+                    <Button className="w-full shrink-0" onClick={handleImageUpload} disabled={isUploadingImage}>
                       {isUploadingImage ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading...</> : <>Upload Photo</>}
                     </Button>
                   </div>
                 ) : (
-                  <div className="text-center space-y-3">
-                    <Image className="h-10 w-10 mx-auto text-muted-foreground" />
+                  <div className="flex flex-col items-center justify-center h-full gap-3">
+                    <Image className="h-10 w-10 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">No photo yet — be the first to add one!</p>
                     <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById(`upload-${selectedCourt.id}`)?.click()}>
                       <Upload className="h-4 w-4 mr-2" />

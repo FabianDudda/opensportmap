@@ -68,7 +68,7 @@ export default function EditProfilePage() {
 
   if (!user || !profile) {
     return (
-      <div className="container px-4 py-8 overflow-x-hidden">
+      <div className="container px-4 py-4 overflow-x-hidden">
         <div className="max-w-xl mx-auto">
           <p className="text-muted-foreground">Sign in to edit your profile.</p>
         </div>
@@ -82,7 +82,7 @@ export default function EditProfilePage() {
   const canSavePassword = newPassword.length >= 6 && passwordsMatch
 
   return (
-    <div className="container px-4 py-8 overflow-x-hidden">
+    <div className="container px-4 py-4 overflow-x-hidden">
       <div className="max-w-xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
           <Link href="/profile" className="text-muted-foreground hover:text-foreground transition-colors">

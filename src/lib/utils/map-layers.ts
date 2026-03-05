@@ -45,7 +45,7 @@ export const MAP_LAYERS: Record<string, MapLayer> = {
 }
 
 // Default layer (clean, professional look)
-export const DEFAULT_LAYER_ID = 'light'
+export const DEFAULT_LAYER_ID = 'voyager'
 
 // Create Leaflet TileLayer from configuration
 export function createTileLayer(layerConfig: MapLayer): L.TileLayer {

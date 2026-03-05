@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast'
 import PlaceForm from '@/components/places/place-form'
 import Link from 'next/link'
 import React from 'react'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
 
 interface EditPlacePageProps {
   params: Promise<{ id: string }>
@@ -165,7 +167,13 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
   }
 
   return (
-    <div className="container px-4 py-6 max-w-xl mx-auto">
+    <div className="container px-4 py-4 max-w-xl mx-auto">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/map"><ArrowLeft className="h-5 w-5" /></Link>
+        </Button>
+        <h1 className="text-2xl font-bold">Edit Place</h1>
+      </div>
       <PlaceForm
         mode="edit"
         initialData={place}

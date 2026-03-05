@@ -17,7 +17,7 @@ import { database } from '@/lib/supabase/database'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { reverseGeocode, AddressComponents } from '@/lib/geocoding'
 import { uploadCourtImage, UploadProgress } from '@/lib/supabase/storage'
-import { MapPin, Plus, Check, Upload, X, Image, Loader2, RefreshCcw, Heart } from 'lucide-react'
+import { MapPin, Plus, Check, Upload, X, Image, Loader2, RefreshCcw, Heart, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map'), {
@@ -283,9 +283,14 @@ export default function AddPlacePage() {
   }
 
   return (
-    <div className="container px-4 py-8 overflow-x-hidden">
+    <div className="container px-4 py-4 overflow-x-hidden">
       <div className="max-w-xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Add a Place</h1>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/map"><ArrowLeft className="h-5 w-5" /></Link>
+          </Button>
+          <h1 className="text-2xl font-bold">Add a Place</h1>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Name */}

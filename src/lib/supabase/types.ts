@@ -758,6 +758,15 @@ export interface UserFavorite {
   places?: PlaceWithCourts
 }
 
+export interface Feedback {
+  id: string
+  created_at: string
+  category: 'bug' | 'feature' | 'other'
+  message: string
+  user_id: string | null
+  email: string | null
+}
+
 export interface EventWithDetails extends Event {
   participant_count: number
   user_joined: boolean

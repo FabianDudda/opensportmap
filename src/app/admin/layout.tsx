@@ -3,13 +3,14 @@
 import AdminGuard from '@/components/auth/admin-guard'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
-  MapPin, 
-  Settings, 
-  Users, 
-  BarChart3, 
+import {
+  MapPin,
+  Settings,
+  Users,
+  BarChart3,
   Shield,
-  ArrowLeft
+  ArrowLeft,
+  MessageSquare
 } from 'lucide-react'
 
 function AdminSidebar() {
@@ -33,6 +34,12 @@ function AdminSidebar() {
       href: '/admin/analytics',
       icon: BarChart3,
       description: 'View system analytics'
+    },
+    {
+      label: 'Feedback',
+      href: '/admin/feedback',
+      icon: MessageSquare,
+      description: 'User feedback & bug reports'
     },
     {
       label: 'Settings',

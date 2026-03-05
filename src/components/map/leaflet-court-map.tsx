@@ -392,6 +392,15 @@ function AddCourtButtonHandler({ onAddCourtClick, user }: { onAddCourtClick: () 
 }
 
 
+function FlyToHandler({ target, onDone }: { target: { lat: number; lng: number }, onDone: () => void }) {
+  const map = useMap()
+  useEffect(() => {
+    map.flyTo([target.lat, target.lng], Math.max(map.getZoom(), 16), { duration: 1 })
+    onDone()
+  }, [map, target, onDone])
+  return null
+}
+
 export default function LeafletCourtMap({
   courts,
   onCourtSelect,
@@ -414,6 +423,7 @@ export default function LeafletCourtMap({
   const { user, profile } = useAuth()
   const [selectedCourt, setSelectedCourt] = useState<PlaceWithCourts | null>(null)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [flyToTarget, setFlyToTarget] = useState<{ lat: number; lng: number } | null>(null)
   const [currentLayerId, setCurrentLayerId] = useState<string>(() => getSavedLayerPreference())
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false)
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
@@ -449,6 +459,11 @@ export default function LeafletCourtMap({
     onCourtSelect?.(court)
   }, [onCourtSelect, disableMarkerClick])
 
+
+  const handleFavoriteSelect = useCallback((court: PlaceWithCourts) => {
+    setFlyToTarget({ lat: court.latitude, lng: court.longitude })
+    handleCourtSelect(court)
+  }, [handleCourtSelect])
 
   const handleExplicitClose = useCallback(() => {
     console.log('🗂️ Explicit close requested - clearing selection and closing sheet')
@@ -582,6 +597,9 @@ export default function LeafletCourtMap({
           
           {/* User location control */}
           <UserLocationHandler onLocationFound={handleLocationFound} />
+
+          {/* Fly to target when selected from favorites */}
+          {flyToTarget && <FlyToHandler target={flyToTarget} onDone={() => setFlyToTarget(null)} />}
           
           {/* Filter button */}
           {showFilter && <FilterButtonHandler onFilterClick={handleFilterClick} isFilterActive={selectedSports.length > 0} />}
@@ -643,7 +661,7 @@ export default function LeafletCourtMap({
         }}
         user={user}
         userLocation={userLocation}
-        onPlaceSelect={handleCourtSelect}
+        onPlaceSelect={handleFavoriteSelect}
       />
 
       {/* OLD Sheet-based bottom sheets (commented out for vaul testing)
