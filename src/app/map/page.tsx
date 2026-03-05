@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useQuery } from '@tanstack/react-query'
 import { database } from '@/lib/supabase/database'
-import { PlaceWithCourts, SportType } from '@/lib/supabase/types'
-import FavoritesBottomSheetVaul from '@/components/map/favorites-bottom-sheet-vaul'
+import { SportType } from '@/lib/supabase/types'
 
 const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map'), {
   ssr: false,
@@ -27,35 +26,7 @@ function MapPage() {
   const searchParams = useSearchParams()
   const [selectedSports, setSelectedSports] = useState<SportType[]>([])
   const [selectedPlace, setSelectedPlace] = useState<PlaceWithCourts | null>(null)
-  const [isFavoritesOpen, setIsFavoritesOpen] = useState(false)
-  const [openPlace, setOpenPlace] = useState<PlaceWithCourts | null>(null)
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
-
-  useEffect(() => {
-    if (searchParams.get('favorites') === '1') {
-      setIsFavoritesOpen(true)
-    }
-  }, [searchParams])
-
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => {}
-      )
-    }
-  }, [])
-
-  const handleFavoritesOpenChange = (open: boolean) => {
-    setIsFavoritesOpen(open)
-    if (!open) router.replace('/map')
-  }
-
-  const handlePlaceSelectFromFavorites = useCallback((place: PlaceWithCourts) => {
-    setIsFavoritesOpen(false)
-    router.replace('/map')
-    setOpenPlace(place)
-  }, [router])
+  const defaultFavoritesOpen = searchParams.get('favorites') === '1'
 
   const { data: places = [], isLoading, isError, error } = useQuery({
     queryKey: ['places'],
@@ -90,17 +61,8 @@ function MapPage() {
         selectedSports={selectedSports}
         onSportsChange={setSelectedSports}
         placesCount={filteredPlaces.length}
-        onFavoritesClick={() => setIsFavoritesOpen(true)}
-        onCloseFavorites={() => setIsFavoritesOpen(false)}
-        openPlace={openPlace}
-        onOpenPlaceHandled={() => setOpenPlace(null)}
-      />
-      <FavoritesBottomSheetVaul
-        isOpen={isFavoritesOpen}
-        onOpenChange={handleFavoritesOpenChange}
-        user={user}
-        userLocation={userLocation}
-        onPlaceSelect={handlePlaceSelectFromFavorites}
+        defaultFavoritesOpen={defaultFavoritesOpen}
+        onFavoritesClose={() => router.replace('/map')}
       />
     </>
   )

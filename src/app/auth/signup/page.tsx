@@ -9,13 +9,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { auth } from '@/lib/supabase/auth'
-import { Mail, Lock, User, UserPlus } from 'lucide-react'
+import { Mail, Lock, UserPlus } from 'lucide-react'
+
+const ADJECTIVES = ['swift', 'brave', 'calm', 'bold', 'keen', 'wild', 'cool', 'free', 'sharp', 'bright']
+const NOUNS = ['falcon', 'panda', 'tiger', 'eagle', 'wolf', 'fox', 'bear', 'hawk', 'lion', 'koala']
+
+function generateRandomName() {
+  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)]
+  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)]
+  return `${adj}-${noun}`
+}
 
 export default function SignUpPage() {
-  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
@@ -23,16 +30,6 @@ export default function SignUpPage() {
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (password !== confirmPassword) {
-      console.warn('[SignUp] Validation failed: passwords do not match')
-      toast({
-        title: 'Passwords do not match',
-        description: 'Please ensure both password fields are identical.',
-        variant: 'destructive',
-      })
-      return
-    }
-
     if (password.length < 6) {
       console.warn('[SignUp] Validation failed: password too short')
       toast({
@@ -47,7 +44,7 @@ export default function SignUpPage() {
     console.log('[SignUp] Sign-up attempt for:', email)
 
     try {
-      const { data, error } = await auth.signUp(email, password, name)
+      const { data, error } = await auth.signUp(email, password, generateRandomName())
 
       if (error) {
         console.error('[SignUp] Sign-up error:', error.message)
@@ -158,22 +155,6 @@ export default function SignUpPage() {
           {/* Email Sign Up Form */}
           <form onSubmit={handleEmailSignUp} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -206,22 +187,6 @@ export default function SignUpPage() {
               <p className="text-xs text-muted-foreground">
                 Password must be at least 6 characters long.
               </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Confirm your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>

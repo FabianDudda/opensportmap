@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/providers/auth-provider'
 import FilterBottomSheetVaul from './filter-bottom-sheet-vaul'
 import PlaceBottomSheetVaul from './place-bottom-sheet-vaul'
+import FavoritesBottomSheetVaul from './favorites-bottom-sheet-vaul'
 import { sportNames, getSportBadgeClasses, sportIcons } from '@/lib/utils/sport-utils'
 import { createSportIcon, createUserLocationIcon, createSelectedLocationIcon } from '@/lib/utils/sport-styles'
 import { MAP_LAYERS, DEFAULT_LAYER_ID, createTileLayer, getSavedLayerPreference, saveLayerPreference } from '@/lib/utils/map-layers'
@@ -39,11 +40,8 @@ interface LeafletCourtMapProps {
   showAddCourtButton?: boolean
   onAddCourtClick?: () => void
   showFilter?: boolean
-  onFavoritesClick?: () => void
-  onCloseFavorites?: () => void
-  // External place selection (e.g. from favorites sheet)
-  openPlace?: PlaceWithCourts | null
-  onOpenPlaceHandled?: () => void
+  defaultFavoritesOpen?: boolean
+  onFavoritesClose?: () => void
 }
 
 // Component to handle map clicks
@@ -406,10 +404,8 @@ export default function LeafletCourtMap({
   showAddCourtButton = false,
   onAddCourtClick,
   showFilter = true,
-  openPlace,
-  onFavoritesClick,
-  onCloseFavorites,
-  onOpenPlaceHandled,
+  defaultFavoritesOpen = false,
+  onFavoritesClose,
 }: LeafletCourtMapProps) {
   const { user, profile } = useAuth()
   const [selectedCourt, setSelectedCourt] = useState<PlaceWithCourts | null>(null)
@@ -417,40 +413,37 @@ export default function LeafletCourtMap({
   const [currentLayerId, setCurrentLayerId] = useState<string>(() => getSavedLayerPreference())
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false)
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
+  const [isFavoritesOpen, setIsFavoritesOpen] = useState(defaultFavoritesOpen)
   const isClosingExplicitly = useRef(false)
   const isClosingFilterExplicitly = useRef(false)
   const isBottomSheetOpenRef = useRef(false)
   const isFilterSheetOpenRef = useRef(false)
+  const isFavoritesOpenRef = useRef(false)
 
   // Keep refs in sync so stable callbacks can read current values
   isBottomSheetOpenRef.current = isBottomSheetOpen
   isFilterSheetOpenRef.current = isFilterSheetOpen
+  isFavoritesOpenRef.current = isFavoritesOpen
 
   // Vaul renders via @radix-ui/react-dialog which sets pointer-events:none on the body
   // when its DismissableLayer fires (modal=true by default in Radix, regardless of vaul's modal=false).
   // Restore pointer-events so the map remains pannable while a non-modal sheet is open.
   useEffect(() => {
-    if (!isBottomSheetOpen && !isFilterSheetOpen) return
+    if (!isBottomSheetOpen && !isFilterSheetOpen && !isFavoritesOpen) return
     const raf = requestAnimationFrame(() => {
       document.body.style.pointerEvents = 'auto'
     })
     return () => cancelAnimationFrame(raf)
-  }, [isBottomSheetOpen, isFilterSheetOpen])
+  }, [isBottomSheetOpen, isFilterSheetOpen, isFavoritesOpen])
 
   const handleCourtSelect = useCallback((court: PlaceWithCourts) => {
     if (isFilterSheetOpenRef.current) setIsFilterSheetOpen(false)
-    onCloseFavorites?.()
+    if (isFavoritesOpenRef.current) setIsFavoritesOpen(false)
     setSelectedCourt(court)
     if (!isBottomSheetOpenRef.current) setIsBottomSheetOpen(true)
     onCourtSelect?.(court)
-  }, [onCourtSelect, onCloseFavorites])
+  }, [onCourtSelect])
 
-  useEffect(() => {
-    if (openPlace) {
-      handleCourtSelect(openPlace)
-      onOpenPlaceHandled?.()
-    }
-  }, [openPlace, handleCourtSelect, onOpenPlaceHandled])
 
   const handleExplicitClose = useCallback(() => {
     console.log('🗂️ Explicit close requested - clearing selection and closing sheet')
@@ -478,20 +471,18 @@ export default function LeafletCourtMap({
       setIsBottomSheetOpen(false)
       setSelectedCourt(null)
     }
-    onCloseFavorites?.()
+    if (isFavoritesOpenRef.current) setIsFavoritesOpen(false)
     setIsFilterSheetOpen(true)
-  }, [onCloseFavorites])
+  }, [])
 
   const handleFavoritesClick = useCallback(() => {
     if (isBottomSheetOpenRef.current) {
       setIsBottomSheetOpen(false)
       setSelectedCourt(null)
     }
-    if (isFilterSheetOpenRef.current) {
-      setIsFilterSheetOpen(false)
-    }
-    onFavoritesClick?.()
-  }, [onFavoritesClick])
+    if (isFilterSheetOpenRef.current) setIsFilterSheetOpen(false)
+    setIsFavoritesOpen(true)
+  }, [])
 
 
   // Default center (Germany)
@@ -591,7 +582,7 @@ export default function LeafletCourtMap({
           {showFilter && <FilterButtonHandler onFilterClick={handleFilterClick} isFilterActive={selectedSports.length > 0} />}
 
           {/* Favorites button */}
-          {onFavoritesClick && <FavoritesButtonHandler onClick={handleFavoritesClick} />}
+          <FavoritesButtonHandler onClick={handleFavoritesClick} />
 
           {/* Custom attribution control */}
           <AttributionControlHandler attribution={currentLayer.attribution} />
@@ -635,6 +626,18 @@ export default function LeafletCourtMap({
         onExplicitClose={handleExplicitFilterClose}
         selectedSports={selectedSports}
         onSportsChange={onSportsChange ?? (() => {})}
+      />
+
+      {/* Favorites Bottom Sheet — vaul Drawer */}
+      <FavoritesBottomSheetVaul
+        isOpen={isFavoritesOpen}
+        onOpenChange={(open) => {
+          setIsFavoritesOpen(open)
+          if (!open) onFavoritesClose?.()
+        }}
+        user={user}
+        userLocation={userLocation}
+        onPlaceSelect={handleCourtSelect}
       />
 
       {/* OLD Sheet-based bottom sheets (commented out for vaul testing)

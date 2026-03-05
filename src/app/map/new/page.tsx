@@ -17,8 +17,8 @@ import { database } from '@/lib/supabase/database'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { reverseGeocode, AddressComponents } from '@/lib/geocoding'
 import { uploadCourtImage, UploadProgress } from '@/lib/supabase/storage'
-import { MapPin, Plus, Check, Upload, X, Image, Loader2, RefreshCcw } from 'lucide-react'
-import SignInForm from '@/components/auth/sign-in-form'
+import { MapPin, Plus, Check, Upload, X, Image, Loader2, RefreshCcw, Heart } from 'lucide-react'
+import Link from 'next/link'
 
 const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map'), {
   ssr: false,
@@ -251,8 +251,33 @@ export default function AddPlacePage() {
 
   if (!user) {
     return (
-      <div className="container flex items-center justify-center min-h-screen py-8">
-        <SignInForm />
+      <div className="container px-4 py-12 max-w-sm mx-auto space-y-6">
+        {/* Placeholder icon */}
+        <div className="flex justify-center">
+          <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center">
+            <Heart className="h-12 w-12 text-muted-foreground" />
+          </div>
+        </div>
+
+        {/* Auth card */}
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-1">
+              <h2 className="text-xl font-semibold">Sign in to add a place</h2>
+              <p className="text-sm text-muted-foreground">
+                Create an account to add sports courts and venues to the map.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <Button asChild className="w-full">
+                <Link href="/auth/signin">Sign in</Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/auth/signup">Sign up</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }

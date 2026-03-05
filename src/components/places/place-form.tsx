@@ -134,6 +134,7 @@ export default function PlaceForm({
   const [addressAutoDetected, setAddressAutoDetected] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.image_url || null)
+  const [imageRemoved, setImageRemoved] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
 
@@ -254,7 +255,8 @@ export default function PlaceForm({
   
   const removeImage = () => {
     setImageFile(null)
-    setImagePreview(mode === 'edit' ? initialData?.image_url || null : null)
+    setImagePreview(null)
+    setImageRemoved(true)
     setUploadProgress(null)
   }
 
@@ -301,7 +303,7 @@ export default function PlaceForm({
     }
 
     // Handle image upload if present
-    let finalImageUrl = initialData?.image_url || null
+    let finalImageUrl = imageRemoved ? null : (initialData?.image_url || null)
     
     if (imageFile) {
       try {

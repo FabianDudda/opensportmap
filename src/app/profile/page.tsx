@@ -10,9 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { database } from '@/lib/supabase/database'
-import { User, Mail, Trophy, Calendar, Edit2, Save, X, Plus, TestTube, Shield, LogOut } from 'lucide-react'
+import { User, Mail, Trophy, Calendar, Edit2, Save, X, Plus, TestTube, Shield, LogOut, ChevronRight, MessageSquare, Info } from 'lucide-react'
 import Link from 'next/link'
-import SignInForm from '@/components/auth/sign-in-form'
 
 const NAV_ITEMS = [
   { name: 'Rankings', href: '/rankings', icon: Trophy, adminOnly: true },
@@ -75,8 +74,51 @@ export default function ProfilePage() {
 
   if (!user || !profile) {
     return (
-      <div className="container flex items-center justify-center min-h-screen py-8">
-        <SignInForm />
+      <div className="container px-4 py-12 max-w-sm mx-auto space-y-6">
+        {/* Placeholder avatar */}
+        <div className="flex justify-center">
+          <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center">
+            <User className="h-12 w-12 text-muted-foreground" />
+          </div>
+        </div>
+
+        {/* Auth card */}
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-1">
+              <h2 className="text-xl font-semibold">Sign in to have full access to all features</h2>
+              <p className="text-sm text-muted-foreground">
+                Save places as favorites and add or edit places for the community.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <Button asChild className="w-full">
+                <Link href="/auth/signin">Sign in</Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/auth/signup">Sign up</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Nav list */}
+        <Card>
+          <CardContent className="p-0">
+            <div className="flex flex-col divide-y">
+              <button className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <span>Give feedback</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+              </button>
+              <button className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+                <Info className="h-4 w-4 text-muted-foreground" />
+                <span>About the app</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+              </button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }

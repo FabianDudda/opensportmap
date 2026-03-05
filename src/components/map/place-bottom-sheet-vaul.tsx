@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MapPin, Navigation, Share2, Heart, Pencil, X, Upload, Image, Loader2 } from 'lucide-react'
@@ -95,11 +95,11 @@ export default function PlaceBottomSheetVaul({
     <Drawer open={isOpen} onOpenChange={onOpenChange} modal={false} shouldScaleBackground={false}>
       <DrawerContent
         hideOverlay
-        className="border-0 h-auto max-w-2xl mx-auto"
+        className="h-auto max-w-2xl mx-auto"
       >
         {selectedCourt && (
-          <div className="space-y-4 px-4 pb-4">
-            <DrawerHeader className="px-0">
+          <>
+            <DrawerHeader>
               <div className="flex items-center justify-between">
                 <div className="flex-1 text-left">
                   <DrawerTitle className="text-xl text-left">
@@ -107,12 +107,6 @@ export default function PlaceBottomSheetVaul({
                       {selectedCourt.name}
                     </Link>
                   </DrawerTitle>
-                  {userLocation && (
-                    <p className="text-sm text-muted-foreground mt-1 text-left">
-                      <MapPin className="h-3 w-3 inline mr-1" />
-                      {getDistanceText(userLocation, { lat: selectedCourt.latitude, lng: selectedCourt.longitude })}
-                    </p>
-                  )}
                 </div>
 
                 {/* Button group */}
@@ -163,23 +157,27 @@ export default function PlaceBottomSheetVaul({
                 </div>
               </div>
 
-              {/* Quick Address */}
-              {(() => {
-                const quickAddress = [selectedCourt.street, selectedCourt.district || selectedCourt.city]
-                  .filter(Boolean)
-                  .join(', ')
-                return quickAddress && (
-                  <DrawerDescription className="text-base text-muted-foreground text-left">
-                    {quickAddress}
-                  </DrawerDescription>
-                )
-              })()}
-              {selectedCourt.description && (
-                <DrawerDescription className="text-left">
-                  {selectedCourt.description}
-                </DrawerDescription>
-              )}
             </DrawerHeader>
+
+            <div className="space-y-4 p-4">
+
+            {(() => {
+              const quickAddress = [selectedCourt.street, selectedCourt.district || selectedCourt.city]
+                .filter(Boolean)
+                .join(', ')
+              return quickAddress && (
+                <p className="text-base text-muted-foreground">{quickAddress}</p>
+              )
+            })()}
+            {selectedCourt.description && (
+              <p className="text-sm text-muted-foreground">{selectedCourt.description}</p>
+            )}
+            {userLocation && (
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3 shrink-0" />
+                {getDistanceText(userLocation, { lat: selectedCourt.latitude, lng: selectedCourt.longitude })}
+              </p>
+            )}
 
             {/* Sports pills */}
             {(() => {
@@ -195,17 +193,16 @@ export default function PlaceBottomSheetVaul({
                   {Object.entries(sportsWithCounts).map(([sport, count]) => (
                     <div
                       key={sport}
-                      className="flex-shrink-0 flex items-center gap-1.5 border border-gray-200 rounded-full px-3 py-1.5"
+                      className="flex-shrink-0 flex items-center gap-1.5 border border-border rounded-full px-3 py-1.5"
                     >
                       <span className="text-[16px] leading-none">{sportIcons[sport] || '📍'}</span>
-                      <span className="text-[14px] font-medium text-gray-800">{sportNames[sport] || sport}</span>
+                      <span className="text-[14px] font-medium text-muted-foreground">{sportNames[sport] || sport}</span>
                     </div>
                   ))}
                 </div>
               )
             })()}
 
-            {/* Directions + Save row */}
             <div className="flex gap-2">
               <Button
                 variant="default"
@@ -289,7 +286,8 @@ export default function PlaceBottomSheetVaul({
                 )}
               </div>
             )}
-          </div>
+            </div>
+          </>
         )}
       </DrawerContent>
     </Drawer>

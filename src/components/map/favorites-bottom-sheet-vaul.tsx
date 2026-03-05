@@ -147,14 +147,19 @@ export default function FavoritesBottomSheetVaul({
           </div>
         </DrawerHeader>
 
-        <div className="overflow-y-auto px-4 pb-4">
+        <div className="overflow-y-auto p-4">
           {!user ? (
-            <div className="py-10 text-center space-y-3">
+            <div className="text-center space-y-4">
               <Heart className="h-12 w-12 mx-auto text-muted-foreground/40" />
               <p className="text-muted-foreground">Sign in to save your favorite places.</p>
-              <Button asChild>
-                <Link href="/auth/signin" onClick={() => onOpenChange(false)}>Sign In</Link>
-              </Button>
+              <div className="flex flex-col gap-3 max-w-xs mx-auto">
+                <Button asChild className="w-full">
+                  <Link href="/auth/signin" onClick={() => onOpenChange(false)}>Sign in</Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/auth/signup" onClick={() => onOpenChange(false)}>Sign up</Link>
+                </Button>
+              </div>
             </div>
           ) : isLoading ? (
             <div className="py-10 flex justify-center">
