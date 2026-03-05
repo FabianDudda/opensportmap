@@ -91,6 +91,7 @@ function MapPage() {
         onSportsChange={setSelectedSports}
         placesCount={filteredPlaces.length}
         onFavoritesClick={() => setIsFavoritesOpen(true)}
+        onCloseFavorites={() => setIsFavoritesOpen(false)}
         openPlace={openPlace}
         onOpenPlaceHandled={() => setOpenPlace(null)}
       />

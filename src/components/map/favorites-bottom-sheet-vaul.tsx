@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
-import { Heart, X, MapPin, Navigation, Loader2 } from 'lucide-react'
+import { Heart, X, MapPin, Loader2 } from 'lucide-react'
 import { PlaceWithCourts, UserFavorite } from '@/lib/supabase/types'
 import { sportIcons, sportNames } from '@/lib/utils/sport-utils'
 import { getDistanceText } from '@/lib/utils/distance'
@@ -111,18 +111,6 @@ function PlaceCard({
           </div>
         )}
 
-        <Button
-          variant="default"
-          size="sm"
-          className="w-full"
-          onClick={(e) => {
-            e.stopPropagation()
-            window.open(`https://maps.google.com/?q=${place.latitude},${place.longitude}`, '_blank', 'noopener,noreferrer')
-          }}
-        >
-          <Navigation className="h-3.5 w-3.5 mr-1.5" />
-          Directions
-        </Button>
       </div>
     </div>
   )
@@ -142,14 +130,11 @@ export default function FavoritesBottomSheetVaul({
   })
 
   return (
-    <Drawer open={isOpen} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[92dvh] max-w-2xl mx-auto">
+    <Drawer open={isOpen} onOpenChange={onOpenChange} modal={false} shouldScaleBackground={false}>
+      <DrawerContent hideOverlay className="max-h-[92dvh] max-w-2xl mx-auto">
         <DrawerHeader>
           <div className="flex items-center justify-between">
-            <DrawerTitle className="text-xl flex items-center gap-2">
-              <Heart className="h-5 w-5 text-rose-500 fill-rose-500" />
-              Saved Places
-            </DrawerTitle>
+            <DrawerTitle className="text-xl">Saved Places</DrawerTitle>
             <Button
               variant="secondary"
               size="icon"
@@ -185,7 +170,6 @@ export default function FavoritesBottomSheetVaul({
             </div>
           ) : (
             <div className="space-y-3 py-1">
-              <p className="text-sm text-muted-foreground">{favorites.length} saved place{favorites.length !== 1 ? 's' : ''}</p>
               {favorites.map((fav: UserFavorite) =>
                 fav.places ? (
                   <PlaceCard

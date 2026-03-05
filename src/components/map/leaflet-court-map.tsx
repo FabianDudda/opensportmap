@@ -40,6 +40,7 @@ interface LeafletCourtMapProps {
   onAddCourtClick?: () => void
   showFilter?: boolean
   onFavoritesClick?: () => void
+  onCloseFavorites?: () => void
   // External place selection (e.g. from favorites sheet)
   openPlace?: PlaceWithCourts | null
   onOpenPlaceHandled?: () => void
@@ -258,7 +259,7 @@ function LayerToggleHandler({ currentLayerId, onLayerChange }: { currentLayerId:
   const map = useMap()
   
   const toggleLayer = () => {
-    const cycle = ['light', 'satellite']
+    const cycle = ['light', 'voyager']
     const nextIndex = (cycle.indexOf(currentLayerId) + 1) % cycle.length
     onLayerChange(cycle[nextIndex])
   }
@@ -407,6 +408,7 @@ export default function LeafletCourtMap({
   showFilter = true,
   openPlace,
   onFavoritesClick,
+  onCloseFavorites,
   onOpenPlaceHandled,
 }: LeafletCourtMapProps) {
   const { user, profile } = useAuth()
@@ -436,17 +438,12 @@ export default function LeafletCourtMap({
   }, [isBottomSheetOpen, isFilterSheetOpen])
 
   const handleCourtSelect = useCallback((court: PlaceWithCourts) => {
-    // Close filter sheet if open (mutual exclusion)
-    if (isFilterSheetOpenRef.current) {
-      setIsFilterSheetOpen(false)
-    }
-
+    if (isFilterSheetOpenRef.current) setIsFilterSheetOpen(false)
+    onCloseFavorites?.()
     setSelectedCourt(court)
-    if (!isBottomSheetOpenRef.current) {
-      setIsBottomSheetOpen(true)
-    }
+    if (!isBottomSheetOpenRef.current) setIsBottomSheetOpen(true)
     onCourtSelect?.(court)
-  }, [onCourtSelect])
+  }, [onCourtSelect, onCloseFavorites])
 
   useEffect(() => {
     if (openPlace) {
@@ -477,13 +474,24 @@ export default function LeafletCourtMap({
   }, [])
 
   const handleFilterClick = useCallback(() => {
-    // Close marker sheet if open (mutual exclusion)
     if (isBottomSheetOpenRef.current) {
       setIsBottomSheetOpen(false)
       setSelectedCourt(null)
     }
+    onCloseFavorites?.()
     setIsFilterSheetOpen(true)
-  }, [])
+  }, [onCloseFavorites])
+
+  const handleFavoritesClick = useCallback(() => {
+    if (isBottomSheetOpenRef.current) {
+      setIsBottomSheetOpen(false)
+      setSelectedCourt(null)
+    }
+    if (isFilterSheetOpenRef.current) {
+      setIsFilterSheetOpen(false)
+    }
+    onFavoritesClick?.()
+  }, [onFavoritesClick])
 
 
   // Default center (Germany)
@@ -583,7 +591,7 @@ export default function LeafletCourtMap({
           {showFilter && <FilterButtonHandler onFilterClick={handleFilterClick} isFilterActive={selectedSports.length > 0} />}
 
           {/* Favorites button */}
-          {onFavoritesClick && <FavoritesButtonHandler onClick={onFavoritesClick} />}
+          {onFavoritesClick && <FavoritesButtonHandler onClick={handleFavoritesClick} />}
 
           {/* Custom attribution control */}
           <AttributionControlHandler attribution={currentLayer.attribution} />
