@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
+import { useQuery } from '@tanstack/react-query'
+import { database } from '@/lib/supabase/database'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,7 +22,7 @@ const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map
     <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg">
       <div className="text-center">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2" />
-        <p className="text-sm text-muted-foreground">Loading map...</p>
+        <p className="text-sm text-muted-foreground">Karte wird geladen...</p>
       </div>
     </div>
   ),
@@ -81,6 +83,11 @@ export default function PlaceForm({
   showCommunityMessage = false,
 }: PlaceFormProps) {
   const { toast } = useToast()
+
+  const { data: allPlaces = [] } = useQuery({
+    queryKey: ['places'],
+    queryFn: () => database.courts.getAllCourts(),
+  })
 
   const [name, setName] = useState(initialData?.name || '')
 
@@ -183,10 +190,10 @@ export default function PlaceForm({
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 10 * 1024 * 1024) {
-      toast({ title: 'File too large', description: 'Max 10MB.', variant: 'destructive' }); return
+      toast({ title: 'Datei zu groß', description: 'Max. 10MB.', variant: 'destructive' }); return
     }
     if (!file.type.startsWith('image/')) {
-      toast({ title: 'Invalid file type', description: 'Select an image file.', variant: 'destructive' }); return
+      toast({ title: 'Ungültiger Dateityp', description: 'Bitte Bilddatei auswählen.', variant: 'destructive' }); return
     }
     setImageFile(file)
     const reader = new FileReader()
@@ -196,9 +203,9 @@ export default function PlaceForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) { toast({ title: 'Name required', variant: 'destructive' }); return }
-    if (selectedSports.length === 0) { toast({ title: 'Select at least one sport', variant: 'destructive' }); return }
-    if (!location) { toast({ title: 'Location required', description: 'Tap the map to set a location.', variant: 'destructive' }); return }
+    if (!name.trim()) { toast({ title: 'Name erforderlich', variant: 'destructive' }); return }
+    if (selectedSports.length === 0) { toast({ title: 'Mindestens eine Sportart auswählen', variant: 'destructive' }); return }
+    if (!location) { toast({ title: 'Standort erforderlich', description: 'Tippe auf die Karte, um einen Standort zu setzen.', variant: 'destructive' }); return }
 
     let finalImageUrl = imageRemoved ? null : (initialData?.image_url || null)
     if (imageFile) {
@@ -208,7 +215,7 @@ export default function PlaceForm({
         const result = await uploadCourtImage(imageFile, p => setUploadProgress(p))
         finalImageUrl = result.url
       } catch (err) {
-        toast({ title: 'Image upload failed', description: err instanceof Error ? err.message : '', variant: 'destructive' })
+        toast({ title: 'Bild-Upload fehlgeschlagen', description: err instanceof Error ? err.message : '', variant: 'destructive' })
       } finally {
         setIsUploadingImage(false)
         setUploadProgress(null)
@@ -241,8 +248,8 @@ export default function PlaceForm({
           <div className="flex items-start gap-2">
             <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm">
-              <div className="font-medium text-blue-800">Community Contribution</div>
-              <div className="text-blue-700">Your edits will be reviewed by administrators before being visible to other users.</div>
+              <div className="font-medium text-blue-800">Community-Beitrag</div>
+              <div className="text-blue-700">Deine Änderungen werden von Administratoren geprüft, bevor sie für andere Nutzer sichtbar sind.</div>
             </div>
           </div>
         </div>
@@ -250,13 +257,13 @@ export default function PlaceForm({
 
       {/* Name */}
       <div className="space-y-2">
-        <Label htmlFor="pf-name">Place Name *</Label>
-        <Input id="pf-name" placeholder="e.g., Central Park Tennis Courts" value={name} onChange={e => setName(e.target.value)} required />
+        <Label htmlFor="pf-name">Ortsname *</Label>
+        <Input id="pf-name" placeholder="z.B. Stadtpark Tennisplätze" value={name} onChange={e => setName(e.target.value)} required />
       </div>
 
       {/* Sports */}
       <div className="space-y-2">
-        <Label>Sports Available *</Label>
+        <Label>Verfügbare Sportarten *</Label>
         <div className="grid grid-cols-3 gap-2">
           {SPORTS.map(sport => {
             const isSelected = selectedSports.includes(sport.id as SportType)
@@ -283,7 +290,7 @@ export default function PlaceForm({
       {/* Court Details */}
       {selectedSports.length > 0 && (
         <div className="space-y-3">
-          <Label>Court Details</Label>
+          <Label>Platz-Details</Label>
           {selectedSports.map(sport => {
             const surfaces = courtSurfaces[sport] || ['']
             return (
@@ -292,9 +299,9 @@ export default function PlaceForm({
                 <div className="space-y-2">
                   {surfaces.map((surface, idx) => (
                     <div key={idx} className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground min-w-[4.5rem]">Court {idx + 1}</span>
+                      <span className="text-sm text-muted-foreground min-w-[4.5rem]">Platz {idx + 1}</span>
                       <Select value={surface || 'Unbekannt'} onValueChange={val => updateCourtSurface(sport, idx, val)}>
-                        <SelectTrigger className="flex-1"><SelectValue placeholder="Surface type..." /></SelectTrigger>
+                        <SelectTrigger className="flex-1"><SelectValue placeholder="Belagstyp..." /></SelectTrigger>
                         <SelectContent>
                           {SURFACE_TYPES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
@@ -306,7 +313,7 @@ export default function PlaceForm({
                   ))}
                 </div>
                 <Button type="button" variant="outline" size="sm" onClick={() => addCourtForSport(sport)}>
-                  <Plus className="h-4 w-4 mr-1" />Add another court
+                  <Plus className="h-4 w-4 mr-1" />Weiteren Platz hinzufügen
                 </Button>
               </div>
             )
@@ -316,7 +323,7 @@ export default function PlaceForm({
 
       {/* Image */}
       <div className="space-y-2">
-        <Label>Court Image (Optional)</Label>
+        <Label>Platzbild (Optional)</Label>
         <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
           {imagePreview ? (
             <div className="space-y-2">
@@ -327,16 +334,16 @@ export default function PlaceForm({
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground text-center">{imageFile?.name || 'Current image'}</p>
+              <p className="text-xs text-muted-foreground text-center">{imageFile?.name || 'Aktuelles Bild'}</p>
             </div>
           ) : (
             <div className="text-center space-y-2">
               <Image className="h-10 w-10 mx-auto text-muted-foreground" />
               <Button type="button" size="sm" onClick={() => document.getElementById('pf-image-upload')?.click()}>
-                <Upload className="h-4 w-4 mr-1" />Upload Image
+                <Upload className="h-4 w-4 mr-1" />Bild hochladen
               </Button>
               <Input id="pf-image-upload" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-              <p className="text-xs text-muted-foreground">JPG, PNG, WebP up to 10MB</p>
+              <p className="text-xs text-muted-foreground">JPG, PNG, WebP bis 10MB</p>
             </div>
           )}
         </div>
@@ -344,28 +351,31 @@ export default function PlaceForm({
 
       {/* Location */}
       <div className="space-y-2">
-        <Label>Location *</Label>
-        <p className="text-xs text-muted-foreground">Tap the map to set the exact location.</p>
+        <Label>Standort *</Label>
+        <p className="text-xs text-muted-foreground">Tippe auf die Karte, um den genauen Standort zu setzen.</p>
         <div className="border rounded-lg overflow-hidden">
           <LeafletCourtMap
-            courts={[]}
+            courts={allPlaces.filter(p => p.id !== initialData?.id)}
             onMapClick={handleMapClick}
             height="260px"
             allowAddCourt={true}
             selectedLocation={location}
-            placesCount={0}
+            placesCount={allPlaces.length}
             showFilter={false}
+            showFavorite={false}
+            disableMarkerClick={true}
+            initialCenter={initialData ? { lat: initialData.latitude, lng: initialData.longitude } : undefined}
           />
         </div>
         {location ? (
           <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg border border-green-200">
             <MapPin className="h-4 w-4 shrink-0" />
-            <span><span className="font-medium">Location set:</span> {location.lat.toFixed(5)}, {location.lng.toFixed(5)}</span>
+            <span><span className="font-medium">Standort gesetzt:</span> {location.lat.toFixed(5)}, {location.lng.toFixed(5)}</span>
           </div>
         ) : (
           <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
             <MapPin className="h-4 w-4 shrink-0" />
-            <span className="font-medium">Tap the map to set location</span>
+            <span className="font-medium">Tippe auf die Karte, um den Standort zu setzen</span>
           </div>
         )}
       </div>
@@ -374,27 +384,27 @@ export default function PlaceForm({
       {location && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label>Address</Label>
+            <Label>Adresse</Label>
             {Object.values(address).some(v => v) && (
               <Button type="button" variant="outline" size="sm" onClick={() => { setAddress({}); setAddressAutoDetected(false) }}>
-                <RefreshCcw className="h-3 w-3 mr-1" />Clear
+                <RefreshCcw className="h-3 w-3 mr-1" />Löschen
               </Button>
             )}
           </div>
           {isDetectingAddress && (
             <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-200">
-              <Loader2 className="h-4 w-4 animate-spin" /><span>Detecting address...</span>
+              <Loader2 className="h-4 w-4 animate-spin" /><span>Adresse wird erkannt...</span>
             </div>
           )}
           {addressAutoDetected && !isDetectingAddress && (
             <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg border border-green-200">
-              <Check className="h-4 w-4" /><span>Address auto-detected.</span>
+              <Check className="h-4 w-4" /><span>Adresse automatisch erkannt.</span>
             </div>
           )}
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1">
-              <Label htmlFor="pf-street" className="text-xs">Street</Label>
-              <Input id="pf-street" placeholder="Street & number"
+              <Label htmlFor="pf-street" className="text-xs">Straße</Label>
+              <Input id="pf-street" placeholder="Straße & Hausnummer"
                 value={address.street && address.house_number ? `${address.street} ${address.house_number}` : address.street || ''}
                 onChange={e => {
                   const parts = e.target.value.trim().split(' ')
@@ -409,20 +419,20 @@ export default function PlaceForm({
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="pf-city" className="text-xs">City</Label>
-              <Input id="pf-city" placeholder="City" value={address.city || ''} onChange={e => updateAddressField('city', e.target.value)} />
+              <Label htmlFor="pf-city" className="text-xs">Stadt</Label>
+              <Input id="pf-city" placeholder="Stadt" value={address.city || ''} onChange={e => updateAddressField('city', e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="pf-postcode" className="text-xs">Postal Code</Label>
-              <Input id="pf-postcode" placeholder="Postcode" value={address.postcode || ''} onChange={e => updateAddressField('postcode', e.target.value)} />
+              <Label htmlFor="pf-postcode" className="text-xs">Postleitzahl</Label>
+              <Input id="pf-postcode" placeholder="PLZ" value={address.postcode || ''} onChange={e => updateAddressField('postcode', e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="pf-state" className="text-xs">State</Label>
-              <Input id="pf-state" placeholder="State" value={address.state || ''} onChange={e => updateAddressField('state', e.target.value)} />
+              <Label htmlFor="pf-state" className="text-xs">Bundesland</Label>
+              <Input id="pf-state" placeholder="Bundesland" value={address.state || ''} onChange={e => updateAddressField('state', e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="pf-country" className="text-xs">Country</Label>
-              <Input id="pf-country" placeholder="Country" value={address.country || ''} onChange={e => updateAddressField('country', e.target.value)} />
+              <Label htmlFor="pf-country" className="text-xs">Land</Label>
+              <Input id="pf-country" placeholder="Land" value={address.country || ''} onChange={e => updateAddressField('country', e.target.value)} />
             </div>
           </div>
         </div>
@@ -431,11 +441,11 @@ export default function PlaceForm({
       {/* Submit */}
       <Button type="submit" className="w-full" disabled={isLoading || isUploadingImage}>
         {isUploadingImage ? (
-          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Uploading... {uploadProgress && `${uploadProgress.percentage.toFixed(0)}%`}</>
+          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Hochladen... {uploadProgress && `${uploadProgress.percentage.toFixed(0)}%`}</>
         ) : isLoading ? (
-          <><Loader2 className="h-4 w-4 animate-spin mr-2" />{mode === 'create' ? 'Adding...' : 'Saving...'}</>
+          <><Loader2 className="h-4 w-4 animate-spin mr-2" />{mode === 'create' ? 'Hinzufügen...' : 'Speichern...'}</>
         ) : (
-          submitButtonText || (mode === 'create' ? 'Add Place' : 'Save Changes')
+          submitButtonText || (mode === 'create' ? 'Ort hinzufügen' : 'Änderungen speichern')
         )}
       </Button>
 

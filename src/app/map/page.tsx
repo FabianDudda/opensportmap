@@ -57,7 +57,7 @@ function MapPage() {
       <LeafletCourtMap
         courts={filteredPlaces}
         onCourtSelect={setSelectedPlace}
-        height="calc(100dvh - 4rem)"
+        height="100dvh"
         selectedSports={selectedSports}
         onSportsChange={setSelectedSports}
         placesCount={filteredPlaces.length}

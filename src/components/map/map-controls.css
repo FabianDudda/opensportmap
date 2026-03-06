@@ -53,7 +53,7 @@
 
 .map-control-bottom-right-stack {
   position: absolute;
-  bottom: var(--map-control-margin);
+  bottom: calc(var(--map-control-margin) + 4rem);
   right: var(--map-control-margin);
   z-index: var(--map-control-z-index);
   display: flex;
@@ -74,7 +74,7 @@
 
 .map-control-bottom-left-stack {
   position: absolute;
-  bottom: var(--map-control-margin);
+  bottom: calc(var(--map-control-margin) + 4rem);
   left: var(--map-control-margin);
   z-index: var(--map-control-z-index);
   display: flex;

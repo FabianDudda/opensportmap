@@ -103,13 +103,13 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
     onSuccess: (result) => {
       if (result?.directUpdate) {
         toast({
-          title: 'Place updated successfully!',
-          description: 'Your changes have been applied immediately.',
+          title: 'Ort erfolgreich aktualisiert!',
+          description: 'Deine Änderungen wurden sofort übernommen.',
         })
       } else {
         toast({
-          title: 'Changes submitted for review!',
-          description: 'Your suggested edits will be reviewed by administrators. Thank you for contributing to the community!',
+          title: 'Änderungen zur Überprüfung eingereicht!',
+          description: 'Deine vorgeschlagenen Änderungen werden von Administratoren geprüft. Danke für deinen Beitrag!',
         })
       }
       
@@ -123,7 +123,7 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
     },
     onError: (error: Error) => {
       toast({
-        title: 'Error saving changes',
+        title: 'Fehler beim Speichern',
         description: error.message,
         variant: 'destructive',
       })
@@ -137,7 +137,7 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
         <div className="max-w-xl mx-auto">
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted-foreground">Laden...</p>
           </div>
         </div>
       </div>
@@ -149,12 +149,12 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
     return (
       <div className="container px-4 py-8">
         <div className="max-w-xl mx-auto text-center">
-          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
+          <h1 className="text-2xl font-bold mb-4">Anmeldung erforderlich</h1>
           <p className="text-muted-foreground mb-4">
-            You must be signed in to edit places.
+            Du musst angemeldet sein, um Orte zu bearbeiten.
           </p>
           <Link href="/auth/signin" className="text-primary hover:underline">
-            Sign In
+            Anmelden
           </Link>
         </div>
       </div>
@@ -172,21 +172,21 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
         <Button variant="ghost" size="icon" asChild>
           <Link href="/map"><ArrowLeft className="h-5 w-5" /></Link>
         </Button>
-        <h1 className="text-2xl font-bold">Edit Place</h1>
+        <h1 className="text-2xl font-bold">Ort bearbeiten</h1>
       </div>
       <PlaceForm
         mode="edit"
         initialData={place}
         onSubmit={(formData) => submitMutation.mutateAsync(formData)}
         isLoading={submitMutation.isPending}
-        title={isAdmin ? `Edit ${place.name}` : `Suggest Edits for ${place.name}`}
+        title={isAdmin ? `${place.name} bearbeiten` : `Änderungen für ${place.name} vorschlagen`}
         description={
-          isAdmin 
-            ? "Make changes to this place. Your updates will be applied immediately."
-            : "Suggest improvements to this place. Your changes will be reviewed before being published."
+          isAdmin
+            ? "Nimm Änderungen an diesem Ort vor. Deine Änderungen werden sofort übernommen."
+            : "Schlage Verbesserungen für diesen Ort vor. Deine Änderungen werden vor der Veröffentlichung geprüft."
         }
         showCommunityMessage={!isAdmin}
-        submitButtonText={isAdmin ? "Save Changes" : "Submit for Review"}
+        submitButtonText={isAdmin ? "Änderungen speichern" : "Zur Überprüfung einreichen"}
       />
     </div>
   )

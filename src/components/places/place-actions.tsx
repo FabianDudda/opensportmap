@@ -42,17 +42,17 @@ export default function PlaceActions({ place }: PlaceActionsProps) {
         <Button variant="outline" asChild>
           <Link href={`/places/${place.id}/edit`}>
             <Edit className="h-4 w-4 mr-2" />
-            {isAdmin ? 'Edit' : 'Suggest Edit'}
+            {isAdmin ? 'Bearbeiten' : 'Bearbeitung vorschlagen'}
           </Link>
         </Button>
       )}
       <Button variant="outline" onClick={handleShare}>
         <Share2 className="h-4 w-4 mr-2" />
-        Share
+        Teilen
       </Button>
       <Button variant="outline" onClick={handleDirections}>
         <Navigation className="h-4 w-4 mr-2" />
-        Directions
+        Route
       </Button>
     </div>
   )

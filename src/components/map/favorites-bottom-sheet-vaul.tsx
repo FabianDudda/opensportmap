@@ -38,10 +38,10 @@ function PlaceCard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites', userId] })
       queryClient.invalidateQueries({ queryKey: ['favorite', userId, place.id] })
-      toast({ title: 'Removed from favorites' })
+      toast({ title: 'Aus Favoriten entfernt' })
     },
     onError: () => {
-      toast({ title: 'Failed to remove', variant: 'destructive' })
+      toast({ title: 'Entfernen fehlgeschlagen', variant: 'destructive' })
     },
   })
 
@@ -134,12 +134,12 @@ export default function FavoritesBottomSheetVaul({
       <DrawerContent hideOverlay className="max-h-[92dvh] max-w-2xl mx-auto">
         <DrawerHeader>
           <div className="flex items-center justify-between">
-            <DrawerTitle className="text-xl">Saved Places</DrawerTitle>
+            <DrawerTitle className="text-xl">Gespeicherte Orte</DrawerTitle>
             <Button
               variant="secondary"
               size="icon"
               onClick={() => onOpenChange(false)}
-              title="Close"
+              title="Schließen"
               className="rounded-full"
             >
               <X className="h-5 w-5" />
@@ -151,13 +151,13 @@ export default function FavoritesBottomSheetVaul({
           {!user ? (
             <div className="text-center space-y-4">
               <Heart className="h-12 w-12 mx-auto text-muted-foreground/40" />
-              <p className="text-muted-foreground">Sign in to save your favorite places.</p>
+              <p className="text-muted-foreground">Melde dich an, um deine Lieblingsorte zu speichern.</p>
               <div className="flex flex-col gap-3 max-w-xs mx-auto">
                 <Button asChild className="w-full">
-                  <Link href="/auth/signin" onClick={() => onOpenChange(false)}>Sign in</Link>
+                  <Link href="/auth/signin" onClick={() => onOpenChange(false)}>Anmelden</Link>
                 </Button>
                 <Button asChild variant="outline" className="w-full">
-                  <Link href="/auth/signup" onClick={() => onOpenChange(false)}>Sign up</Link>
+                  <Link href="/auth/signup" onClick={() => onOpenChange(false)}>Registrieren</Link>
                 </Button>
               </div>
             </div>
@@ -168,9 +168,9 @@ export default function FavoritesBottomSheetVaul({
           ) : favorites.length === 0 ? (
             <div className="py-10 text-center space-y-2">
               <Heart className="h-12 w-12 mx-auto text-muted-foreground/40" />
-              <p className="font-medium">No saved places yet</p>
+              <p className="font-medium">Noch keine gespeicherten Orte</p>
               <p className="text-sm text-muted-foreground">
-                Tap the heart on any place to save it here.
+                Tippe auf das Herz bei einem Ort, um ihn hier zu speichern.
               </p>
             </div>
           ) : (

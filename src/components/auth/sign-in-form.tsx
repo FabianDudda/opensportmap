@@ -23,21 +23,21 @@ function SignInFormInner() {
     const error = searchParams.get('error')
     if (error) {
       const errorMessages: Record<string, string> = {
-        auth_error: 'Authentication failed. Please try again.',
-        session_error: 'Failed to create session. Please try again.',
-        callback_error: 'OAuth callback failed. Please try again.',
-        no_code: 'OAuth authorization was cancelled.',
-        session_failed: 'Failed to establish session. Please try again.',
-        callback_failed: 'OAuth callback processing failed.',
-        no_session: 'No session was created. Please try again.',
-        processing_failed: 'Failed to process authentication. Please try again.',
-        session_timeout: 'Authentication took too long. Please try again.',
-        oauth_access_denied: 'Access was denied during Google sign in.',
-        oauth_invalid_request: 'Invalid OAuth request. Please try again.',
+        auth_error: 'Authentifizierung fehlgeschlagen. Bitte erneut versuchen.',
+        session_error: 'Sitzung konnte nicht erstellt werden. Bitte erneut versuchen.',
+        callback_error: 'OAuth-Callback fehlgeschlagen. Bitte erneut versuchen.',
+        no_code: 'OAuth-Autorisierung wurde abgebrochen.',
+        session_failed: 'Sitzung konnte nicht aufgebaut werden. Bitte erneut versuchen.',
+        callback_failed: 'OAuth-Callback-Verarbeitung fehlgeschlagen.',
+        no_session: 'Es wurde keine Sitzung erstellt. Bitte erneut versuchen.',
+        processing_failed: 'Authentifizierung konnte nicht verarbeitet werden. Bitte erneut versuchen.',
+        session_timeout: 'Authentifizierung hat zu lange gedauert. Bitte erneut versuchen.',
+        oauth_access_denied: 'Zugriff bei Google-Anmeldung verweigert.',
+        oauth_invalid_request: 'Ungültige OAuth-Anfrage. Bitte erneut versuchen.',
       }
       toast({
-        title: 'Sign in failed',
-        description: errorMessages[error] || 'An unknown error occurred.',
+        title: 'Anmeldung fehlgeschlagen',
+        description: errorMessages[error] || 'Ein unbekannter Fehler ist aufgetreten.',
         variant: 'destructive',
       })
     }
@@ -52,21 +52,21 @@ function SignInFormInner() {
 
       if (error) {
         toast({
-          title: 'Sign in failed',
+          title: 'Anmeldung fehlgeschlagen',
           description: error.message,
           variant: 'destructive',
         })
       } else if (data.user) {
         toast({
-          title: 'Welcome back!',
-          description: 'You have been signed in successfully.',
+          title: 'Willkommen zurück!',
+          description: 'Du wurdest erfolgreich angemeldet.',
         })
         router.push('/')
       }
     } catch {
       toast({
-        title: 'An error occurred',
-        description: 'Please try again later.',
+        title: 'Ein Fehler ist aufgetreten',
+        description: 'Bitte versuche es später erneut.',
         variant: 'destructive',
       })
     } finally {
@@ -82,15 +82,15 @@ function SignInFormInner() {
 
       if (error) {
         toast({
-          title: 'Sign in failed',
+          title: 'Anmeldung fehlgeschlagen',
           description: error.message,
           variant: 'destructive',
         })
       }
     } catch {
       toast({
-        title: 'An error occurred',
-        description: 'Please try again later.',
+        title: 'Ein Fehler ist aufgetreten',
+        description: 'Bitte versuche es später erneut.',
         variant: 'destructive',
       })
     } finally {
@@ -103,10 +103,10 @@ function SignInFormInner() {
       <CardHeader className="text-center">
         <CardTitle className="flex items-center justify-center gap-2">
           <LogIn className="h-5 w-5" />
-          Sign In
+          Anmelden
         </CardTitle>
         <CardDescription>
-          Welcome back! Sign in to your account to continue.
+          Willkommen zurück! Melde dich an, um fortzufahren.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -122,7 +122,7 @@ function SignInFormInner() {
             <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
             <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
           </svg>
-          Continue with Google
+          Mit Google fortfahren
         </Button>
 
         <div className="relative">
@@ -130,19 +130,19 @@ function SignInFormInner() {
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or</span>
+            <span className="bg-background px-2 text-muted-foreground">Oder</span>
           </div>
         </div>
 
         <form onSubmit={handleEmailSignIn} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">E-Mail</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="E-Mail eingeben"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10"
@@ -152,13 +152,13 @@ function SignInFormInner() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Passwort</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Passwort eingeben"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10"
@@ -168,14 +168,14 @@ function SignInFormInner() {
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading ? 'Anmelden...' : 'Anmelden'}
           </Button>
         </form>
 
         <div className="text-center text-sm">
-          <span className="text-muted-foreground">Don&apos;t have an account? </span>
+          <span className="text-muted-foreground">Noch kein Konto? </span>
           <Link href="/auth/signup" className="text-primary hover:underline">
-            Sign up
+            Registrieren
           </Link>
         </div>
       </CardContent>

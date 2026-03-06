@@ -44,6 +44,8 @@ interface LeafletCourtMapProps {
   disableMarkerClick?: boolean
   defaultFavoritesOpen?: boolean
   onFavoritesClose?: () => void
+  initialCenter?: { lat: number; lng: number }
+  initialZoom?: number
 }
 
 // Component to handle map clicks
@@ -419,6 +421,8 @@ export default function LeafletCourtMap({
   disableMarkerClick = false,
   defaultFavoritesOpen = false,
   onFavoritesClose,
+  initialCenter,
+  initialZoom,
 }: LeafletCourtMapProps) {
   const { user, profile } = useAuth()
   const [selectedCourt, setSelectedCourt] = useState<PlaceWithCourts | null>(null)
@@ -507,15 +511,17 @@ export default function LeafletCourtMap({
 
   // Default center (Germany)
   const defaultCenter: [number, number] = [51.165691, 10.451526]
-  
+  const mapCenter: [number, number] = initialCenter ? [initialCenter.lat, initialCenter.lng] : defaultCenter
+  const mapZoom = initialZoom ?? (initialCenter ? 13 : 7)
+
   // Get current layer configuration (memoized)
   const currentLayer = useMemo(() => MAP_LAYERS[currentLayerId] || MAP_LAYERS[DEFAULT_LAYER_ID], [currentLayerId])
 
   return (
     <div className="relative" style={{ height }}>
       <MapContainer
-        center={defaultCenter}
-        zoom={7}
+        center={mapCenter}
+        zoom={mapZoom}
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom={true}
         zoomControl={false}
@@ -627,7 +633,7 @@ export default function LeafletCourtMap({
         <div className="absolute top-4 right-4 bg-white/90 rounded-lg p-2 text-sm shadow-lg">
           <div className="flex items-center gap-1 text-muted-foreground">
             <Plus className="h-3 w-3" />
-            Click map to add court
+            Karte antippen, um Ort hinzuzufügen
           </div>
         </div>
       )}

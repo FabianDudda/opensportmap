@@ -102,7 +102,7 @@ export default async function PlacePage({ params }: PlacePageProps) {
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Courts
+          Zurück zur Karte
         </Link>
       </div>
 
@@ -120,17 +120,17 @@ export default async function PlacePage({ params }: PlacePageProps) {
                 {fullAddress ? (
                   <div>{fullAddress}</div>
                 ) : (
-                  <div>Coordinates: {place.latitude}, {place.longitude}</div>
+                  <div>Koordinaten: {place.latitude}, {place.longitude}</div>
                 )}
                 {place.postcode && (
-                  <div className="text-xs mt-1">Postal Code: {place.postcode}</div>
+                  <div className="text-xs mt-1">Postleitzahl: {place.postcode}</div>
                 )}
               </div>
             </div>
 
             {/* Available Sports */}
             <div className="mb-4">
-              <h3 className="text-sm font-medium mb-2">Available Sports:</h3>
+              <h3 className="text-sm font-medium mb-2">Verfügbare Sportarten:</h3>
               <div className="flex flex-wrap gap-1">
                 {availableSports.length > 0 ? (
                   availableSports.map((sport) => (
@@ -139,7 +139,7 @@ export default async function PlacePage({ params }: PlacePageProps) {
                     </Badge>
                   ))
                 ) : (
-                  <span className="text-sm text-muted-foreground">No sports specified</span>
+                  <span className="text-sm text-muted-foreground">Keine Sportarten angegeben</span>
                 )}
               </div>
             </div>
@@ -148,11 +148,11 @@ export default async function PlacePage({ params }: PlacePageProps) {
             <div className="flex gap-4 text-sm text-muted-foreground mb-4">
               <div className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                {place.courts?.length || 0} court{(place.courts?.length || 0) !== 1 ? 's' : ''}
+                {place.courts?.length || 0} {(place.courts?.length || 0) !== 1 ? 'Plätze' : 'Platz'}
               </div>
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                Added {new Date(place.created_at).toLocaleDateString()}
+                Hinzugefügt {new Date(place.created_at).toLocaleDateString('de-DE')}
               </div>
             </div>
 
@@ -186,9 +186,9 @@ export default async function PlacePage({ params }: PlacePageProps) {
           {/* Courts Section */}
           <Card>
             <CardHeader>
-              <CardTitle>Courts & Facilities</CardTitle>
+              <CardTitle>Plätze & Einrichtungen</CardTitle>
               <CardDescription>
-                All sports facilities available at this location
+                Alle Sporteinrichtungen an diesem Ort
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -202,7 +202,7 @@ export default async function PlacePage({ params }: PlacePageProps) {
                             {court.sport}
                           </h4>
                           <p className="text-sm text-muted-foreground">
-                            Quantity: {court.quantity}
+                            Anzahl: {court.quantity}
                           </p>
                         </div>
                         <Badge className={`${getSportBadgeClasses(court.sport)}`}>
@@ -212,13 +212,13 @@ export default async function PlacePage({ params }: PlacePageProps) {
                       
                       {court.surface && (
                         <p className="text-sm text-muted-foreground mb-1">
-                          Surface: {court.surface}
+                          Belag: {court.surface}
                         </p>
                       )}
                       
                       {court.notes && (
                         <p className="text-sm text-muted-foreground">
-                          Notes: {court.notes}
+                          Notizen: {court.notes}
                         </p>
                       )}
                     </div>
@@ -226,7 +226,7 @@ export default async function PlacePage({ params }: PlacePageProps) {
                 </div>
               ) : (
                 <p className="text-muted-foreground text-center py-8">
-                  No detailed court information available
+                  Keine detaillierten Platzinformationen verfügbar
                 </p>
               )}
             </CardContent>
@@ -236,7 +236,7 @@ export default async function PlacePage({ params }: PlacePageProps) {
           {(place.features && place.features.length > 0) && (
             <Card>
               <CardHeader>
-                <CardTitle>Features & Amenities</CardTitle>
+                <CardTitle>Ausstattung & Angebote</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
@@ -259,7 +259,7 @@ export default async function PlacePage({ params }: PlacePageProps) {
           {/* Map */}
           <Card>
             <CardHeader>
-              <CardTitle>Location</CardTitle>
+              <CardTitle>Standort</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <PlaceLocationMap
@@ -280,31 +280,31 @@ export default async function PlacePage({ params }: PlacePageProps) {
             </CardHeader>
             <CardContent className="text-sm space-y-2">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Source:</span>
-                <span>{place.source || 'Unknown'}</span>
+                <span className="text-muted-foreground">Quelle:</span>
+                <span>{place.source || 'Unbekannt'}</span>
               </div>
               {place.source_id && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Source ID:</span>
+                  <span className="text-muted-foreground">Quell-ID:</span>
                   <span className="font-mono text-xs">{place.source_id}</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Added by:</span>
+                <span className="text-muted-foreground">Hinzugefügt von:</span>
                 <span>{place.added_by_user}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Created:</span>
-                <span>{new Date(place.created_at).toLocaleDateString()}</span>
+                <span className="text-muted-foreground">Erstellt:</span>
+                <span>{new Date(place.created_at).toLocaleDateString('de-DE')}</span>
               </div>
               {place.import_date && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Import Date:</span>
-                  <span>{new Date(place.import_date).toLocaleDateString()}</span>
+                  <span className="text-muted-foreground">Importdatum:</span>
+                  <span>{new Date(place.import_date).toLocaleDateString('de-DE')}</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Coordinates:</span>
+                <span className="text-muted-foreground">Koordinaten:</span>
                 <span className="font-mono text-xs">
                   {place.latitude.toFixed(6)}, {place.longitude.toFixed(6)}
                 </span>

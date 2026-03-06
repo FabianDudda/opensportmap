@@ -26,7 +26,7 @@ const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map
     <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg">
       <div className="text-center">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2" />
-        <p className="text-sm text-muted-foreground">Loading map...</p>
+        <p className="text-sm text-muted-foreground">Karte wird geladen...</p>
       </div>
     </div>
   ),
@@ -128,12 +128,12 @@ export default function AddPlacePage() {
       return place
     },
     onSuccess: () => {
-      toast({ title: 'Court submitted!', description: 'It will appear on the map once approved.' })
+      toast({ title: 'Ort eingereicht!', description: 'Er erscheint auf der Karte, sobald er genehmigt wurde.' })
       queryClient.invalidateQueries({ queryKey: ['courts'] })
       router.push('/map')
     },
     onError: (error: Error) => {
-      toast({ title: 'Error adding court', description: error.message, variant: 'destructive' })
+      toast({ title: 'Fehler beim Hinzufügen', description: error.message, variant: 'destructive' })
     },
   })
 
@@ -190,10 +190,10 @@ export default function AddPlacePage() {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 10 * 1024 * 1024) {
-      toast({ title: 'File too large', description: 'Max 10MB.', variant: 'destructive' }); return
+      toast({ title: 'Datei zu groß', description: 'Max. 10MB.', variant: 'destructive' }); return
     }
     if (!file.type.startsWith('image/')) {
-      toast({ title: 'Invalid file type', description: 'Select an image file.', variant: 'destructive' }); return
+      toast({ title: 'Ungültiger Dateityp', description: 'Bitte Bilddatei auswählen.', variant: 'destructive' }); return
     }
     setImageFile(file)
     const reader = new FileReader()
@@ -204,9 +204,9 @@ export default function AddPlacePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
-    if (!name.trim()) { toast({ title: 'Name required', variant: 'destructive' }); return }
-    if (selectedSports.length === 0) { toast({ title: 'Select at least one sport', variant: 'destructive' }); return }
-    if (!location) { toast({ title: 'Location required', description: 'Tap the map to set a location.', variant: 'destructive' }); return }
+    if (!name.trim()) { toast({ title: 'Name erforderlich', variant: 'destructive' }); return }
+    if (selectedSports.length === 0) { toast({ title: 'Mindestens eine Sportart auswählen', variant: 'destructive' }); return }
+    if (!location) { toast({ title: 'Standort erforderlich', description: 'Tippe auf die Karte, um einen Standort zu setzen.', variant: 'destructive' }); return }
 
     let imageUrl: string | undefined
     if (imageFile) {
@@ -216,7 +216,7 @@ export default function AddPlacePage() {
         const result = await uploadCourtImage(imageFile, p => setUploadProgress(p))
         imageUrl = result.url
       } catch (err) {
-        toast({ title: 'Image upload failed', description: err instanceof Error ? err.message : '', variant: 'destructive' })
+        toast({ title: 'Bild-Upload fehlgeschlagen', description: err instanceof Error ? err.message : '', variant: 'destructive' })
       } finally {
         setIsUploadingImage(false)
         setUploadProgress(null)
@@ -263,17 +263,17 @@ export default function AddPlacePage() {
         <Card>
           <CardContent className="p-6 space-y-4">
             <div className="space-y-1">
-              <h2 className="text-xl font-semibold">Sign in to add a place</h2>
+              <h2 className="text-xl font-semibold">Anmelden, um einen Ort hinzuzufügen</h2>
               <p className="text-sm text-muted-foreground">
-                Create an account to add sports courts and venues to the map.
+                Erstelle ein Konto, um Sportplätze und Veranstaltungsorte zur Karte hinzuzufügen.
               </p>
             </div>
             <div className="flex flex-col gap-3">
               <Button asChild className="w-full">
-                <Link href="/auth/signin">Sign in</Link>
+                <Link href="/auth/signin">Anmelden</Link>
               </Button>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/auth/signup">Sign up</Link>
+                <Link href="/auth/signup">Registrieren</Link>
               </Button>
             </div>
           </CardContent>
@@ -289,19 +289,19 @@ export default function AddPlacePage() {
           <Button variant="ghost" size="icon" asChild>
             <Link href="/map"><ArrowLeft className="h-5 w-5" /></Link>
           </Button>
-          <h1 className="text-2xl font-bold">Add a Place</h1>
+          <h1 className="text-2xl font-bold">Ort hinzufügen</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Name */}
           <div className="space-y-2">
-            <Label htmlFor="ap-name">Place Name *</Label>
-            <Input id="ap-name" placeholder="e.g., Central Park Tennis Courts" value={name} onChange={e => setName(e.target.value)} required />
+            <Label htmlFor="ap-name">Ortsname *</Label>
+            <Input id="ap-name" placeholder="z.B. Stadtpark Tennisplätze" value={name} onChange={e => setName(e.target.value)} required />
           </div>
 
           {/* Sports */}
           <div className="space-y-2">
-            <Label>Sports Available *</Label>
+            <Label>Verfügbare Sportarten *</Label>
             <div className="grid grid-cols-3 gap-2">
               {SPORTS.map(sport => {
                 const isSelected = selectedSports.includes(sport.id as SportType)
@@ -328,7 +328,7 @@ export default function AddPlacePage() {
           {/* Court Details */}
           {selectedSports.length > 0 && (
             <div className="space-y-3">
-              <Label>Court Details</Label>
+              <Label>Platz-Details</Label>
               {selectedSports.map(sport => {
                 const surfaces = courtSurfaces[sport] || ['Unbekannt']
                 return (
@@ -337,9 +337,9 @@ export default function AddPlacePage() {
                     <div className="space-y-2">
                       {surfaces.map((surface, idx) => (
                         <div key={idx} className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground min-w-[4.5rem]">Court {idx + 1}</span>
+                          <span className="text-sm text-muted-foreground min-w-[4.5rem]">Platz {idx + 1}</span>
                           <Select value={surface} onValueChange={val => updateCourtSurface(sport, idx, val)}>
-                            <SelectTrigger className="flex-1"><SelectValue placeholder="Surface type..." /></SelectTrigger>
+                            <SelectTrigger className="flex-1"><SelectValue placeholder="Belagstyp..." /></SelectTrigger>
                             <SelectContent>
                               {SURFACE_TYPES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                             </SelectContent>
@@ -351,7 +351,7 @@ export default function AddPlacePage() {
                       ))}
                     </div>
                     <Button type="button" variant="outline" size="sm" onClick={() => addCourtForSport(sport)}>
-                      <Plus className="h-4 w-4 mr-1" />Add another court
+                      <Plus className="h-4 w-4 mr-1" />Weiteren Platz hinzufügen
                     </Button>
                   </div>
                 )
@@ -361,7 +361,7 @@ export default function AddPlacePage() {
 
           {/* Image */}
           <div className="space-y-2">
-            <Label>Court Image (Optional)</Label>
+            <Label>Platzbild (Optional)</Label>
             <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
               {imagePreview ? (
                 <div className="space-y-2">
@@ -377,10 +377,10 @@ export default function AddPlacePage() {
                 <div className="text-center space-y-2">
                   <Image className="h-10 w-10 mx-auto text-muted-foreground" />
                   <Button type="button" size="sm" onClick={() => document.getElementById('ap-image-upload')?.click()}>
-                    <Upload className="h-4 w-4 mr-1" />Upload Image
+                    <Upload className="h-4 w-4 mr-1" />Bild hochladen
                   </Button>
                   <Input id="ap-image-upload" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                  <p className="text-xs text-muted-foreground">JPG, PNG, WebP up to 10MB</p>
+                  <p className="text-xs text-muted-foreground">JPG, PNG, WebP bis 10MB</p>
                 </div>
               )}
             </div>
@@ -388,8 +388,8 @@ export default function AddPlacePage() {
 
           {/* Location */}
           <div className="space-y-2">
-            <Label>Location *</Label>
-            <p className="text-xs text-muted-foreground">Tap the map to set the exact location.</p>
+            <Label>Standort *</Label>
+            <p className="text-xs text-muted-foreground">Tippe auf die Karte, um den genauen Standort zu setzen.</p>
             <div className="border rounded-lg overflow-hidden">
               <LeafletCourtMap
                 courts={places as PlaceWithCourts[]}
@@ -406,12 +406,12 @@ export default function AddPlacePage() {
             {location ? (
               <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg border border-green-200">
                 <MapPin className="h-4 w-4 shrink-0" />
-                <span><span className="font-medium">Location set:</span> {location.lat.toFixed(5)}, {location.lng.toFixed(5)}</span>
+                <span><span className="font-medium">Standort gesetzt:</span> {location.lat.toFixed(5)}, {location.lng.toFixed(5)}</span>
               </div>
             ) : (
               <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
                 <MapPin className="h-4 w-4 shrink-0" />
-                <span className="font-medium">Tap the map to set location</span>
+                <span className="font-medium">Tippe auf die Karte, um den Standort zu setzen</span>
               </div>
             )}
           </div>
@@ -420,27 +420,27 @@ export default function AddPlacePage() {
           {location && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label>Address</Label>
+                <Label>Adresse</Label>
                 {Object.values(address).some(v => v) && (
                   <Button type="button" variant="outline" size="sm" onClick={() => { setAddress({}); setAddressAutoDetected(false) }}>
-                    <RefreshCcw className="h-3 w-3 mr-1" />Clear
+                    <RefreshCcw className="h-3 w-3 mr-1" />Löschen
                   </Button>
                 )}
               </div>
               {isDetectingAddress && (
                 <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-200">
-                  <Loader2 className="h-4 w-4 animate-spin" /><span>Detecting address...</span>
+                  <Loader2 className="h-4 w-4 animate-spin" /><span>Adresse wird erkannt...</span>
                 </div>
               )}
               {addressAutoDetected && !isDetectingAddress && (
                 <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg border border-green-200">
-                  <Check className="h-4 w-4" /><span>Address auto-detected.</span>
+                  <Check className="h-4 w-4" /><span>Adresse automatisch erkannt.</span>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2 space-y-1">
-                  <Label htmlFor="ap-street" className="text-xs">Street</Label>
-                  <Input id="ap-street" placeholder="Street & number"
+                  <Label htmlFor="ap-street" className="text-xs">Straße</Label>
+                  <Input id="ap-street" placeholder="Straße & Hausnummer"
                     value={address.street && address.house_number ? `${address.street} ${address.house_number}` : address.street || ''}
                     onChange={e => {
                       const parts = e.target.value.trim().split(' ')
@@ -455,20 +455,20 @@ export default function AddPlacePage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="ap-city" className="text-xs">City</Label>
-                  <Input id="ap-city" placeholder="City" value={address.city || ''} onChange={e => updateAddressField('city', e.target.value)} />
+                  <Label htmlFor="ap-city" className="text-xs">Stadt</Label>
+                  <Input id="ap-city" placeholder="Stadt" value={address.city || ''} onChange={e => updateAddressField('city', e.target.value)} />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="ap-postcode" className="text-xs">Postal Code</Label>
-                  <Input id="ap-postcode" placeholder="Postcode" value={address.postcode || ''} onChange={e => updateAddressField('postcode', e.target.value)} />
+                  <Label htmlFor="ap-postcode" className="text-xs">Postleitzahl</Label>
+                  <Input id="ap-postcode" placeholder="PLZ" value={address.postcode || ''} onChange={e => updateAddressField('postcode', e.target.value)} />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="ap-state" className="text-xs">State</Label>
-                  <Input id="ap-state" placeholder="State" value={address.state || ''} onChange={e => updateAddressField('state', e.target.value)} />
+                  <Label htmlFor="ap-state" className="text-xs">Bundesland</Label>
+                  <Input id="ap-state" placeholder="Bundesland" value={address.state || ''} onChange={e => updateAddressField('state', e.target.value)} />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="ap-country" className="text-xs">Country</Label>
-                  <Input id="ap-country" placeholder="Country" value={address.country || ''} onChange={e => updateAddressField('country', e.target.value)} />
+                  <Label htmlFor="ap-country" className="text-xs">Land</Label>
+                  <Input id="ap-country" placeholder="Land" value={address.country || ''} onChange={e => updateAddressField('country', e.target.value)} />
                 </div>
               </div>
             </div>
@@ -477,10 +477,10 @@ export default function AddPlacePage() {
           {/* Submit */}
           <Button type="submit" className="w-full" disabled={createCourtMutation.isPending || isUploadingImage}>
             {isUploadingImage ? (
-              <><Loader2 className="h-4 w-4 animate-spin mr-2" />Uploading... {uploadProgress && `${uploadProgress.percentage.toFixed(0)}%`}</>
+              <><Loader2 className="h-4 w-4 animate-spin mr-2" />Hochladen... {uploadProgress && `${uploadProgress.percentage.toFixed(0)}%`}</>
             ) : createCourtMutation.isPending ? (
-              <><Loader2 className="h-4 w-4 animate-spin mr-2" />Adding...</>
-            ) : 'Add Place'}
+              <><Loader2 className="h-4 w-4 animate-spin mr-2" />Hinzufügen...</>
+            ) : 'Ort hinzufügen'}
           </Button>
 
           {isUploadingImage && uploadProgress && (

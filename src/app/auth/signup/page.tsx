@@ -33,8 +33,8 @@ export default function SignUpPage() {
     if (password.length < 6) {
       console.warn('[SignUp] Validation failed: password too short')
       toast({
-        title: 'Password too short',
-        description: 'Password must be at least 6 characters long.',
+        title: 'Passwort zu kurz',
+        description: 'Das Passwort muss mindestens 6 Zeichen lang sein.',
         variant: 'destructive',
       })
       return
@@ -49,23 +49,23 @@ export default function SignUpPage() {
       if (error) {
         console.error('[SignUp] Sign-up error:', error.message)
         toast({
-          title: 'Sign up failed',
+          title: 'Registrierung fehlgeschlagen',
           description: error.message,
           variant: 'destructive',
         })
       } else {
         console.log('[SignUp] Sign-up success:', { id: data.user?.id, email: data.user?.email })
         toast({
-          title: 'Welcome to Court Sports!',
-          description: 'Your account has been created successfully.',
+          title: 'Willkommen!',
+          description: 'Dein Konto wurde erfolgreich erstellt.',
         })
         router.push('/')
       }
     } catch (error) {
       console.error('[SignUp] Unexpected error during sign-up:', error)
       toast({
-        title: 'An error occurred',
-        description: 'Please try again later.',
+        title: 'Ein Fehler ist aufgetreten',
+        description: 'Bitte versuche es später erneut.',
         variant: 'destructive',
       })
     } finally {
@@ -83,7 +83,7 @@ export default function SignUpPage() {
       if (error) {
         console.error('[SignUp] Google sign-up error:', error.message)
         toast({
-          title: 'Sign up failed',
+          title: 'Registrierung fehlgeschlagen',
           description: error.message,
           variant: 'destructive',
         })
@@ -93,8 +93,8 @@ export default function SignUpPage() {
     } catch (error) {
       console.error('[SignUp] Unexpected error during Google sign-up:', error)
       toast({
-        title: 'An error occurred',
-        description: 'Please try again later.',
+        title: 'Ein Fehler ist aufgetreten',
+        description: 'Bitte versuche es später erneut.',
         variant: 'destructive',
       })
     } finally {
@@ -108,10 +108,10 @@ export default function SignUpPage() {
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Sign Up
+            Registrieren
           </CardTitle>
           <CardDescription>
-            Create your account to start tracking matches and rankings.
+            Erstelle dein Konto, um Spiele und Ranglisten zu verfolgen.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -140,7 +140,7 @@ export default function SignUpPage() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Continue with Google
+            Mit Google fortfahren
           </Button>
 
           <div className="relative">
@@ -148,20 +148,20 @@ export default function SignUpPage() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or</span>
+              <span className="bg-background px-2 text-muted-foreground">Oder</span>
             </div>
           </div>
 
           {/* Email Sign Up Form */}
           <form onSubmit={handleEmailSignUp} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-Mail</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="E-Mail eingeben"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -171,13 +171,13 @@ export default function SignUpPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Passwort</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Create a password"
+                  placeholder="Passwort erstellen"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
@@ -185,19 +185,19 @@ export default function SignUpPage() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Password must be at least 6 characters long.
+                Das Passwort muss mindestens 6 Zeichen lang sein.
               </p>
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Create Account'}
+              {isLoading ? 'Konto wird erstellt...' : 'Konto erstellen'}
             </Button>
           </form>
 
           <div className="text-center text-sm">
-            <span className="text-muted-foreground">Already have an account? </span>
+            <span className="text-muted-foreground">Bereits ein Konto? </span>
             <Link href="/auth/signin" className="text-primary hover:underline">
-              Sign in
+              Anmelden
             </Link>
           </div>
         </CardContent>

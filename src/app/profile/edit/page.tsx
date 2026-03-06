@@ -30,11 +30,11 @@ export default function EditProfilePage() {
       return data
     },
     onSuccess: () => {
-      toast({ title: 'Profile updated', description: 'Your changes have been saved.' })
+      toast({ title: 'Profil aktualisiert', description: 'Deine Änderungen wurden gespeichert.' })
       queryClient.invalidateQueries({ queryKey: ['profiles'] })
     },
     onError: (error: Error) => {
-      toast({ title: 'Update failed', description: error.message, variant: 'destructive' })
+      toast({ title: 'Aktualisierung fehlgeschlagen', description: error.message, variant: 'destructive' })
     },
   })
 
@@ -44,10 +44,10 @@ export default function EditProfilePage() {
       if (error) throw new Error(error.message)
     },
     onSuccess: () => {
-      toast({ title: 'Confirmation sent', description: 'Check your new email address to confirm the change.' })
+      toast({ title: 'Bestätigung gesendet', description: 'Überprüfe deine neue E-Mail-Adresse, um die Änderung zu bestätigen.' })
     },
     onError: (error: Error) => {
-      toast({ title: 'Email update failed', description: error.message, variant: 'destructive' })
+      toast({ title: 'E-Mail-Aktualisierung fehlgeschlagen', description: error.message, variant: 'destructive' })
     },
   })
 
@@ -57,12 +57,12 @@ export default function EditProfilePage() {
       if (error) throw new Error(error.message)
     },
     onSuccess: () => {
-      toast({ title: 'Password updated', description: 'Your password has been changed.' })
+      toast({ title: 'Passwort aktualisiert', description: 'Dein Passwort wurde geändert.' })
       setNewPassword('')
       setConfirmPassword('')
     },
     onError: (error: Error) => {
-      toast({ title: 'Password update failed', description: error.message, variant: 'destructive' })
+      toast({ title: 'Passwort-Aktualisierung fehlgeschlagen', description: error.message, variant: 'destructive' })
     },
   })
 
@@ -70,7 +70,7 @@ export default function EditProfilePage() {
     return (
       <div className="container px-4 py-4 overflow-x-hidden">
         <div className="max-w-xl mx-auto">
-          <p className="text-muted-foreground">Sign in to edit your profile.</p>
+          <p className="text-muted-foreground">Melde dich an, um dein Profil zu bearbeiten.</p>
         </div>
       </div>
     )
@@ -88,7 +88,7 @@ export default function EditProfilePage() {
           <Link href="/profile" className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-2xl font-bold">Edit Profile</h1>
+          <h1 className="text-2xl font-bold">Profil bearbeiten</h1>
         </div>
 
         {/* Member since */}
@@ -96,7 +96,7 @@ export default function EditProfilePage() {
           <CardContent className="p-6">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Calendar className="h-4 w-4 shrink-0" />
-              <span className="text-sm">Member since {new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              <span className="text-sm">Mitglied seit {new Date(profile.created_at).toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
             </div>
           </CardContent>
         </Card>
@@ -105,17 +105,17 @@ export default function EditProfilePage() {
         <Card>
           <CardContent className="p-6 space-y-4">
             <div>
-              <Label>Display Name</Label>
+              <Label>Anzeigename</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="mt-1"
-                placeholder="Your name"
+                placeholder="Dein Name"
               />
             </div>
 
             <div>
-              <Label>Email Address</Label>
+              <Label>E-Mail-Adresse</Label>
               <Input
                 type="email"
                 value={email}
@@ -124,7 +124,7 @@ export default function EditProfilePage() {
               />
               {hasEmailChanges && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  A confirmation link will be sent to your new email address.
+                  Ein Bestätigungslink wird an deine neue E-Mail-Adresse gesendet.
                 </p>
               )}
             </div>
@@ -137,7 +137,7 @@ export default function EditProfilePage() {
                 if (hasEmailChanges) updateEmailMutation.mutate(email.trim())
               }}
             >
-              {(updateProfileMutation.isPending || updateEmailMutation.isPending) ? 'Saving...' : 'Save Changes'}
+              {(updateProfileMutation.isPending || updateEmailMutation.isPending) ? 'Speichern...' : 'Änderungen speichern'}
             </Button>
           </CardContent>
         </Card>
@@ -146,27 +146,27 @@ export default function EditProfilePage() {
         <Card>
           <CardContent className="p-6 space-y-4">
             <div>
-              <Label>New Password</Label>
+              <Label>Neues Passwort</Label>
               <Input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="mt-1"
-                placeholder="Min. 6 characters"
+                placeholder="Mind. 6 Zeichen"
               />
             </div>
 
             <div>
-              <Label>Confirm New Password</Label>
+              <Label>Neues Passwort bestätigen</Label>
               <Input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="mt-1"
-                placeholder="Repeat new password"
+                placeholder="Neues Passwort wiederholen"
               />
               {confirmPassword && !passwordsMatch && (
-                <p className="text-xs text-destructive mt-1">Passwords do not match.</p>
+                <p className="text-xs text-destructive mt-1">Passwörter stimmen nicht überein.</p>
               )}
             </div>
 
@@ -175,7 +175,7 @@ export default function EditProfilePage() {
               disabled={!canSavePassword || updatePasswordMutation.isPending}
               onClick={() => updatePasswordMutation.mutate(newPassword)}
             >
-              {updatePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
+              {updatePasswordMutation.isPending ? 'Aktualisieren...' : 'Passwort aktualisieren'}
             </Button>
           </CardContent>
         </Card>

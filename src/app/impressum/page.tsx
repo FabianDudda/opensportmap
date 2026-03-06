@@ -16,8 +16,20 @@ export default function ImpressumPage() {
         </div>
 
         <Card>
-          <CardContent className="p-4 text-sm text-muted-foreground">
-            <p>Placeholder text. Legal information will appear here.</p>
+          <CardContent className="p-4 text-sm space-y-4">
+            <div>
+              <p>Fabian Dudda<br />
+              Schützenhofstraße 2<br />
+              51063 Köln</p>
+            </div>
+
+            <div>
+              <h2 className="font-semibold mb-1">Kontakt</h2>
+              <p>Telefon: 01578 2037463<br />
+              E-Mail: fabian.dudda@hotmail.de</p>
+            </div>
+
+          
           </CardContent>
         </Card>
       </div>

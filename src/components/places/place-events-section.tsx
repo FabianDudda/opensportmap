@@ -87,21 +87,21 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
     
     let dateStr = ''
     if (isToday) {
-      dateStr = 'Today'
+      dateStr = 'Heute'
     } else if (isTomorrow) {
-      dateStr = 'Tomorrow'
+      dateStr = 'Morgen'
     } else {
-      dateStr = eventDate.toLocaleDateString('en-US', { 
-        weekday: 'short', 
-        month: 'short', 
-        day: 'numeric' 
+      dateStr = eventDate.toLocaleDateString('de-DE', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
       })
     }
-    
-    const timeStr = eventDate.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
+
+    const timeStr = eventDate.toLocaleTimeString('de-DE', {
+      hour: 'numeric',
       minute: '2-digit',
-      hour12: true 
+      hour12: false
     })
     
     return { dateStr, timeStr }
@@ -111,12 +111,12 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Upcoming Events</CardTitle>
-          <CardDescription>Games and activities at this location</CardDescription>
+          <CardTitle>Bevorstehende Events</CardTitle>
+          <CardDescription>Spiele und Aktivitäten an diesem Ort</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex justify-center py-8">
-            <div className="text-muted-foreground">Loading events...</div>
+            <div className="text-muted-foreground">Events werden geladen...</div>
           </div>
         </CardContent>
       </Card>
@@ -128,13 +128,13 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Upcoming Events</CardTitle>
-            <CardDescription>Games and activities at this location</CardDescription>
+            <CardTitle>Bevorstehende Events</CardTitle>
+            <CardDescription>Spiele und Aktivitäten an diesem Ort</CardDescription>
           </div>
           <Link href={`/events/new?place=${placeId}&name=${encodeURIComponent(placeName)}`}>
             <Button>
               <Plus className="h-4 w-4 mr-1" />
-              Create Event
+              Event erstellen
             </Button>
           </Link>
         </div>
@@ -144,14 +144,14 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
         {events.length === 0 ? (
           <div className="text-center py-8">
             <Calendar className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
-            <h3 className="font-medium mb-1">No upcoming events</h3>
+            <h3 className="font-medium mb-1">Keine bevorstehenden Events</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Be the first to organize a game at this location
+              Sei der Erste, der ein Spiel an diesem Ort organisiert
             </p>
             <Link href={`/events/new?place=${placeId}&name=${encodeURIComponent(placeName)}`}>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Create First Event
+                Erstes Event erstellen
               </Button>
             </Link>
           </div>
@@ -175,8 +175,8 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
                         </Badge>
                         <Badge variant={event.status === 'active' ? 'default' : 
                                       event.status === 'full' ? 'secondary' : 'outline'}>
-                          {event.status === 'active' ? 'Open' : 
-                           event.status === 'full' ? 'Full' : 
+                          {event.status === 'active' ? 'Offen' :
+                           event.status === 'full' ? 'Voll' :
                            event.status}
                         </Badge>
                       </div>
@@ -204,7 +204,7 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
                     {/* Participants */}
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>{event.participant_count} / {event.max_players} players</span>
+                      <span>{event.participant_count} / {event.max_players} Spieler</span>
                     </div>
                   </div>
 
@@ -219,7 +219,7 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
                         </AvatarFallback>
                       </Avatar>
                       <span className="text-sm">
-                        {isCreator ? 'You' : event.creator_name}
+                        {isCreator ? 'Du' : event.creator_name}
                       </span>
                     </div>
                     
@@ -234,14 +234,14 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
                   <div className="flex gap-2 pt-2">
                     <Link href={`/events/${event.id}`} className="flex-1">
                       <Button variant="outline" className="w-full">
-                        View Details
+                        Details ansehen
                       </Button>
                     </Link>
                     
                     {!user && (
                       <Link href="/auth/signin" className="flex-1">
                         <Button className="w-full">
-                          Sign In to Join
+                          Anmelden um beizutreten
                         </Button>
                       </Link>
                     )}
@@ -252,7 +252,7 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
                         onClick={() => handleJoinEvent(event.id)}
                         className="flex-1"
                       >
-                        Join
+                        Beitreten
                       </Button>
                     )}
                     
@@ -263,14 +263,14 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
                         onClick={() => handleLeaveEvent(event.id)}
                         className="flex-1"
                       >
-                        Leave
+                        Verlassen
                       </Button>
                     )}
                     
                     {isCreator && (
                       <Link href={`/events/${event.id}`} className="flex-1">
                         <Button variant="secondary" className="w-full">
-                          Manage
+                          Verwalten
                         </Button>
                       </Link>
                     )}
@@ -283,7 +283,7 @@ export default function PlaceEventsSection({ placeId, placeName }: PlaceEventsSe
               <div className="text-center pt-4">
                 <Link href="/events">
                   <Button variant="outline">
-                    View All Events
+                    Alle Events ansehen
                   </Button>
                 </Link>
               </div>

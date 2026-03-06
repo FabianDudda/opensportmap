@@ -8,14 +8,14 @@ import { User, Mail, Trophy, Calendar, Edit2, Plus, TestTube, Shield, LogOut, Ch
 import Link from 'next/link'
 
 const NAV_ITEMS = [
-  { name: 'Edit Profile', href: '/profile/edit', icon: Edit2, adminOnly: false },
-  { name: 'My Contributions', href: '/contributions', icon: Bell, adminOnly: false },
-  { name: 'Rankings', href: '/rankings', icon: Trophy, adminOnly: true },
-  { name: 'Add Match', href: '/matches/new', icon: Plus, adminOnly: true },
+  { name: 'Profil bearbeiten', href: '/profile/edit', icon: Edit2, adminOnly: false },
+  { name: 'Meine Beiträge', href: '/contributions', icon: Bell, adminOnly: false },
+  { name: 'Rangliste', href: '/rankings', icon: Trophy, adminOnly: true },
+  { name: 'Spiel hinzufügen', href: '/matches/new', icon: Plus, adminOnly: true },
   { name: 'Events', href: '/events', icon: Calendar, adminOnly: true },
   { name: 'Test', href: '/test', icon: TestTube, adminOnly: true },
   { name: 'Admin', href: '/admin/places', icon: Shield, adminOnly: true },
-  { name: 'My Stats', href: '/profile/stats', icon: Trophy, adminOnly: true },
+  { name: 'Meine Statistiken', href: '/profile/stats', icon: Trophy, adminOnly: true },
 ]
 
 export default function ProfilePage() {
@@ -46,17 +46,17 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="p-6 space-y-4">
             <div className="space-y-1">
-              <h2 className="text-xl font-semibold">Sign in to have full access to all features</h2>
+              <h2 className="text-xl font-semibold">Anmelden für vollen Zugriff auf alle Funktionen</h2>
               <p className="text-sm text-muted-foreground">
-                Save places as favorites and add or edit places for the community.
+                Orte als Favoriten speichern und Orte für die Community hinzufügen oder bearbeiten.
               </p>
             </div>
             <div className="flex flex-col gap-3">
               <Button asChild className="w-full">
-                <Link href="/auth/signin">Sign in</Link>
+                <Link href="/auth/signin">Anmelden</Link>
               </Button>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/auth/signup">Sign up</Link>
+                <Link href="/auth/signup">Registrieren</Link>
               </Button>
             </div>
           </CardContent>
@@ -68,7 +68,7 @@ export default function ProfilePage() {
             <div className="flex flex-col divide-y">
               <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                <span>Give feedback</span>
+                <span>Feedback geben</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
               </Link>
               <Link href="/impressum" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
@@ -138,7 +138,7 @@ export default function ProfilePage() {
             <div className="flex flex-col divide-y">
               <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                <span>Give feedback</span>
+                <span>Feedback geben</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
               </Link>
               <Link href="/impressum" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
@@ -158,7 +158,7 @@ export default function ProfilePage() {
               className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left text-destructive"
             >
               <LogOut className="h-4 w-4" />
-              <span>Sign Out</span>
+              <span>Abmelden</span>
             </button>
           </CardContent>
         </Card>

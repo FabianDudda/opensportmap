@@ -62,7 +62,7 @@ export default function FilterBottomSheetVaul({
                 variant="secondary"
                 size="icon"
                 onClick={onExplicitClose}
-                title="Close"
+                title="Schließen"
                 className="rounded-full"
               >
                 <X className="h-5 w-5" />

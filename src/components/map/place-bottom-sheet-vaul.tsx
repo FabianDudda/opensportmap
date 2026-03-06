@@ -49,10 +49,10 @@ export default function PlaceBottomSheetVaul({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['favorite', user?.id, selectedCourt?.id] })
       queryClient.invalidateQueries({ queryKey: ['favorites', user?.id] })
-      toast({ title: isFavorited ? 'Removed from saved places' : 'Saved!' })
+      toast({ title: isFavorited ? 'Aus gespeicherten Orten entfernt' : 'Gespeichert!' })
     },
     onError: () => {
-      toast({ title: 'Something went wrong', variant: 'destructive' })
+      toast({ title: 'Etwas ist schiefgelaufen', variant: 'destructive' })
     },
   })
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -62,11 +62,11 @@ export default function PlaceBottomSheetVaul({
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 10 * 1024 * 1024) {
-      toast({ title: 'File too large', description: 'Please select an image smaller than 10MB.', variant: 'destructive' })
+      toast({ title: 'Datei zu groß', description: 'Bitte ein Bild kleiner als 10MB auswählen.', variant: 'destructive' })
       return
     }
     if (!file.type.startsWith('image/')) {
-      toast({ title: 'Invalid file type', description: 'Please select an image file (JPG, PNG, WebP).', variant: 'destructive' })
+      toast({ title: 'Ungültiger Dateityp', description: 'Bitte eine Bilddatei auswählen (JPG, PNG, WebP).', variant: 'destructive' })
       return
     }
     setImageFile(file)
@@ -84,26 +84,26 @@ export default function PlaceBottomSheetVaul({
       const { url } = await uploadCourtImage(imageFile)
       if (isAdmin) {
         await database.courts.updateCourt(selectedCourt.id, { image_url: url })
-        toast({ title: 'Image uploaded', description: 'The photo has been added to this place.' })
+        toast({ title: 'Bild hochgeladen', description: 'Das Foto wurde diesem Ort hinzugefügt.' })
         queryClient.invalidateQueries({ queryKey: ['places'] })
       } else {
         await database.community.submitPlaceImageEdit(selectedCourt.id, url, user.id)
-        toast({ title: 'Photo submitted for review', description: 'Your photo will be visible once an admin approves it.' })
+        toast({ title: 'Foto zur Überprüfung eingereicht', description: 'Dein Foto wird sichtbar, sobald ein Admin es genehmigt.' })
       }
       setImageFile(null)
       setImagePreview(null)
     } catch (error) {
-      toast({ title: 'Upload failed', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' })
+      toast({ title: 'Upload fehlgeschlagen', description: error instanceof Error ? error.message : 'Unbekannter Fehler', variant: 'destructive' })
     } finally {
       setIsUploadingImage(false)
     }
   }
 
   return (
-    <Drawer open={isOpen} onOpenChange={onOpenChange} modal={false} shouldScaleBackground={false} snapPoints={[0.4, 1]} defaultSnap={0.75}>
+    <Drawer open={isOpen} onOpenChange={onOpenChange} modal={false} shouldScaleBackground={false}>
       <DrawerContent
         hideOverlay
-        className="h-full max-w-2xl mx-auto"
+        className="max-h-[92dvh] max-w-2xl mx-auto"
       >
         {selectedCourt && (
           <>
@@ -128,7 +128,7 @@ export default function PlaceBottomSheetVaul({
                         window.location.href = `/places/${selectedCourt.id}/edit`
                       }
                     }}
-                    title={user && profile?.user_role === 'admin' ? 'Edit Place' : user ? 'Suggest Edit' : 'Sign in to edit'}
+                    title={user && profile?.user_role === 'admin' ? 'Ort bearbeiten' : user ? 'Bearbeitung vorschlagen' : 'Anmelden zum Bearbeiten'}
                   >
                     <Pencil className="h-[18px] w-[18px]" />
                   </Button>
@@ -146,7 +146,7 @@ export default function PlaceBottomSheetVaul({
                         }).catch(err => console.log('Share failed:', err))
                       }
                     }}
-                    title="Share"
+                    title="Teilen"
                   >
                     <Share2 className="h-[18px] w-[18px]" />
                   </Button>
@@ -156,7 +156,7 @@ export default function PlaceBottomSheetVaul({
                     size="icon"
                     className="rounded-full"
                     onClick={() => onOpenChange(false)}
-                    title="Close"
+                    title="Schließen"
                   >
                     <X className="h-5 w-5" />
                   </Button>
@@ -221,7 +221,7 @@ export default function PlaceBottomSheetVaul({
                   }}
                 >
                   <Navigation className="h-4 w-4 mr-1" />
-                  Directions
+                  Route
                 </Button>
                 {showFavorite && (
                   <Button
@@ -239,7 +239,7 @@ export default function PlaceBottomSheetVaul({
                     {favoriteMutation.isPending
                       ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                       : <Heart className={`h-4 w-4 mr-1 ${isFavorited ? 'fill-rose-500 text-rose-500' : ''}`} />}
-                    {isFavorited ? 'Saved' : 'Save'}
+                    {isFavorited ? 'Gespeichert' : 'Speichern'}
                   </Button>
                 )}
               </div>
@@ -273,16 +273,16 @@ export default function PlaceBottomSheetVaul({
                       </Button>
                     </div>
                     <Button className="w-full shrink-0" onClick={handleImageUpload} disabled={isUploadingImage}>
-                      {isUploadingImage ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading...</> : <>Upload Photo</>}
+                      {isUploadingImage ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Hochladen...</> : <>Foto hochladen</>}
                     </Button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full gap-3">
                     <Image className="h-10 w-10 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">No photo yet — be the first to add one!</p>
+                    <p className="text-sm text-muted-foreground">Noch kein Foto – sei der Erste!</p>
                     <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById(`upload-${selectedCourt.id}`)?.click()}>
                       <Upload className="h-4 w-4 mr-2" />
-                      Add Photo
+                      Foto hinzufügen
                     </Button>
                     <Input
                       id={`upload-${selectedCourt.id}`}
