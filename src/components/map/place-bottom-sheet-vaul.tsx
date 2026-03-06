@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import LoginPromptBottomSheet from './login-prompt-bottom-sheet-vaul'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { MapPin, Navigation, Share2, Heart, Pencil, X, Upload, Image, Loader2 } from 'lucide-react'
+import { MapPin, Navigation, Share2, Heart, Pencil, X, Upload, Image, Loader2, Maximize2 } from 'lucide-react'
 import { PlaceWithCourts } from '@/lib/supabase/types'
 import { sportNames, sportIcons } from '@/lib/utils/sport-utils'
 import { getDistanceText } from '@/lib/utils/distance'
@@ -35,6 +36,8 @@ export default function PlaceBottomSheetVaul({
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [isLoginPromptOpen, setIsLoginPromptOpen] = useState(false)
+  const [isSaveLoginPromptOpen, setIsSaveLoginPromptOpen] = useState(false)
 
   const { data: isFavorited = false } = useQuery({
     queryKey: ['favorite', user?.id, selectedCourt?.id],
@@ -57,6 +60,7 @@ export default function PlaceBottomSheetVaul({
   })
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false)
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -100,6 +104,15 @@ export default function PlaceBottomSheetVaul({
   }
 
   return (
+    <>
+    <LoginPromptBottomSheet isOpen={isLoginPromptOpen} onOpenChange={setIsLoginPromptOpen} />
+    <LoginPromptBottomSheet
+      isOpen={isSaveLoginPromptOpen}
+      onOpenChange={setIsSaveLoginPromptOpen}
+      title="Ort speichern"
+      description="Melde dich an, um Orte als Favoriten zu speichern."
+      icon={Heart}
+    />
     <Drawer open={isOpen} onOpenChange={onOpenChange} modal={false} shouldScaleBackground={false}>
       <DrawerContent
         hideOverlay
@@ -123,7 +136,7 @@ export default function PlaceBottomSheetVaul({
                     className="rounded-full"
                     onClick={() => {
                       if (!user) {
-                        window.location.href = '/auth/signin'
+                        setIsLoginPromptOpen(true)
                       } else {
                         window.location.href = `/places/${selectedCourt.id}/edit`
                       }
@@ -165,53 +178,102 @@ export default function PlaceBottomSheetVaul({
 
             </DrawerHeader>
 
-            <div className="space-y-4 p-4 overflow-y-auto">
-
-            <div className="flex flex-col gap-2">
-              {userLocation && (
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <MapPin className="h-3 w-3 shrink-0" />
-                  {getDistanceText(userLocation, { lat: selectedCourt.latitude, lng: selectedCourt.longitude })}
-                </p>
-              )}
-              {(() => {
-                const quickAddress = [selectedCourt.street, selectedCourt.district || selectedCourt.city]
-                  .filter(Boolean)
-                  .join(', ')
-                return quickAddress && (
-                  <p className="text-base text-muted-foreground">{quickAddress}</p>
-                )
-              })()}
-              {/* Sports pills */}
-              {(() => {
-                const sportsWithCounts = (selectedCourt.courts?.length ?? 0) > 0
-                  ? selectedCourt.courts!.reduce((acc, c) => {
-                      acc[c.sport] = (acc[c.sport] || 0) + (c.quantity || 1)
-                      return acc
-                    }, {} as Record<string, number>)
-                  : (selectedCourt.sports?.reduce((acc, sport) => ({ ...acc, [sport]: 1 }), {} as Record<string, number>) || {})
-
-                return Object.keys(sportsWithCounts).length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(sportsWithCounts).map(([sport, count]) => (
-                      <div
-                        key={sport}
-                        className="flex items-center gap-1 border border-border rounded-full px-3 py-1.5"
-                      >
-                        <span className="text-[16px] leading-none">{sportIcons[sport] || '📍'}</span>
-                        <span className="text-[14px] font-medium text-muted-foreground">{sportNames[sport] || sport}</span>
-                      </div>
-                    ))}
-                  </div>
-                )
-              })()}
-            </div>
-
-            {selectedCourt.description && (
-              <p className="text-sm text-muted-foreground">{selectedCourt.description}</p>
+            {/* Fullscreen image overlay */}
+            {isFullscreenOpen && selectedCourt.image_url && (
+              <div
+                className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center"
+                onClick={() => setIsFullscreenOpen(false)}
+              >
+                <img
+                  src={selectedCourt.image_url}
+                  alt={selectedCourt.name}
+                  className="max-w-full max-h-full object-contain"
+                />
+                <button
+                  className="absolute top-4 right-4 text-white bg-black/40 rounded-full p-2"
+                  onClick={() => setIsFullscreenOpen(false)}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="space-y-4 p-4 overflow-y-auto">
+
+              {/* Address + distance */}
+              <div className="flex flex-col gap-1">
+                {(() => {
+                  const quickAddress = [selectedCourt.street, selectedCourt.district || selectedCourt.city]
+                    .filter(Boolean)
+                    .join(', ')
+                  return quickAddress && (
+                    <p className="text-base text-muted-foreground">{quickAddress}</p>
+                  )
+                })()}
+                {userLocation && (
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    {getDistanceText(userLocation, { lat: selectedCourt.latitude, lng: selectedCourt.longitude })}
+                  </p>
+                )}
+              </div>
+
+              {/* Thumbnail + sports pills */}
+              <div className="flex gap-3 items-start">
+                {/* 72×72 thumbnail */}
+                {selectedCourt.image_url ? (
+                  <button
+                    className="relative shrink-0 w-[88px] h-[88px] rounded-[10px] overflow-hidden block"
+                    onClick={() => setIsFullscreenOpen(true)}
+                  >
+                    <img
+                      src={selectedCourt.image_url}
+                      alt={selectedCourt.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute top-1 right-1 bg-black/40 rounded p-0.5">
+                      <Maximize2 className="h-3 w-3 text-white" />
+                    </span>
+                  </button>
+                ) : (
+                  <div
+                    className="shrink-0 w-[88px] h-[88px] rounded-[10px] border-2 border-dashed border-muted-foreground/30 flex items-center justify-center"
+                    style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.03) 4px, rgba(0,0,0,0.03) 5px), repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0,0,0,0.03) 4px, rgba(0,0,0,0.03) 5px)' }}
+                  >
+                    <Image className="h-5 w-5 text-muted-foreground/40" />
+                  </div>
+                )}
+
+                {/* Sports pills stacked */}
+                {(() => {
+                  const sportsWithCounts = (selectedCourt.courts?.length ?? 0) > 0
+                    ? selectedCourt.courts!.reduce((acc, c) => {
+                        acc[c.sport] = (acc[c.sport] || 0) + (c.quantity || 1)
+                        return acc
+                      }, {} as Record<string, number>)
+                    : (selectedCourt.sports?.reduce((acc, sport) => ({ ...acc, [sport]: 1 }), {} as Record<string, number>) || {})
+
+                  return Object.keys(sportsWithCounts).length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {Object.entries(sportsWithCounts).map(([sport, count]) => (
+                        <div
+                          key={sport}
+                          className="flex items-center gap-1 border border-border rounded-full px-3 py-1.5 self-start"
+                        >
+                          <span className="text-[16px] leading-none">{sportIcons[sport] || '📍'}</span>
+                          <span className="text-[14px] font-medium text-muted-foreground">{sportNames[sport] || sport}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
+              </div>
+
+              {selectedCourt.description && (
+                <p className="text-sm text-muted-foreground">{selectedCourt.description}</p>
+              )}
+
+              <div className="flex gap-2">
                 <Button
                   variant="default"
                   className="flex-1 text-base"
@@ -229,7 +291,7 @@ export default function PlaceBottomSheetVaul({
                     className="flex-1 text-base"
                     onClick={() => {
                       if (!user) {
-                        window.location.href = '/auth/signin'
+                        setIsSaveLoginPromptOpen(true)
                         return
                       }
                       favoriteMutation.mutate()
@@ -244,61 +306,11 @@ export default function PlaceBottomSheetVaul({
                 )}
               </div>
 
-            {selectedCourt.image_url ? (
-              <div className="w-full rounded-lg overflow-hidden h-48">
-                <img
-                  src={selectedCourt.image_url}
-                  alt={selectedCourt.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.parentElement?.remove()
-                  }}
-                />
-              </div>
-            ) : user && (
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg h-48 flex flex-col">
-                {imagePreview ? (
-                  <div className="flex flex-col h-full gap-2 p-2">
-                    <div className="relative flex-1 min-h-0">
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-lg" />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={() => { setImageFile(null); setImagePreview(null) }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <Button className="w-full shrink-0" onClick={handleImageUpload} disabled={isUploadingImage}>
-                      {isUploadingImage ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Hochladen...</> : <>Foto hochladen</>}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full gap-3">
-                    <Image className="h-10 w-10 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Noch kein Foto – sei der Erste!</p>
-                    <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById(`upload-${selectedCourt.id}`)?.click()}>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Foto hinzufügen
-                    </Button>
-                    <Input
-                      id={`upload-${selectedCourt.id}`}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
             </div>
           </>
         )}
       </DrawerContent>
     </Drawer>
+    </>
   )
 }

@@ -57,5 +57,5 @@ export function getDistanceText(
   point2: { lat: number; lng: number }
 ): string {
   const formattedDistance = getFormattedDistance(point1, point2)
-  return `${formattedDistance} away`
+  return `${formattedDistance} entfernt`
 }
