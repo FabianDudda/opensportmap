@@ -1,4 +1,4 @@
-import { ArrowLeft, Map, Heart, Plus, Trophy } from 'lucide-react'
+import { ArrowLeft, Map, Heart, Plus, Trophy, Github } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import Link from 'next/link'
 
@@ -64,8 +64,17 @@ export default function AboutPage() {
           <CardContent className="p-4 text-sm space-y-2">
             <h2 className="font-semibold">Open Source & kostenlos</h2>
             <p className="text-muted-foreground leading-relaxed">
-              OpenSportMap ist kostenlos und wird ohne kommerzielle Absichten betrieben. Daten werden nicht verkauft.
+                OpenSportMap ist kostenlos und wird ohne kommerzielle Absichten betrieben. Daten werden nicht verkauft.
             </p>
+            <a
+              href="https://github.com/FabianDudda/opensportmap"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Github className="h-4 w-4" />
+              GitHub Repository
+            </a>
           </CardContent>
         </Card>
       </div>
