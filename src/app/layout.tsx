@@ -2,11 +2,11 @@ import type { Metadata } from "next"
 import { Suspense } from "react"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
+import { Analytics } from "@vercel/analytics/next"
 import QueryProvider from "@/components/providers/query-provider"
 import AuthProvider from "@/components/providers/auth-provider"
 import BottomNav from "@/components/layout/bottom-nav"
 import { Toaster } from "@/components/ui/toaster"
-import InstallButton from "@/components/install-button"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,14 +37,10 @@ export default function RootLayout({
           <AuthProvider>
             <div className="relative flex min-h-screen flex-col">
               <main className="flex-1 pb-16">{children}</main>
-              <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center pb-2 pointer-events-none">
-                <div className="pointer-events-auto">
-                  <Suspense><InstallButton /></Suspense>
-                </div>
-              </div>
-              <Suspense><BottomNav /></Suspense>
+<Suspense><BottomNav /></Suspense>
             </div>
             <Toaster />
+            <Analytics />
           </AuthProvider>
         </QueryProvider>
       </body>
