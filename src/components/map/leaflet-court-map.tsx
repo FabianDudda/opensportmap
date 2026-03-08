@@ -491,21 +491,15 @@ export default function LeafletCourtMap({
   }, [])
 
   const handleFilterClick = useCallback(() => {
-    if (isBottomSheetOpenRef.current) {
-      setIsBottomSheetOpen(false)
-      setSelectedCourt(null)
-    }
     if (isFavoritesOpenRef.current) setIsFavoritesOpen(false)
     setIsFilterSheetOpen(true)
+    window.dispatchEvent(new CustomEvent('filter-opened'))
   }, [])
 
   const handleFavoritesClick = useCallback(() => {
-    if (isBottomSheetOpenRef.current) {
-      setIsBottomSheetOpen(false)
-      setSelectedCourt(null)
-    }
     if (isFilterSheetOpenRef.current) setIsFilterSheetOpen(false)
     setIsFavoritesOpen(true)
+    window.dispatchEvent(new CustomEvent('favorites-opened'))
   }, [])
 
 

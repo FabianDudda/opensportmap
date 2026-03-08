@@ -4,7 +4,7 @@ import { useAuth } from '@/components/providers/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { User, Mail, Trophy, Calendar, Edit2, Plus, TestTube, Shield, LogOut, ChevronRight, MessageSquare, Info, Bell } from 'lucide-react'
+import { User, Mail, Trophy, Calendar, Edit2, Plus, TestTube, Shield, LogOut, ChevronRight, MessageSquare, Info, Bell, HelpCircle } from 'lucide-react'
 import Link from 'next/link'
 
 const NAV_ITEMS = [
@@ -66,7 +66,12 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="p-0">
             <div className="flex flex-col divide-y">
-<Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+              <Link href="/about" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                <span>Was ist OpenSportMap?</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+              </Link>
+              <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 <span>Feedback geben</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
@@ -136,7 +141,12 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="p-0">
             <div className="flex flex-col divide-y">
-<Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+              <Link href="/about" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                <span>Was ist OpenSportMap?</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+              </Link>
+              <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 <span>Feedback geben</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
