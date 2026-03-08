@@ -6,6 +6,7 @@ import AuthProvider from "@/components/providers/auth-provider"
 import Header from "@/components/layout/header"
 import BottomNav from "@/components/layout/bottom-nav"
 import { Toaster } from "@/components/ui/toaster"
+import { Analytics } from "@vercel/analytics/next"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,7 @@ export default function RootLayout({
             <Toaster />
           </AuthProvider>
         </QueryProvider>
+        <Analytics />
       </body>
     </html>
   )
