@@ -151,12 +151,19 @@ export default function PlaceBottomSheetVaul({
                     size="icon"
                     className="rounded-full"
                     onClick={() => {
+                      const shareUrl = `${window.location.origin}/map?place=${selectedCourt.id}`
                       if (navigator.share) {
                         navigator.share({
                           title: selectedCourt.name,
                           text: `Check out ${selectedCourt.name}`,
-                          url: `${window.location.origin}/places/${selectedCourt.id}`
+                          url: shareUrl,
                         }).catch(err => console.log('Share failed:', err))
+                      } else {
+                        navigator.clipboard.writeText(shareUrl).then(() => {
+                          toast({ title: 'Link kopiert!' })
+                        }).catch(() => {
+                          toast({ title: 'Link konnte nicht kopiert werden', variant: 'destructive' })
+                        })
                       }
                     }}
                     title="Teilen"

@@ -46,6 +46,7 @@ interface LeafletCourtMapProps {
   onFavoritesClose?: () => void
   initialCenter?: { lat: number; lng: number }
   initialZoom?: number
+  initialPlaceId?: string | null
 }
 
 // Component to handle map clicks
@@ -423,6 +424,7 @@ export default function LeafletCourtMap({
   onFavoritesClose,
   initialCenter,
   initialZoom,
+  initialPlaceId = null,
 }: LeafletCourtMapProps) {
   const { user, profile } = useAuth()
   const [selectedCourt, setSelectedCourt] = useState<PlaceWithCourts | null>(null)
@@ -468,6 +470,17 @@ export default function LeafletCourtMap({
     setFlyToTarget({ lat: court.latitude, lng: court.longitude })
     handleCourtSelect(court)
   }, [handleCourtSelect])
+
+  // Open and zoom to a shared place link (?place=<id>) — runs only once
+  const initialPlaceHandled = useRef(false)
+  useEffect(() => {
+    if (!initialPlaceId || courts.length === 0 || initialPlaceHandled.current) return
+    const court = courts.find(c => c.id === initialPlaceId)
+    if (court) {
+      initialPlaceHandled.current = true
+      handleFavoriteSelect(court)
+    }
+  }, [initialPlaceId, courts, handleFavoriteSelect])
 
   const handleExplicitClose = useCallback(() => {
     console.log('🗂️ Explicit close requested - clearing selection and closing sheet')

@@ -27,6 +27,7 @@ function MapPage() {
   const [selectedSports, setSelectedSports] = useState<SportType[]>([])
   const [selectedPlace, setSelectedPlace] = useState<PlaceWithCourts | null>(null)
   const defaultFavoritesOpen = searchParams.get('favorites') === '1'
+  const initialPlaceId = searchParams.get('place')
 
   const { data: places = [], isLoading, isError, error } = useQuery({
     queryKey: ['places'],
@@ -63,6 +64,7 @@ function MapPage() {
         placesCount={filteredPlaces.length}
         defaultFavoritesOpen={defaultFavoritesOpen}
         onFavoritesClose={() => router.replace('/map')}
+        initialPlaceId={initialPlaceId}
       />
     </>
   )
