@@ -19,3 +19,6 @@ git commit -m "Kurze, prägnante Commit-Nachricht"
 
 # Änderungen pushen:
 git push
+
+---
+

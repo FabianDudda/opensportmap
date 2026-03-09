@@ -1,0 +1,7 @@
+# SEO
+
+- Add Page-Level Metadata to Server Pages (Medium Priority)
+- JSON-LD Structured Data on Place Pages (High SEO Value)
+- <link rel="preconnect"> to Supabase  
+-  Alt text on map markers 
+- URL slugs for places  

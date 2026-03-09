@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Court Sports - Find Courts, Play Matches, Track Rankings",
-  description: "Discover sports courts, log matches, and track your Elo rankings across multiple sports",
+  title: "OpenSportMap - Kostenlose Sportplätze in deiner Nähe finden",
+  description: "Finde kostenlose Sportplätze in deiner Nähe. Basketball, Fußball, Tennis, Calisthenics, Skateparks & mehr – über 1.600 Plätze in Deutschland.",
 }
 
 export default function RootLayout({
@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="de">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
