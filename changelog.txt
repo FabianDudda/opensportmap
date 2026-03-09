@@ -1,0 +1,11 @@
+
+
+# 0.1.0-apha (Current Version)
+
+
+
+# 0.1.1-alpha (next update)
+- add robots.txt for better seo
+- add sitemap.ts for better seo
+- JSON-LD on place pages for better seo
+- preconnect supabase for better performance

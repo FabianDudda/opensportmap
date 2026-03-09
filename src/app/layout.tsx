@@ -30,6 +30,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
+      <head>
+        <link rel="preconnect" href="https://abminvrgugkbzgxvqxap.supabase.co" />
+        <link rel="dns-prefetch" href="https://abminvrgugkbzgxvqxap.supabase.co" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

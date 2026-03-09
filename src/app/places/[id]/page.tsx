@@ -93,8 +93,33 @@ export default async function PlacePage({ params }: PlacePageProps) {
 
   const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : null
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SportsActivityLocation',
+    name: place.name,
+    ...(place.description && { description: place.description }),
+    url: `https://opensportmap.de/places/${place.id}`,
+    ...(place.image_url && { image: place.image_url }),
+    address: {
+      '@type': 'PostalAddress',
+      ...(place.street && { streetAddress: [place.street, place.house_number].filter(Boolean).join(' ') }),
+      ...(place.city && { addressLocality: place.city }),
+      ...(place.postcode && { postalCode: place.postcode }),
+      addressCountry: place.country ?? 'DE',
+    },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: place.latitude,
+      longitude: place.longitude,
+    },
+  }
+
   return (
     <div className="container px-4 py-6 max-w-xl mx-auto">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2 mb-6">
         <Link 

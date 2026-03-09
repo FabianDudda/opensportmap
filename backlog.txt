@@ -5,3 +5,4 @@
 - <link rel="preconnect"> to Supabase  
 -  Alt text on map markers 
 - URL slugs for places  
+
