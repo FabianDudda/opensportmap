@@ -84,7 +84,7 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
-        <p className="text-center text-xs text-muted-foreground">App Version 0.1.0-alpha</p>
+        <p className="text-center text-xs text-muted-foreground">App Version 0.1.1-alpha</p>
       </div>
     )
   }
