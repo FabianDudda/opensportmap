@@ -118,8 +118,8 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
       queryClient.invalidateQueries({ queryKey: ['courts'] })
       queryClient.invalidateQueries({ queryKey: ['places'] })
       
-      // Redirect back to place page
-      router.push(`/places/${placeId}`)
+      // Redirect back to map
+      router.push('/map')
     },
     onError: (error: Error) => {
       toast({

@@ -29,6 +29,10 @@ function MapPage() {
   const defaultFavoritesOpen = searchParams.get('favorites') === '1'
   const initialPlaceId = searchParams.get('place')
 
+  const savedPosition = typeof window !== 'undefined'
+    ? (() => { try { return JSON.parse(sessionStorage.getItem('map-position') || '') } catch { return null } })()
+    : null
+
   const { data: places = [], isLoading, isError, error } = useQuery({
     queryKey: ['places'],
     queryFn: () => database.courts.getAllCourts(),
@@ -64,6 +68,8 @@ function MapPage() {
         placesCount={filteredPlaces.length}
         defaultFavoritesOpen={defaultFavoritesOpen}
         onFavoritesClose={() => router.replace('/map')}
+        initialCenter={savedPosition ? { lat: savedPosition.lat, lng: savedPosition.lng } : undefined}
+        initialZoom={savedPosition?.zoom}
         initialPlaceId={initialPlaceId}
         trackPosition={true}
       />
