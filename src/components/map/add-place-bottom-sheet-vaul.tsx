@@ -43,6 +43,8 @@ const SPORTS = [
   { id: 'skatepark', label: 'Skatepark' },
   { id: 'calisthenics', label: 'Calisthenics' },
   { id: 'boule', label: 'Boule' },
+  { id: 'running', label: 'Running' },
+  { id: 'swimming', label: 'Swimming' },
 ] as const
 
 const SURFACE_TYPES = [

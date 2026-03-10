@@ -1,11 +1,21 @@
 
+# 0.1.2-alpha (Current Version)
+- when user opens the add-place page, use current map section for better user experience
+- fix position for place-count, osm-contribution and location-button on map component (on add-place page)
+- add satellite map layer
+- add icon for sport "calisthenics"
+- open place-images fullscreen
+- add sport types: running + swimming
 
-# 0.1.0-apha (Current Version)
 
 
-
-# 0.1.1-alpha (next update)
+# 0.1.1-alpha 
+- change metadata for better seo
 - add robots.txt for better seo
 - add sitemap.ts for better seo
 - JSON-LD on place pages for better seo
 - preconnect supabase for better performance
+
+
+
+# 0.1.0-apha 

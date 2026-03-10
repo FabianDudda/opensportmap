@@ -47,6 +47,8 @@ interface LeafletCourtMapProps {
   initialCenter?: { lat: number; lng: number }
   initialZoom?: number
   initialPlaceId?: string | null
+  trackPosition?: boolean
+  embedded?: boolean
 }
 
 // Component to handle map clicks
@@ -77,6 +79,20 @@ function MapClickHandler({
         onMapClick(e.latlng.lng, e.latlng.lat)
       }
     }
+  })
+  return null
+}
+
+
+// Component to track map position and persist to sessionStorage
+function MapPositionTracker({ enabled }: { enabled: boolean }) {
+  useMapEvents({
+    moveend: (e) => {
+      if (!enabled) return
+      const center = e.target.getCenter()
+      const zoom = e.target.getZoom()
+      sessionStorage.setItem('map-position', JSON.stringify({ lat: center.lat, lng: center.lng, zoom }))
+    },
   })
   return null
 }
@@ -425,6 +441,8 @@ export default function LeafletCourtMap({
   initialCenter,
   initialZoom,
   initialPlaceId = null,
+  trackPosition = false,
+  embedded = false,
 }: LeafletCourtMapProps) {
   const { user, profile } = useAuth()
   const [selectedCourt, setSelectedCourt] = useState<PlaceWithCourts | null>(null)
@@ -525,7 +543,7 @@ export default function LeafletCourtMap({
   const currentLayer = useMemo(() => MAP_LAYERS[currentLayerId] || MAP_LAYERS[DEFAULT_LAYER_ID], [currentLayerId])
 
   return (
-    <div className="relative" style={{ height }}>
+    <div className={`relative${embedded ? ' map-embedded' : ''}`} style={{ height }}>
       <MapContainer
         center={mapCenter}
         zoom={mapZoom}
@@ -542,6 +560,9 @@ export default function LeafletCourtMap({
             {...(currentLayer.subdomains !== undefined && currentLayer.subdomains.length > 0 && { subdomains: currentLayer.subdomains })}
           />
           
+          {/* Track map position for "Hinzufügen" nav */}
+          <MapPositionTracker enabled={trackPosition} />
+
           {/* Court markers - with optional clustering */}
           {useMemo(() => {
             if (enableClustering && courts.length > 10) {
@@ -624,7 +645,7 @@ export default function LeafletCourtMap({
           <AttributionControlHandler attribution={currentLayer.attribution} />
           
           {/* Layer toggle button */}
-          {/* <LayerToggleHandler currentLayerId={currentLayerId} onLayerChange={handleLayerChange} /> */}
+          <LayerToggleHandler currentLayerId={currentLayerId} onLayerChange={handleLayerChange} />
           
           {/* Places count display */}
           <PlacesCountHandler count={placesCount} />

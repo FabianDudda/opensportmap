@@ -113,6 +113,27 @@ export default function PlaceBottomSheetVaul({
       description="Melde dich an, um Orte als Favoriten zu speichern."
       icon={Heart}
     />
+
+    {/* Fullscreen image overlay - outside drawer to avoid stacking context issues */}
+    {isFullscreenOpen && selectedCourt?.image_url && (
+      <div
+        className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center"
+        onClick={() => setIsFullscreenOpen(false)}
+      >
+        <img
+          src={selectedCourt.image_url}
+          alt={selectedCourt.name}
+          className="max-w-full max-h-full object-contain"
+        />
+        <button
+          className="absolute top-4 right-4 text-white bg-black/40 rounded-full p-2"
+          onClick={() => setIsFullscreenOpen(false)}
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+    )}
+
     <Drawer open={isOpen} onOpenChange={onOpenChange} modal={false} shouldScaleBackground={false}>
       <DrawerContent
         hideOverlay
@@ -184,26 +205,6 @@ export default function PlaceBottomSheetVaul({
               </div>
 
             </DrawerHeader>
-
-            {/* Fullscreen image overlay */}
-            {isFullscreenOpen && selectedCourt.image_url && (
-              <div
-                className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center"
-                onClick={() => setIsFullscreenOpen(false)}
-              >
-                <img
-                  src={selectedCourt.image_url}
-                  alt={selectedCourt.name}
-                  className="max-w-full max-h-full object-contain"
-                />
-                <button
-                  className="absolute top-4 right-4 text-white bg-black/40 rounded-full p-2"
-                  onClick={() => setIsFullscreenOpen(false)}
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-            )}
 
             <div className="space-y-4 p-4 overflow-y-auto">
 

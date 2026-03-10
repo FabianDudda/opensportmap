@@ -25,9 +25,11 @@ const SPORTS: (SportType | 'all')[] = [
   'tennis', 
   'beachvolleyball', 
   'volleyball', 
-  'skatepark', 
-  'boule', 
-  'hockey'
+  'skatepark',
+  'boule',
+  'hockey',
+  'running',
+  'swimming',
 ]
 
 export default function FilterBottomSheet({

@@ -24,8 +24,9 @@ const SPORTS: SportType[] = [
   'beachvolleyball',
   'skatepark',
   'calisthenics',
-  'boule'
-
+  'boule',
+  'running',
+  'swimming',
 ]
 
 export default function FilterBottomSheetVaul({

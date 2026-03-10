@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { Map, Plus, User } from 'lucide-react'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
@@ -10,8 +10,19 @@ import { useAuth } from '@/components/providers/auth-provider'
 
 export default function BottomNav() {
   const pathname = usePathname()
+  const router = useRouter()
   const { user } = useAuth()
   const [isGuestSheetOpen, setIsGuestSheetOpen] = useState(false)
+
+  const handleAddClick = () => {
+    const stored = sessionStorage.getItem('map-position')
+    if (stored) {
+      const { lat, lng, zoom } = JSON.parse(stored)
+      router.push(`/map/new?lat=${lat}&lng=${lng}&zoom=${zoom}`)
+    } else {
+      router.push('/map/new')
+    }
+  }
 
   useEffect(() => {
     const close = () => setIsGuestSheetOpen(false)
@@ -53,15 +64,15 @@ export default function BottomNav() {
           </Link>
 
           {user ? (
-            <Link
-              href="/map/new"
+            <button
+              onClick={handleAddClick}
               className={`flex flex-1 flex-col items-center gap-1 text-xs font-medium transition-colors ${
                 addActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <Plus className="h-5 w-5" />
               <span>Hinzufügen</span>
-            </Link>
+            </button>
           ) : (
             <button
               onClick={() => setIsGuestSheetOpen(true)}

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo, Suspense } from 'react'
 import dynamic from 'next/dynamic'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/providers/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -42,6 +42,8 @@ const SPORTS = [
   { id: 'skatepark', label: 'Skatepark' },
   { id: 'calisthenics', label: 'Calisthenics' },
   { id: 'boule', label: 'Boule' },
+  { id: 'running', label: 'Running' },
+  { id: 'swimming', label: 'Swimming' },
 ] as const
 
 const SURFACE_TYPES = [
@@ -56,11 +58,23 @@ interface CourtDetails {
   notes: string
 }
 
-export default function AddPlacePage() {
+function AddPlacePage() {
   const { user, loading } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const queryClient = useQueryClient()
+
+  const mapInitialCenter = useMemo(() => {
+    const lat = parseFloat(searchParams.get('lat') ?? '')
+    const lng = parseFloat(searchParams.get('lng') ?? '')
+    return !isNaN(lat) && !isNaN(lng) ? { lat, lng } : undefined
+  }, [searchParams])
+
+  const mapInitialZoom = useMemo(() => {
+    const zoom = parseInt(searchParams.get('zoom') ?? '')
+    return !isNaN(zoom) ? zoom : undefined
+  }, [searchParams])
 
   const { data: places = [] } = useQuery({
     queryKey: ['places'],
@@ -405,6 +419,9 @@ export default function AddPlacePage() {
                 showFilter={false}
                 showFavorite={false}
                 disableMarkerClick={true}
+                initialCenter={mapInitialCenter}
+                initialZoom={mapInitialZoom}
+                embedded={true}
               />
             </div>
             {location ? (
@@ -495,5 +512,13 @@ export default function AddPlacePage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function AddPlacePageWrapper() {
+  return (
+    <Suspense>
+      <AddPlacePage />
+    </Suspense>
   )
 }

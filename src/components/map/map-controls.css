@@ -158,6 +158,17 @@
   order: 2; /* Above attribution */
 }
 
+/* Embedded map (e.g. inside a form) — no bottom nav to avoid */
+.map-embedded .map-control-bottom-right-stack {
+  bottom: 8px;
+  right: 8px;
+}
+
+.map-embedded .map-control-bottom-left-stack {
+  bottom: 8px;
+  left: 8px;
+}
+
 /* Attribution Control */
 .leaflet-control-attribution {
   background: rgba(255, 255, 255, 0.8) !important;

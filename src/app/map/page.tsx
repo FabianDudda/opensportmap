@@ -65,6 +65,7 @@ function MapPage() {
         defaultFavoritesOpen={defaultFavoritesOpen}
         onFavoritesClose={() => router.replace('/map')}
         initialPlaceId={initialPlaceId}
+        trackPosition={true}
       />
     </>
   )
