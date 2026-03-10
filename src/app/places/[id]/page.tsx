@@ -58,13 +58,11 @@ export async function generateMetadata({ params }: PlacePageProps): Promise<Meta
     openGraph: {
       title: `${place.name} - Court Sports`,
       description: `Sports facility with ${sportsText}. Located at ${address}`,
-      images: place.image_url ? [place.image_url] : [],
     },
     twitter: {
       card: 'summary_large_image',
       title: `${place.name} - Court Sports`,
       description: `Sports facility with ${sportsText}`,
-      images: place.image_url ? [place.image_url] : [],
     }
   }
 }
