@@ -1,5 +1,6 @@
 
-# 0.1.2-alpha (Current Version)
+# 0.1.2-alpha (10.03.2026)
+- add changelog page
 - when user opens the add-place page, use current map section for better user experience
 - fix position for place-count, osm-contribution and location-button on map component (on add-place page)
 - add satellite map layer
@@ -9,7 +10,7 @@
 
 
 
-# 0.1.1-alpha 
+# 0.1.1-alpha (09.03.2026)
 - change metadata for better seo
 - add robots.txt for better seo
 - add sitemap.ts for better seo
@@ -17,5 +18,5 @@
 - preconnect supabase for better performance
 
 
-
-# 0.1.0-apha 
+# 0.1.0-apha (08.03.2026)
+- release alpha version
