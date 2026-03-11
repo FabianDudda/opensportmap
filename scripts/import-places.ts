@@ -164,19 +164,19 @@ async function checkForDuplicates(latitude: number, longitude: number, name: str
   const { data, error } = await supabase
     .from('places')
     .select('id, name, latitude, longitude')
-    .gte('latitude', latitude - 0.0001) // ~10m tolerance
-    .lte('latitude', latitude + 0.0001)
-    .gte('longitude', longitude - 0.0001)
-    .lte('longitude', longitude + 0.0001)
+    .gte('latitude', latitude - 0.0002) // ~20m tolerance
+    .lte('latitude', latitude + 0.0002)
+    .gte('longitude', longitude - 0.0002)
+    .lte('longitude', longitude + 0.0002)
   
   if (error) {
     console.error('Error checking for duplicates:', error)
     return null
   }
   
-  return data.find(place => 
-    Math.abs(place.latitude - latitude) < 0.0001 && 
-    Math.abs(place.longitude - longitude) < 0.0001
+  return data.find(place =>
+    Math.abs(place.latitude - latitude) < 0.0002 &&
+    Math.abs(place.longitude - longitude) < 0.0002
   )
 }
 

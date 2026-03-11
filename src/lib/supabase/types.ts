@@ -733,6 +733,16 @@ export type EventStatus = Enums<'event_status'>
 export type SkillLevel = Enums<'skill_level'>
 
 // Composite types
+
+// Lightweight type for map markers — only the fields needed to render a pin
+export interface PlaceMarker {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  sports: string[] | null
+}
+
 export interface PlaceWithCourts extends Place {
   courts?: Court[]
   profiles?: Pick<Profile, 'name' | 'avatar'>

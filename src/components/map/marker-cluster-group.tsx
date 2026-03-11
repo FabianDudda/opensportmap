@@ -6,13 +6,13 @@ import L from 'leaflet'
 import 'leaflet.markercluster'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
-import { PlaceWithCourts, SportType } from '@/lib/supabase/types'
+import { PlaceMarker, SportType } from '@/lib/supabase/types'
 import { createSportIcon } from '@/lib/utils/sport-styles'
 
 interface MarkerClusterGroupProps {
-  courts: PlaceWithCourts[]
-  onCourtSelect?: (court: PlaceWithCourts) => void
-  selectedCourt?: PlaceWithCourts | null
+  courts: PlaceMarker[]
+  onCourtSelect?: (court: PlaceMarker) => void
+  selectedCourt?: PlaceMarker | null
   selectedSports?: SportType[]
 }
 
@@ -43,67 +43,66 @@ export default function MarkerClusterGroup({ courts, onCourtSelect, selectedCour
   const map = useMap()
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null)
   const markersRef = useRef<L.Marker[]>([])
+  const courtsRef = useRef<PlaceMarker[]>(courts)
+  const onCourtSelectRef = useRef(onCourtSelect)
 
+  // Keep refs in sync without triggering rebuilds
+  useEffect(() => { onCourtSelectRef.current = onCourtSelect }, [onCourtSelect])
+  useEffect(() => { courtsRef.current = courts }, [courts])
+
+  // Full rebuild only when the courts data changes
   useEffect(() => {
-    // Initialize cluster group if not exists
     if (!clusterGroupRef.current) {
       clusterGroupRef.current = L.markerClusterGroup({
-        maxClusterRadius: 50, // Cluster radius in pixels
+        maxClusterRadius: 50,
         showCoverageOnHover: true,
         zoomToBoundsOnClick: true,
         spiderfyOnMaxZoom: true,
         removeOutsideVisibleBounds: true,
         iconCreateFunction: createClusterIcon,
-        // Zoom-dependent clustering
-        disableClusteringAtZoom: 14, // Stop clustering at zoom level 14
+        disableClusteringAtZoom: 14,
       })
-      
       map.addLayer(clusterGroupRef.current)
     }
 
     const clusterGroup = clusterGroupRef.current
-
-    // Clear existing markers
     clusterGroup.clearLayers()
     markersRef.current = []
 
-    // Add new markers
     courts.forEach((court) => {
-      // Get available sports for icon (still need unique list for icon)
-      const availableSports = court.courts?.length > 0 
-        ? [...new Set(court.courts.map(c => c.sport))]
-        : (court.sports || [])
-      
-      const matchingSports = availableSports.filter(s => selectedSports.includes(s))
-      const sportsForIcon = selectedSports.length === 0 ? availableSports : matchingSports.length > 0 ? matchingSports : availableSports
-      
+      const availableSports = court.sports || []
       const marker = L.marker([court.latitude, court.longitude], {
-        icon: createSportIcon(sportsForIcon, false), // Use filtered sports for icon
+        icon: createSportIcon(availableSports, false),
       } as any)
-      
-      // Store court data for cluster processing
+
       ;(marker as any).options.placeData = court
 
-      // Handle marker clicks - trigger bottom sheet
       marker.on('click', (e) => {
-        console.log('📍 Clustered marker clicked:', {
-          courtId: court.id,
-          eventPropagationStopped: true
-        })
         e.originalEvent.stopPropagation()
-        onCourtSelect?.(court)
+        onCourtSelectRef.current?.(court)
       })
 
       clusterGroup.addLayer(marker)
       markersRef.current.push(marker)
     })
 
-    // Cleanup function
     return () => {
       clusterGroup.clearLayers()
       markersRef.current = []
     }
-  }, [courts, map, onCourtSelect, selectedSports])
+  }, [courts, map])
+
+  // Only update icons when sport filter changes — no marker rebuild needed
+  useEffect(() => {
+    markersRef.current.forEach((marker, i) => {
+      const court = courtsRef.current[i]
+      if (!court) return
+      const availableSports = court.sports || []
+      const matchingSports = availableSports.filter(s => selectedSports.includes(s))
+      const sportsForIcon = selectedSports.length === 0 ? availableSports : matchingSports.length > 0 ? matchingSports : availableSports
+      marker.setIcon(createSportIcon(sportsForIcon, false))
+    })
+  }, [selectedSports])
 
   // Handle court selection events from popups
   useEffect(() => {

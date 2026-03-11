@@ -27,8 +27,10 @@
     "@radix-ui/react-toast": "^1.2.15",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.55.0",
+    "@tanstack/query-sync-storage-persister": "^5.90.24",
     "@tanstack/react-query": "^5.85.3",
     "@tanstack/react-query-devtools": "^5.85.3",
+    "@tanstack/react-query-persist-client": "^5.90.24",
     "@types/leaflet.markercluster": "^1.5.5",
     "@vercel/analytics": "^1.6.1",
     "class-variance-authority": "^0.7.1",
@@ -49,6 +51,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@turf/turf": "^7.3.4",
     "@types/leaflet": "^1.9.20",
     "@types/node": "^20",
     "@types/react": "^19",

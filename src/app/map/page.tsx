@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useQuery } from '@tanstack/react-query'
 import { database } from '@/lib/supabase/database'
-import { SportType } from '@/lib/supabase/types'
+import { SportType, PlaceMarker } from '@/lib/supabase/types'
 
 const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map'), {
   ssr: false,
@@ -25,7 +25,7 @@ function MapPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [selectedSports, setSelectedSports] = useState<SportType[]>([])
-  const [selectedPlace, setSelectedPlace] = useState<PlaceWithCourts | null>(null)
+  const [selectedPlace, setSelectedPlace] = useState<PlaceMarker | null>(null)
   const defaultFavoritesOpen = searchParams.get('favorites') === '1'
   const initialPlaceId = searchParams.get('place')
 
@@ -34,9 +34,10 @@ function MapPage() {
     : null
 
   const { data: places = [], isLoading, isError, error } = useQuery({
-    queryKey: ['places'],
-    queryFn: () => database.courts.getAllCourts(),
+    queryKey: ['places-lightweight'],
+    queryFn: () => database.courts.getAllPlacesLightweight(),
     enabled: !loading,
+    staleTime: 5 * 60 * 1000,
   })
 
   useEffect(() => {
@@ -45,10 +46,7 @@ function MapPage() {
 
   const filteredPlaces = places.filter((place) => {
     if (selectedSports.length === 0) return true
-    return selectedSports.some(sport =>
-      place.courts?.some(court => court.sport === sport) ||
-      place.sports?.includes(sport)
-    )
+    return selectedSports.some(sport => place.sports?.includes(sport))
   })
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { supabase } from './client'
-import { Profile, Place, Court, LegacyCourt, PlaceWithCourts, Match, MatchParticipant, SportType, MatchResult, LeaderboardEntry, ModerationStatus, PendingPlaceChange, PlaceChangeType, Event, EventParticipant, EventStatus, SkillLevel, EventWithDetails, UserFavorite } from './types'
+import { Profile, Place, Court, LegacyCourt, PlaceWithCourts, PlaceMarker, Match, MatchParticipant, SportType, MatchResult, LeaderboardEntry, ModerationStatus, PendingPlaceChange, PlaceChangeType, Event, EventParticipant, EventStatus, SkillLevel, EventWithDetails, UserFavorite } from './types'
 
 // Helper function to fetch all records with automatic pagination
 async function fetchAllRecords<T>(queryBuilder: any): Promise<T[]> {
@@ -116,6 +116,24 @@ export const database = {
 
   // Place operations (legacy "courts" API - for backward compatibility)
   courts: {
+    // Lightweight query — only marker fields. Use this for the map pin layer.
+    getAllPlacesLightweight: async (): Promise<PlaceMarker[]> => {
+      try {
+        const data = await fetchAllRecords<PlaceMarker>(
+          supabase
+            .from('places')
+            .select('id, name, latitude, longitude, sports')
+            .eq('moderation_status', 'approved')
+            .order('created_at', { ascending: false })
+        )
+        console.log(`📊 getAllPlacesLightweight returned ${data.length} places`)
+        return data
+      } catch (error) {
+        console.error('Error fetching lightweight places:', error)
+        return []
+      }
+    },
+
     // Returns places with their courts - maintains backward compatibility
     getAllCourts: async (includeModeration = false): Promise<PlaceWithCourts[]> => {
       try {

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Heart, X, MapPin, Loader2 } from 'lucide-react'
-import { PlaceWithCourts, UserFavorite } from '@/lib/supabase/types'
+import { PlaceWithCourts, PlaceMarker, UserFavorite } from '@/lib/supabase/types'
 import { sportIcons, sportNames } from '@/lib/utils/sport-utils'
 import { getDistanceText } from '@/lib/utils/distance'
 import { database } from '@/lib/supabase/database'
@@ -16,7 +16,7 @@ interface FavoritesBottomSheetProps {
   onOpenChange: (open: boolean) => void
   user: { id: string } | null
   userLocation: { lat: number; lng: number } | null
-  onPlaceSelect: (place: PlaceWithCourts) => void
+  onPlaceSelect: (place: PlaceMarker) => void
 }
 
 function PlaceCard({
@@ -28,7 +28,7 @@ function PlaceCard({
   place: PlaceWithCourts
   userId: string
   userLocation: { lat: number; lng: number } | null
-  onSelect: (place: PlaceWithCourts) => void
+  onSelect: (place: PlaceMarker) => void
 }) {
   const { toast } = useToast()
   const queryClient = useQueryClient()

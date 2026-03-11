@@ -182,7 +182,7 @@ export default function ProfilePage() {
             </button>
           </CardContent>
         </Card>
-        <p className="text-center text-xs text-muted-foreground">App Version 0.1.2-alpha</p>
+        <p className="text-center text-xs text-muted-foreground">App Version 0.1.3-alpha</p>
       </div>
     </div>
   )

@@ -6,9 +6,22 @@ import Link from 'next/link'
 
 const CHANGELOG = [
   {
+    version: '0.1.3-alpha',
+    date: '11.03.2026',
+    current: true,
+    items: [
+      'Split marker data from full place details — map now loads ~10× less data',
+      'Place details (courts, images, address) fetched on demand when opening a place',
+      'Skeleton loader shown while place details load',
+      'Sport filter no longer triggers full marker rebuild — only updates icons in place',
+      'Map marker data cached in localStorage for 30 min — instant load on revisit',
+      'Added DB indexes for approved places query',
+    ],
+  },
+  {
     version: '0.1.2-alpha',
     date: '10.03.2026',
-    current: true,
+    current: false,
     items: [
       'When user opens the add-place page, use current map section for better user experience',
       'Fix position for place-count, osm-contribution and location-button on map component',

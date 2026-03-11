@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
-import { Court, SportType, PlaceWithCourts } from '@/lib/supabase/types'
+import { Court, SportType, PlaceWithCourts, PlaceMarker } from '@/lib/supabase/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 // import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
@@ -26,8 +26,8 @@ import './cluster-styles.css'
 import './map-controls.css'
 
 interface LeafletCourtMapProps {
-  courts: PlaceWithCourts[]
-  onCourtSelect?: (court: PlaceWithCourts) => void
+  courts: PlaceMarker[]
+  onCourtSelect?: (court: PlaceMarker) => void
   onMapClick?: (lng: number, lat: number) => void
   height?: string
   allowAddCourt?: boolean
@@ -445,7 +445,7 @@ export default function LeafletCourtMap({
   embedded = false,
 }: LeafletCourtMapProps) {
   const { user, profile } = useAuth()
-  const [selectedCourt, setSelectedCourt] = useState<PlaceWithCourts | null>(null)
+  const [selectedCourt, setSelectedCourt] = useState<PlaceMarker | null>(null)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [flyToTarget, setFlyToTarget] = useState<{ lat: number; lng: number } | null>(null)
   const [currentLayerId, setCurrentLayerId] = useState<string>(() => getSavedLayerPreference())
@@ -474,7 +474,7 @@ export default function LeafletCourtMap({
     return () => cancelAnimationFrame(raf)
   }, [isBottomSheetOpen, isFilterSheetOpen, isFavoritesOpen])
 
-  const handleCourtSelect = useCallback((court: PlaceWithCourts) => {
+  const handleCourtSelect = useCallback((court: PlaceMarker) => {
     if (disableMarkerClick) return
     if (isFilterSheetOpenRef.current) setIsFilterSheetOpen(false)
     if (isFavoritesOpenRef.current) setIsFavoritesOpen(false)
@@ -484,7 +484,7 @@ export default function LeafletCourtMap({
   }, [onCourtSelect, disableMarkerClick])
 
 
-  const handleFavoriteSelect = useCallback((court: PlaceWithCourts) => {
+  const handleFavoriteSelect = useCallback((court: PlaceMarker) => {
     setFlyToTarget({ lat: court.latitude, lng: court.longitude })
     handleCourtSelect(court)
   }, [handleCourtSelect])

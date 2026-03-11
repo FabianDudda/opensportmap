@@ -6,7 +6,7 @@ import LoginPromptBottomSheet from './login-prompt-bottom-sheet-vaul'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MapPin, Navigation, Share2, Heart, Pencil, X, Upload, Image, Loader2, Maximize2 } from 'lucide-react'
-import { PlaceWithCourts } from '@/lib/supabase/types'
+import { PlaceWithCourts, PlaceMarker } from '@/lib/supabase/types'
 import { sportNames, sportIcons } from '@/lib/utils/sport-utils'
 import { getDistanceText } from '@/lib/utils/distance'
 import { uploadCourtImage } from '@/lib/supabase/storage'
@@ -17,7 +17,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 interface PlaceBottomSheetVaulProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  selectedCourt: PlaceWithCourts | null
+  selectedCourt: PlaceMarker | null
   userLocation: { lat: number; lng: number } | null
   user: { id: string } | null
   profile: { user_role?: string } | null
@@ -38,6 +38,17 @@ export default function PlaceBottomSheetVaul({
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [isLoginPromptOpen, setIsLoginPromptOpen] = useState(false)
   const [isSaveLoginPromptOpen, setIsSaveLoginPromptOpen] = useState(false)
+
+  // Fetch full place details on demand when the sheet opens
+  const { data: fullPlace, isLoading: isLoadingPlace } = useQuery({
+    queryKey: ['place', selectedCourt?.id],
+    queryFn: () => database.courts.getCourt(selectedCourt!.id),
+    enabled: !!selectedCourt,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  // Merge: use full data when available, fall back to lightweight marker data
+  const place: PlaceWithCourts | null = fullPlace ?? (selectedCourt as PlaceWithCourts | null)
 
   const { data: isFavorited = false } = useQuery({
     queryKey: ['favorite', user?.id, selectedCourt?.id],
@@ -89,7 +100,8 @@ export default function PlaceBottomSheetVaul({
       if (isAdmin) {
         await database.courts.updateCourt(selectedCourt.id, { image_url: url })
         toast({ title: 'Bild hochgeladen', description: 'Das Foto wurde diesem Ort hinzugefügt.' })
-        queryClient.invalidateQueries({ queryKey: ['places'] })
+        queryClient.invalidateQueries({ queryKey: ['places-lightweight'] })
+        queryClient.invalidateQueries({ queryKey: ['place', selectedCourt?.id] })
       } else {
         await database.community.submitPlaceImageEdit(selectedCourt.id, url, user.id)
         toast({ title: 'Foto zur Überprüfung eingereicht', description: 'Dein Foto wird sichtbar, sobald ein Admin es genehmigt.' })
@@ -115,14 +127,14 @@ export default function PlaceBottomSheetVaul({
     />
 
     {/* Fullscreen image overlay - outside drawer to avoid stacking context issues */}
-    {isFullscreenOpen && selectedCourt?.image_url && (
+    {isFullscreenOpen && place?.image_url && (
       <div
         className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center"
         onClick={() => setIsFullscreenOpen(false)}
       >
         <img
-          src={selectedCourt.image_url}
-          alt={selectedCourt.name}
+          src={place.image_url}
+          alt={place.name}
           className="max-w-full max-h-full object-contain"
         />
         <button
@@ -211,7 +223,7 @@ export default function PlaceBottomSheetVaul({
               {/* Address + distance */}
               <div className="flex flex-col gap-1">
                 {(() => {
-                  const quickAddress = [selectedCourt.street, selectedCourt.district || selectedCourt.city]
+                  const quickAddress = [place?.street, place?.district || place?.city]
                     .filter(Boolean)
                     .join(', ')
                   return quickAddress && (
@@ -226,59 +238,68 @@ export default function PlaceBottomSheetVaul({
                 )}
               </div>
 
-              {/* Thumbnail + sports pills */}
-              <div className="flex gap-3 items-start">
-                {/* 72×72 thumbnail */}
-                {selectedCourt.image_url ? (
-                  <button
-                    className="relative shrink-0 w-[88px] h-[88px] rounded-[10px] overflow-hidden block"
-                    onClick={() => setIsFullscreenOpen(true)}
-                  >
-                    <img
-                      src={selectedCourt.image_url}
-                      alt={selectedCourt.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute top-1 right-1 bg-black/40 rounded p-0.5">
-                      <Maximize2 className="h-3 w-3 text-white" />
-                    </span>
-                  </button>
-                ) : (
-                  <div
-                    className="shrink-0 w-[88px] h-[88px] rounded-[10px] border-2 border-dashed border-muted-foreground/30 flex items-center justify-center"
-                    style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.03) 4px, rgba(0,0,0,0.03) 5px), repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0,0,0,0.03) 4px, rgba(0,0,0,0.03) 5px)' }}
-                  >
-                    <Image className="h-5 w-5 text-muted-foreground/40" />
+              {/* Thumbnail + sports pills — show skeleton while loading full details */}
+              {isLoadingPlace ? (
+                <div className="flex gap-3 items-start">
+                  <div className="shrink-0 w-[88px] h-[88px] rounded-[10px] bg-muted animate-pulse" />
+                  <div className="flex flex-col gap-2 pt-1">
+                    <div className="h-8 w-24 rounded-full bg-muted animate-pulse" />
                   </div>
-                )}
-
-                {/* Sports pills stacked */}
-                {(() => {
-                  const sportsWithCounts = (selectedCourt.courts?.length ?? 0) > 0
-                    ? selectedCourt.courts!.reduce((acc, c) => {
-                        acc[c.sport] = (acc[c.sport] || 0) + (c.quantity || 1)
-                        return acc
-                      }, {} as Record<string, number>)
-                    : (selectedCourt.sports?.reduce((acc, sport) => ({ ...acc, [sport]: 1 }), {} as Record<string, number>) || {})
-
-                  return Object.keys(sportsWithCounts).length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {Object.entries(sportsWithCounts).map(([sport, count]) => (
-                        <div
-                          key={sport}
-                          className="flex items-center gap-1 border border-border rounded-full px-3 py-1.5 self-start"
-                        >
-                          <span className="text-[16px] leading-none">{sportIcons[sport] || '📍'}</span>
-                          <span className="text-[14px] font-medium text-muted-foreground">{sportNames[sport] || sport}</span>
-                        </div>
-                      ))}
+                </div>
+              ) : (
+                <div className="flex gap-3 items-start">
+                  {/* 72×72 thumbnail */}
+                  {place?.image_url ? (
+                    <button
+                      className="relative shrink-0 w-[88px] h-[88px] rounded-[10px] overflow-hidden block"
+                      onClick={() => setIsFullscreenOpen(true)}
+                    >
+                      <img
+                        src={place.image_url}
+                        alt={place.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute top-1 right-1 bg-black/40 rounded p-0.5">
+                        <Maximize2 className="h-3 w-3 text-white" />
+                      </span>
+                    </button>
+                  ) : (
+                    <div
+                      className="shrink-0 w-[88px] h-[88px] rounded-[10px] border-2 border-dashed border-muted-foreground/30 flex items-center justify-center"
+                      style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.03) 4px, rgba(0,0,0,0.03) 5px), repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0,0,0,0.03) 4px, rgba(0,0,0,0.03) 5px)' }}
+                    >
+                      <Image className="h-5 w-5 text-muted-foreground/40" />
                     </div>
-                  )
-                })()}
-              </div>
+                  )}
 
-              {selectedCourt.description && (
-                <p className="text-sm text-muted-foreground">{selectedCourt.description}</p>
+                  {/* Sports pills stacked */}
+                  {(() => {
+                    const sportsWithCounts = (place?.courts?.length ?? 0) > 0
+                      ? place!.courts!.reduce((acc, c) => {
+                          acc[c.sport] = (acc[c.sport] || 0) + (c.quantity || 1)
+                          return acc
+                        }, {} as Record<string, number>)
+                      : (place?.sports?.reduce((acc, sport) => ({ ...acc, [sport]: 1 }), {} as Record<string, number>) || {})
+
+                    return Object.keys(sportsWithCounts).length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(sportsWithCounts).map(([sport, count]) => (
+                          <div
+                            key={sport}
+                            className="flex items-center gap-1 border border-border rounded-full px-3 py-1.5 self-start"
+                          >
+                            <span className="text-[16px] leading-none">{sportIcons[sport] || '📍'}</span>
+                            <span className="text-[14px] font-medium text-muted-foreground">{sportNames[sport] || sport}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+
+              {place?.description && (
+                <p className="text-sm text-muted-foreground">{place.description}</p>
               )}
 
               <div className="flex gap-2">
