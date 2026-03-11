@@ -43,6 +43,7 @@ interface JsonPlace {
   hockeyplätze?: number | null
   volleyballplätze?: number | null
   klettern?: number | null
+  calisthenics?: number | null
   geometry: {
     x: number // longitude
     y: number // latitude
@@ -136,7 +137,14 @@ function transformJsonPlace(jsonPlace: JsonPlace, sourceFilename: string) {
       quantity: jsonPlace.klettern
     })
   }
-  
+
+  if (jsonPlace.calisthenics && jsonPlace.calisthenics > 0) {
+    courts.push({
+      sport: 'calisthenics',
+      quantity: jsonPlace.calisthenics
+    })
+  }
+
   // Create the place data (added_by_user will be set later)
   const place = {
     name: jsonPlace.name,

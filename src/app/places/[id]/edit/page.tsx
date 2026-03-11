@@ -11,7 +11,8 @@ import PlaceForm from '@/components/places/place-form'
 import Link from 'next/link'
 import React from 'react'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ArrowLeft, Trash2 } from 'lucide-react'
 
 interface EditPlacePageProps {
   params: Promise<{ id: string }>
@@ -38,6 +39,7 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
   })
 
   const isAdmin = profile?.user_role === 'admin'
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   // Submit mutation for community edits or direct admin updates
   const submitMutation = useMutation({
@@ -130,6 +132,31 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
     },
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!isAdmin) throw new Error('Unauthorized')
+      if (!place) throw new Error('Place not found')
+
+      // Delete courts first
+      await Promise.all(
+        place.courts?.map(court => database.courtDetails.deleteCourt(court.id)) || []
+      )
+
+      // Delete the place
+      const { error } = await database.courts.deleteCourt(place.id)
+      if (error) throw new Error('Failed to delete place')
+    },
+    onSuccess: () => {
+      toast({ title: 'Ort gelöscht', description: 'Der Ort wurde erfolgreich gelöscht.' })
+      queryClient.invalidateQueries({ queryKey: ['courts'] })
+      queryClient.invalidateQueries({ queryKey: ['places'] })
+      router.push('/map')
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fehler beim Löschen', description: error.message, variant: 'destructive' })
+    },
+  })
+
   // Wait for auth and placeId to resolve
   if (authLoading || !placeId || isLoading) {
     return (
@@ -168,12 +195,43 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
 
   return (
     <div className="container px-4 py-4 max-w-xl mx-auto">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/map"><ArrowLeft className="h-5 w-5" /></Link>
-        </Button>
-        <h1 className="text-2xl font-bold">Ort bearbeiten</h1>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/map"><ArrowLeft className="h-5 w-5" /></Link>
+          </Button>
+          <h1 className="text-2xl font-bold">Ort bearbeiten</h1>
+        </div>
+        {isAdmin && (
+          <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}>
+            <Trash2 className="h-4 w-4 mr-1" />
+            Löschen
+          </Button>
+        )}
       </div>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ort löschen?</DialogTitle>
+            <DialogDescription>
+              Möchtest du <strong>{place.name}</strong> und alle zugehörigen Courts dauerhaft löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Abbrechen
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => { setShowDeleteDialog(false); deleteMutation.mutate() }}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Wird gelöscht...' : 'Endgültig löschen'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <PlaceForm
         mode="edit"
         initialData={place}
