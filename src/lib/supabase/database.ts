@@ -1084,16 +1084,18 @@ export const database = {
 
     // Get moderation stats
     getModerationStats: async () => {
-      const [pendingResult, approvedResult, communityEditsResult] = await Promise.all([
+      const [pendingResult, approvedResult, communityEditsResult, reportsResult] = await Promise.all([
         supabase.from('places').select('id', { count: 'exact' }).eq('moderation_status', 'pending'),
         supabase.from('places').select('id', { count: 'exact' }).eq('moderation_status', 'approved'),
-        supabase.from('pending_place_changes').select('id', { count: 'exact' }).eq('status', 'pending')
+        supabase.from('pending_place_changes').select('id', { count: 'exact' }).eq('status', 'pending'),
+        supabase.from('place_reports').select('id', { count: 'exact' }).eq('status', 'open')
       ])
-      
+
       return {
         pending: pendingResult.count || 0,
         approved: approvedResult.count || 0,
         community_edits: communityEditsResult.count || 0,
+        reports: reportsResult.count || 0,
         total: (pendingResult.count || 0) + (approvedResult.count || 0)
       }
     }
@@ -1402,6 +1404,81 @@ export const database = {
         .eq('place_id', placeId)
         .maybeSingle()
       return !!data
+    },
+  },
+
+  // Place reports
+  reports: {
+    submitReport: async ({
+      placeId,
+      reason,
+      comment,
+      reporterUserId,
+    }: {
+      placeId: string
+      reason: string
+      comment?: string
+      reporterUserId?: string
+    }) => {
+      const { error } = await supabase
+        .from('place_reports')
+        .insert({
+          place_id: placeId,
+          reason,
+          comment: comment || null,
+          reporter_user_id: reporterUserId || null,
+        })
+      if (error) throw error
+    },
+
+    getOpenReports: async () => {
+      const { data, error } = await supabase
+        .from('place_reports')
+        .select(`
+          id,
+          reason,
+          comment,
+          status,
+          created_at,
+          reporter_user_id,
+          places (
+            id,
+            name,
+            city,
+            street,
+            house_number,
+            district
+          )
+        `)
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data || []
+    },
+
+    dismissReport: async (reportId: string) => {
+      const { error } = await supabase
+        .from('place_reports')
+        .update({ status: 'dismissed' })
+        .eq('id', reportId)
+      if (error) throw error
+    },
+
+    dismissAllReportsForPlace: async (placeId: string) => {
+      const { error } = await supabase
+        .from('place_reports')
+        .update({ status: 'dismissed' })
+        .eq('place_id', placeId)
+        .eq('status', 'open')
+      if (error) throw error
+    },
+
+    deleteReportedPlace: async (placeId: string) => {
+      const { error } = await supabase
+        .from('places')
+        .delete()
+        .eq('id', placeId)
+      if (error) throw error
     },
   },
 }

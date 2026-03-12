@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import LoginPromptBottomSheet from './login-prompt-bottom-sheet-vaul'
+import ReportPlaceBottomSheet from './report-place-bottom-sheet-vaul'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { MapPin, Navigation, Share2, Heart, Pencil, X, Upload, Image, Loader2, Maximize2 } from 'lucide-react'
+import { MapPin, Navigation, Share2, Heart, Pencil, X, Upload, Image, Loader2, Maximize2, Flag } from 'lucide-react'
 import { PlaceWithCourts, PlaceMarker } from '@/lib/supabase/types'
 import { sportNames, sportIcons } from '@/lib/utils/sport-utils'
 import { getDistanceText } from '@/lib/utils/distance'
@@ -38,6 +39,7 @@ export default function PlaceBottomSheetVaul({
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [isLoginPromptOpen, setIsLoginPromptOpen] = useState(false)
   const [isSaveLoginPromptOpen, setIsSaveLoginPromptOpen] = useState(false)
+  const [isReportOpen, setIsReportOpen] = useState(false)
 
   // Fetch full place details on demand when the sheet opens
   const { data: fullPlace, isLoading: isLoadingPlace } = useQuery({
@@ -125,6 +127,13 @@ export default function PlaceBottomSheetVaul({
       description="Melde dich an, um Orte als Favoriten zu speichern."
       icon={Heart}
     />
+    <ReportPlaceBottomSheet
+      isOpen={isReportOpen}
+      onOpenChange={setIsReportOpen}
+      placeId={selectedCourt?.id ?? null}
+      placeName={selectedCourt?.name ?? null}
+      userId={user?.id ?? null}
+    />
 
     {/* Fullscreen image overlay - outside drawer to avoid stacking context issues */}
     {isFullscreenOpen && place?.image_url && (
@@ -177,6 +186,16 @@ export default function PlaceBottomSheetVaul({
                     title={user && profile?.user_role === 'admin' ? 'Ort bearbeiten' : user ? 'Bearbeitung vorschlagen' : 'Anmelden zum Bearbeiten'}
                   >
                     <Pencil className="h-[18px] w-[18px]" />
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="rounded-full"
+                    onClick={() => setIsReportOpen(true)}
+                    title="Platz melden"
+                  >
+                    <Flag className="h-[18px] w-[18px]" />
                   </Button>
 
                   <Button

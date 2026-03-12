@@ -131,7 +131,7 @@ export default function MessagesPage() {
                     sports={place.sports}
                     date={new Date(place.created_at).toLocaleDateString()}
                     status={place.moderation_status}
-                    href={place.moderation_status === 'approved' ? `/places/${place.id}` : undefined}
+                    href={place.moderation_status === 'approved' ? `/map?place=${place.id}` : undefined}
                     rejectionReason={place.rejection_reason}
                   />
                 )
@@ -165,7 +165,7 @@ export default function MessagesPage() {
                     sports={place?.sports}
                     date={new Date(edit.created_at).toLocaleDateString()}
                     status={edit.status}
-                    href={edit.status === 'approved' ? `/places/${edit.place_id}` : undefined}
+                    href={edit.status === 'approved' ? `/map?place=${edit.place_id}` : undefined}
                     rejectionReason={edit.rejection_reason}
                   />
                 )

@@ -12,17 +12,19 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  MapPin, 
-  Clock, 
-  User, 
-  CheckCircle, 
-  XCircle, 
-  AlertCircle, 
+import {
+  MapPin,
+  Clock,
+  User,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
   Eye,
   MoreVertical,
   Calendar,
-  Edit
+  Edit,
+  Flag,
+  Trash2
 } from 'lucide-react'
 import { getSportBadgeClasses, sportNames, sportIcons } from '@/lib/utils/sport-utils'
 import Link from 'next/link'
@@ -53,7 +55,7 @@ function ModerationStats() {
   if (isLoading) return <div>Loading stats...</div>
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Pending</CardTitle>
@@ -70,6 +72,15 @@ function ModerationStats() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats?.community_edits || 0}</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Reports</CardTitle>
+          <Flag className="h-4 w-4 text-red-600" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats?.reports || 0}</div>
         </CardContent>
       </Card>
       <Card>
@@ -960,6 +971,188 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
   )
 }
 
+const REPORT_REASON_LABELS: Record<string, string> = {
+  no_longer_exists: 'Platz existiert nicht mehr',
+  other: 'Sonstiges',
+}
+
+function ReportedTab() {
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [deletingPlaceId, setDeletingPlaceId] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+
+  const { data: reports, isLoading } = useQuery({
+    queryKey: ['place-reports'],
+    queryFn: database.reports.getOpenReports,
+    refetchInterval: 15000,
+  })
+
+  const dismissAllMutation = useMutation({
+    mutationFn: (placeId: string) => database.reports.dismissAllReportsForPlace(placeId),
+    onSuccess: () => {
+      toast({ title: 'Meldungen geschlossen' })
+      queryClient.invalidateQueries({ queryKey: ['place-reports'] })
+      queryClient.invalidateQueries({ queryKey: ['moderation-stats'] })
+    },
+    onError: () => {
+      toast({ title: 'Fehler', variant: 'destructive' })
+    },
+  })
+
+  const deletePlaceMutation = useMutation({
+    mutationFn: (placeId: string) => database.reports.deleteReportedPlace(placeId),
+    onSuccess: () => {
+      toast({ title: 'Platz gelöscht', description: 'Der Platz wurde entfernt.' })
+      queryClient.invalidateQueries({ queryKey: ['place-reports'] })
+      queryClient.invalidateQueries({ queryKey: ['places'], exact: false })
+      queryClient.invalidateQueries({ queryKey: ['moderation-stats'] })
+      setIsDeleteDialogOpen(false)
+      setDeletingPlaceId(null)
+    },
+    onError: () => {
+      toast({ title: 'Fehler beim Löschen', variant: 'destructive' })
+    },
+  })
+
+  if (isLoading) {
+    return <div className="text-center py-8">Loading reports...</div>
+  }
+
+  // Group reports by place_id
+  const grouped = (reports || []).reduce((acc: Record<string, { place: any; reports: any[] }>, report: any) => {
+    const placeId = report.places?.id
+    if (!placeId) return acc
+    if (!acc[placeId]) acc[placeId] = { place: report.places, reports: [] }
+    acc[placeId].reports.push(report)
+    return acc
+  }, {})
+
+  const groups = Object.values(grouped) as { place: any; reports: any[] }[]
+
+  if (groups.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Flag className="h-5 w-5 text-red-600" />
+            Gemeldete Plätze
+          </CardTitle>
+          <CardDescription>Plätze, die von Nutzern gemeldet wurden</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">Keine offenen Meldungen.</div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <>
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Platz löschen</DialogTitle>
+            <DialogDescription>
+              Möchtest du diesen Platz wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Abbrechen</Button>
+            <Button
+              variant="destructive"
+              disabled={deletePlaceMutation.isPending}
+              onClick={() => deletingPlaceId && deletePlaceMutation.mutate(deletingPlaceId)}
+            >
+              {deletePlaceMutation.isPending ? 'Wird gelöscht...' : 'Löschen'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="space-y-4">
+        {groups.map(({ place, reports: placeReports }) => {
+          const address = [
+            place.street,
+            place.district || place.city,
+          ].filter(Boolean).join(', ')
+
+          return (
+            <Card key={place.id} className="border-l-4 border-l-red-400">
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <CardTitle className="text-base">{place.name}</CardTitle>
+                      <Badge className="bg-red-100 text-red-800 text-xs shrink-0">
+                        {placeReports.length} {placeReports.length === 1 ? 'Meldung' : 'Meldungen'}
+                      </Badge>
+                    </div>
+                    {address && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        {address}
+                      </div>
+                    )}
+                  </div>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/map?place=${place.id}`} target="_blank">
+                      <Eye className="h-4 w-4 mr-1" />
+                      Ansehen
+                    </Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  {placeReports.map((report: any) => (
+                    <div key={report.id} className="text-sm bg-muted/50 rounded-lg px-3 py-2 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium">{REPORT_REASON_LABELS[report.reason] || report.reason}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {new Date(report.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {report.comment && (
+                        <p className="text-muted-foreground text-xs">{report.comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    disabled={dismissAllMutation.isPending}
+                    onClick={() => dismissAllMutation.mutate(place.id)}
+                  >
+                    Meldungen schließen
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => {
+                      setDeletingPlaceId(place.id)
+                      setIsDeleteDialogOpen(true)
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Platz löschen
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
 function AdminPlacesPage() {
   return (
     <div className="container px-4 py-6 max-w-xl mx-auto">
@@ -976,6 +1169,7 @@ function AdminPlacesPage() {
         <TabsList>
           <TabsTrigger value="pending">Pending Places</TabsTrigger>
           <TabsTrigger value="community-edits">Community Edits</TabsTrigger>
+          <TabsTrigger value="reported">Reported</TabsTrigger>
           <TabsTrigger value="approved">Approved</TabsTrigger>
         </TabsList>
 
@@ -998,6 +1192,10 @@ function AdminPlacesPage() {
 
         <TabsContent value="community-edits">
           <CommunityEditsTab />
+        </TabsContent>
+
+        <TabsContent value="reported">
+          <ReportedTab />
         </TabsContent>
 
         <TabsContent value="approved">

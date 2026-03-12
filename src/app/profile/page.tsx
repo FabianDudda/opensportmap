@@ -4,7 +4,7 @@ import { useAuth } from '@/components/providers/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { User, Mail, Trophy, Calendar, Edit2, Plus, TestTube, Shield, LogOut, ChevronRight, MessageSquare, Info, Bell, HelpCircle, ScrollText } from 'lucide-react'
+import { User, Mail, Trophy, Calendar, Edit2, Plus, TestTube, Shield, LogOut, ChevronRight, MessageSquare, Info, Bell, HelpCircle, ScrollText, Database } from 'lucide-react'
 import Link from 'next/link'
 
 const NAV_ITEMS = [
@@ -66,19 +66,24 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="p-0">
             <div className="flex flex-col divide-y">
-              <Link href="/about" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
-                <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                <span>Was ist OpenSportMap?</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
-              </Link>
               <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 <span>Feedback geben</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
               </Link>
+              <Link href="/about" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                <span>Was ist OpenSportMap?</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+              </Link>
               <Link href="/changelog" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <ScrollText className="h-4 w-4 text-muted-foreground" />
                 <span>Changelog</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+              </Link>
+              <Link href="/daten" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+                <Database className="h-4 w-4 text-muted-foreground" />
+                <span>Daten</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
               </Link>
               <Link href="/impressum" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
@@ -89,7 +94,7 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
-        <p className="text-center text-xs text-muted-foreground">App Version 0.1.2-alpha</p>
+        <p className="text-center text-xs text-muted-foreground">App Version 0.1.4-alpha</p>
       </div>
     )
   }
@@ -146,6 +151,11 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="p-0">
             <div className="flex flex-col divide-y">
+              <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <span>Feedback geben</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+              </Link>
               <Link href="/about" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <HelpCircle className="h-4 w-4 text-muted-foreground" />
                 <span>Was ist OpenSportMap?</span>
@@ -156,9 +166,9 @@ export default function ProfilePage() {
                 <span>Changelog</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
               </Link>
-              <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                <span>Feedback geben</span>
+              <Link href="/daten" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+                <Database className="h-4 w-4 text-muted-foreground" />
+                <span>Daten</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
               </Link>
               <Link href="/impressum" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">

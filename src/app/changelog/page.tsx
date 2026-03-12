@@ -6,9 +6,20 @@ import Link from 'next/link'
 
 const CHANGELOG = [
   {
+    version: '0.1.4-alpha',
+    date: '12.03.2026',
+    current: true,
+    items: [
+      'Increased cluster radius from 50px to 100px for fewer, larger clusters  ',
+      'Clusters now persist one zoom level deeper before expanding to individual pins  ',
+      'Added place reporting: users (guests & logged in) can flag a place via a "Platz melden" sheet, with reports visible to admins ',
+      'Added a "Daten" page listing all imported open data sources with links and licenses',
+    ],
+  },
+  {
     version: '0.1.3-alpha',
     date: '11.03.2026',
-    current: true,
+    current: false,
     items: [
       'Split marker data from full place details — map now loads ~10× less data',
       'Place details (courts, images, address) fetched on demand when opening a place',
