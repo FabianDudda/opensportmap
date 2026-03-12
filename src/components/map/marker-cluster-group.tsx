@@ -54,13 +54,13 @@ export default function MarkerClusterGroup({ courts, onCourtSelect, selectedCour
   useEffect(() => {
     if (!clusterGroupRef.current) {
       clusterGroupRef.current = L.markerClusterGroup({
-        maxClusterRadius: 50,
+        maxClusterRadius: 100,
         showCoverageOnHover: true,
         zoomToBoundsOnClick: true,
         spiderfyOnMaxZoom: true,
         removeOutsideVisibleBounds: true,
         iconCreateFunction: createClusterIcon,
-        disableClusteringAtZoom: 14,
+        disableClusteringAtZoom: 15,
       })
       map.addLayer(clusterGroupRef.current)
     }

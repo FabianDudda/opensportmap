@@ -31,6 +31,7 @@ interface JsonPlace {
   street?: string
   name: string
   district?: string
+  image_url?: string | null
   fußballplätze?: number | null
   platzbelag_fußball?: string | null
   basketballplätze?: number | null
@@ -52,8 +53,8 @@ interface JsonPlace {
 
 type JsonData = JsonPlace[]
 
-// System user ID for data attribution - will be created automatically
-const SYSTEM_USER_ID = 'a0000000-0000-0000-0000-000000000001' // Import system user
+// System user ID for data attribution
+const SYSTEM_USER_ID = 'eb32b670-8359-4683-ae9b-20834d193391'
 
 function transformJsonPlace(jsonPlace: JsonPlace, sourceFilename: string) {
   const { geometry } = jsonPlace
@@ -151,6 +152,7 @@ function transformJsonPlace(jsonPlace: JsonPlace, sourceFilename: string) {
     latitude: geometry.y,
     longitude: geometry.x,
     district: jsonPlace.district || null,
+    image_url: jsonPlace.image_url || null,
     sports: courts.map(c => c.sport as Database['public']['Enums']['sport_type']),
     source: sourceFilename,
     import_date: new Date().toISOString()
@@ -238,26 +240,6 @@ async function importPlace(jsonPlace: JsonPlace, userId: string, sourceFilename:
   }
 }
 
-async function findOrCreateSystemUser() {
-  // First, try to find any existing user to use as attribution
-  const { data: existingUsers } = await supabase
-    .from('profiles')
-    .select('id, name')
-    .limit(1)
-  
-  if (existingUsers && existingUsers.length > 0) {
-    const user = existingUsers[0]
-    console.log(`✅ Using existing user for attribution: ${user.name} (${user.id})`)
-    return user.id
-  }
-  
-  // If no users exist, we need to create one manually first
-  console.log('❌ No existing users found. Please create at least one user account first by:')
-  console.log('   1. Sign up through your app')
-  console.log('   2. Or create a user manually in Supabase auth dashboard')
-  console.log('   3. Then run the import again')
-  throw new Error('No users available for attribution')
-}
 
 async function main() {
   const args = process.argv.slice(2)
@@ -290,14 +272,8 @@ async function main() {
   const sourceFilename = basename(jsonFilePath, '.json')
   console.log(`📄 Using source: ${sourceFilename}`)
   
-  // Find a user for attribution
-  let systemUserId: string
-  try {
-    systemUserId = await findOrCreateSystemUser()
-  } catch (error) {
-    console.error('❌ Failed to find user for attribution. Import aborted.')
-    process.exit(1)
-  }
+  const systemUserId = SYSTEM_USER_ID
+  console.log(`👤 Using system user for attribution: ${systemUserId}`)
   
   // Import places
   let successCount = 0
