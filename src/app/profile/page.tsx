@@ -4,7 +4,7 @@ import { useAuth } from '@/components/providers/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { User, Mail, Trophy, Calendar, Edit2, Plus, TestTube, Shield, LogOut, ChevronRight, MessageSquare, Info, Bell, HelpCircle, ScrollText, Database } from 'lucide-react'
+import { User, Mail, Trophy, Calendar, Edit2, Plus, TestTube, Shield, LogOut, ChevronRight, MessageSquare, Info, Bell, HelpCircle, ScrollText, Database, Instagram } from 'lucide-react'
 import Link from 'next/link'
 
 const NAV_ITEMS = [
@@ -94,6 +94,9 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+        <a href="https://www.instagram.com/opensportmapde/" target="_blank" rel="noopener noreferrer" className="flex justify-center text-muted-foreground hover:text-foreground transition-colors">
+          <Instagram className="h-5 w-5" />
+        </a>
         <p className="text-center text-xs text-muted-foreground">App Version 0.1.4-alpha</p>
       </div>
     )
@@ -192,6 +195,9 @@ export default function ProfilePage() {
             </button>
           </CardContent>
         </Card>
+        <a href="https://www.instagram.com/opensportmapde/" target="_blank" rel="noopener noreferrer" className="flex justify-center text-muted-foreground hover:text-foreground transition-colors">
+          <Instagram className="h-5 w-5" />
+        </a>
         <p className="text-center text-xs text-muted-foreground">App Version 0.1.3-alpha</p>
       </div>
     </div>
