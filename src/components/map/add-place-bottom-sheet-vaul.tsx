@@ -74,6 +74,7 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
     queryFn: () => database.courts.getAllCourts(),
   })
 
+  const [isGuestMode, setIsGuestMode] = useState(false)
   const [name, setName] = useState('')
   const [placeType, setPlaceType] = useState<PlaceType>('öffentlich')
   const [selectedSports, setSelectedSports] = useState<SportType[]>([])
@@ -88,6 +89,7 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
 
   const resetForm = () => {
+    setIsGuestMode(false)
     setName('')
     setPlaceType('öffentlich')
     setSelectedSports([])
@@ -161,6 +163,38 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
     },
   })
 
+  const guestCreateCourtMutation = useMutation({
+    mutationFn: async (payload: Parameters<typeof createCourtMutation.mutate>[0]) => {
+      const courts: CourtDetails[] = payload.courts
+      const res = await fetch('/api/guest/submit-place', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: payload.name,
+          place_type: payload.place_type,
+          latitude: payload.latitude,
+          longitude: payload.longitude,
+          sports: payload.sports,
+          image_url: payload.image_url,
+          address: payload.address,
+          courts,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Fehler beim Einreichen')
+      return json.data
+    },
+    onSuccess: () => {
+      toast({ title: 'Ort eingereicht!', description: 'Er erscheint auf der Karte, sobald er genehmigt wurde.' })
+      queryClient.invalidateQueries({ queryKey: ['courts'] })
+      resetForm()
+      onOpenChange(false)
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Fehler beim Hinzufügen', description: error.message, variant: 'destructive' })
+    },
+  })
+
   const handleMapClick = useCallback(async (lng: number, lat: number) => {
     setLocation({ lat, lng })
     setIsDetectingAddress(true)
@@ -227,7 +261,7 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) return
+    if (!user && !isGuestMode) return
     if (!name.trim()) { toast({ title: 'Name required', variant: 'destructive' }); return }
     if (selectedSports.length === 0) { toast({ title: 'Select at least one sport', variant: 'destructive' }); return }
     if (!location) { toast({ title: 'Location required', description: 'Tap the map to set a location.', variant: 'destructive' }); return }
@@ -253,17 +287,23 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
       return Object.entries(counts).map(([surface, quantity]) => ({ sport, quantity, surface, notes: '' }))
     })
 
-    createCourtMutation.mutate({
+    const payload = {
       name: name.trim(),
       place_type: placeType,
       latitude: location.lat,
       longitude: location.lng,
       sports: selectedSports,
       image_url: imageUrl,
-      added_by_user: user.id,
+      added_by_user: user?.id ?? '',
       courts,
       address: Object.values(address).some(v => v) ? address : undefined,
-    })
+    }
+
+    if (isGuestMode) {
+      guestCreateCourtMutation.mutate(payload)
+    } else {
+      createCourtMutation.mutate(payload)
+    }
   }
 
   return (
@@ -279,7 +319,7 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
         </DrawerHeader>
 
         <div className="overflow-y-auto px-4 pb-4">
-          {!user ? (
+          {!user && !isGuestMode ? (
             <div className="text-center space-y-4 py-4">
               <Plus className="h-12 w-12 mx-auto text-muted-foreground/40" />
               <p className="text-muted-foreground">Melde dich an, um Orte hinzuzufügen.</p>
@@ -290,10 +330,15 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
                 <Button asChild variant="outline" className="w-full">
                   <Link href="/auth/signup" onClick={() => onOpenChange(false)}>Registrieren</Link>
                 </Button>
+                <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setIsGuestMode(true)}>
+                  Weiter als Gast
+                </Button>
               </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6 py-2">
+              {/* Honeypot – hidden from real users, catches bots */}
+              <input type="text" name="website" tabIndex={-1} aria-hidden="true" className="hidden" />
               {/* Name */}
               <div className="space-y-2">
                 <Label htmlFor="ap-name">Place Name *</Label>
@@ -496,10 +541,10 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
               )}
 
               {/* Submit */}
-              <Button type="submit" className="w-full" disabled={createCourtMutation.isPending || isUploadingImage}>
+              <Button type="submit" className="w-full" disabled={createCourtMutation.isPending || guestCreateCourtMutation.isPending || isUploadingImage}>
                 {isUploadingImage ? (
                   <><Loader2 className="h-4 w-4 animate-spin mr-2" />Uploading... {uploadProgress && `${uploadProgress.percentage.toFixed(0)}%`}</>
-                ) : createCourtMutation.isPending ? (
+                ) : (createCourtMutation.isPending || guestCreateCourtMutation.isPending) ? (
                   <><Loader2 className="h-4 w-4 animate-spin mr-2" />Adding...</>
                 ) : 'Add Place'}
               </Button>

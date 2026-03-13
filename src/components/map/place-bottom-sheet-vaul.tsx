@@ -122,7 +122,13 @@ export default function PlaceBottomSheetVaul({
 
   return (
     <>
-    <LoginPromptBottomSheet isOpen={isLoginPromptOpen} onOpenChange={setIsLoginPromptOpen} />
+    <LoginPromptBottomSheet
+      isOpen={isLoginPromptOpen}
+      onOpenChange={setIsLoginPromptOpen}
+      onGuestContinue={() => {
+        window.location.href = `/places/${selectedCourt?.id}/edit?guest=true`
+      }}
+    />
     <LoginPromptBottomSheet
       isOpen={isSaveLoginPromptOpen}
       onOpenChange={setIsSaveLoginPromptOpen}

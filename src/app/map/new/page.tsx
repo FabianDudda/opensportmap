@@ -66,6 +66,8 @@ function AddPlacePage() {
   const searchParams = useSearchParams()
   const queryClient = useQueryClient()
 
+  const isGuestMode = searchParams.get('guest') === 'true'
+
   const mapInitialCenter = useMemo(() => {
     const lat = parseFloat(searchParams.get('lat') ?? '')
     const lng = parseFloat(searchParams.get('lng') ?? '')
@@ -221,7 +223,7 @@ function AddPlacePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) return
+    if (!user && !isGuestMode) return
     if (!name.trim()) { toast({ title: 'Name erforderlich', variant: 'destructive' }); return }
     if (selectedSports.length === 0) { toast({ title: 'Mindestens eine Sportart auswählen', variant: 'destructive' }); return }
     if (!location) { toast({ title: 'Standort erforderlich', description: 'Tippe auf die Karte, um einen Standort zu setzen.', variant: 'destructive' }); return }
@@ -247,16 +249,38 @@ function AddPlacePage() {
       return Object.entries(counts).map(([surface, quantity]) => ({ sport, quantity, surface, notes: '' }))
     })
 
-    createCourtMutation.mutate({
+    const placePayload = {
       name: name.trim(),
       place_type: placeType,
       latitude: location.lat,
       longitude: location.lng,
       sports: selectedSports,
       image_url: imageUrl,
-      added_by_user: user.id,
       courts,
       address: Object.values(address).some(v => v) ? address : undefined,
+    }
+
+    if (isGuestMode) {
+      try {
+        const res = await fetch('/api/guest/submit-place', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(placePayload),
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || 'Fehler beim Einreichen')
+        toast({ title: 'Ort eingereicht!', description: 'Er erscheint auf der Karte, sobald er genehmigt wurde.' })
+        queryClient.invalidateQueries({ queryKey: ['courts'] })
+        router.push('/map')
+      } catch (err) {
+        toast({ title: 'Fehler beim Hinzufügen', description: err instanceof Error ? err.message : '', variant: 'destructive' })
+      }
+      return
+    }
+
+    createCourtMutation.mutate({
+      ...placePayload,
+      added_by_user: user!.id,
     })
   }
 
@@ -270,7 +294,7 @@ function AddPlacePage() {
     )
   }
 
-  if (!user) {
+  if (!user && !isGuestMode) {
     return (
       <div className="container px-4 py-4 overflow-x-hidden">
         <div className="max-w-xl mx-auto space-y-6">
@@ -297,6 +321,9 @@ function AddPlacePage() {
               <Button asChild variant="outline" className="w-full">
                 <Link href="/auth/signup">Registrieren</Link>
               </Button>
+              <Button asChild variant="ghost" className="w-full text-muted-foreground">
+                <Link href="/map/new?guest=true">Weiter als Gast</Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -316,6 +343,9 @@ function AddPlacePage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Honeypot – hidden from real users, catches bots */}
+          <input type="text" name="website" tabIndex={-1} aria-hidden="true" className="hidden" />
+
           {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="ap-name">Ortsname *</Label>

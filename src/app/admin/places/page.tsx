@@ -192,6 +192,11 @@ function PlaceCard({
                     {placeTypeIcons[place.place_type as PlaceType] || ''} {placeTypeLabels[place.place_type as PlaceType] || place.place_type}
                   </Badge>
                 )}
+                {place.is_guest_submission && (
+                  <Badge className="text-xs bg-yellow-100 text-yellow-800">
+                    Gast
+                  </Badge>
+                )}
               {showStatus && (
                 <Badge className={`text-xs ${getStatusColor(place.moderation_status)}`}>
                   {getStatusIcon(place.moderation_status)}
@@ -210,7 +215,7 @@ function PlaceCard({
               <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
                 <div className="flex items-center gap-1">
                   <User className="h-3 w-3" />
-                  {place.profiles.name}
+                  {place.profiles?.name ?? 'Gast'}
                 </div>
                 <div className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />

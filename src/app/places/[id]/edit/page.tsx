@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { notFound } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/components/providers/auth-provider'
@@ -18,15 +18,18 @@ interface EditPlacePageProps {
   params: Promise<{ id: string }>
 }
 
-export default function EditPlacePage({ params }: EditPlacePageProps) {
+function EditPlaceContent({ params }: EditPlacePageProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, profile, loading: authLoading } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  
+
+  const isGuestMode = searchParams.get('guest') === 'true'
+
   // Get place ID from params
   const [placeId, setPlaceId] = useState<string>('')
-  
+
   React.useEffect(() => {
     params.then(p => setPlaceId(p.id))
   }, [params])
@@ -44,7 +47,7 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
   // Submit mutation for community edits or direct admin updates
   const submitMutation = useMutation({
     mutationFn: async (formData: any) => {
-      if (!user) throw new Error('User not authenticated')
+      if (!user && !isGuestMode) throw new Error('User not authenticated')
       if (!place) throw new Error('Place not found')
 
       const placeData = {
@@ -76,14 +79,14 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
         // Update courts
         // First delete existing courts
         await Promise.all(
-          place.courts?.map(court => 
+          place.courts?.map(court =>
             database.courtDetails.deleteCourt(court.id)
           ) || []
         )
 
         // Add new courts
         await Promise.all(
-          courts.map(court => 
+          courts.map(court =>
             database.courtDetails.addCourt({
               ...court,
               place_id: place.id
@@ -92,13 +95,23 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
         )
 
         return { directUpdate: true }
+      } else if (isGuestMode) {
+        // Guest users submit via API route (IP rate limiting + guest profile)
+        const res = await fetch('/api/guest/submit-edit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ placeId: place.id, placeData, courts }),
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || 'Fehler beim Einreichen')
+        return json.data
       } else {
         // Regular users submit for community review
         const result = await database.community.submitPlaceEdit(
           place.id,
           placeData,
           courts,
-          user.id
+          user!.id
         )
         return result
       }
@@ -172,18 +185,29 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
     )
   }
 
-  // Redirect unauthenticated users
-  if (!user) {
+  // Show auth prompt for unauthenticated users (unless guest mode)
+  if (!user && !isGuestMode) {
+    const currentPath = placeId ? `/places/${placeId}/edit` : '/map'
     return (
       <div className="container px-4 py-8">
-        <div className="max-w-xl mx-auto text-center">
-          <h1 className="text-2xl font-bold mb-4">Anmeldung erforderlich</h1>
-          <p className="text-muted-foreground mb-4">
-            Du musst angemeldet sein, um Orte zu bearbeiten.
-          </p>
-          <Link href="/auth/signin" className="text-primary hover:underline">
-            Anmelden
-          </Link>
+        <div className="max-w-xl mx-auto space-y-6">
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-bold">Ort bearbeiten</h1>
+            <p className="text-muted-foreground">
+              Melde dich an, um Änderungen an diesem Ort vorzuschlagen.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 max-w-xs mx-auto">
+            <Button asChild className="w-full">
+              <Link href="/auth/signin">Anmelden</Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/auth/signup">Registrieren</Link>
+            </Button>
+            <Button asChild variant="ghost" className="w-full text-muted-foreground">
+              <Link href={`${currentPath}?guest=true`}>Weiter als Gast</Link>
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -248,5 +272,13 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
         submitButtonText={isAdmin ? "Änderungen speichern" : "Zur Überprüfung einreichen"}
       />
     </div>
+  )
+}
+
+export default function EditPlacePage({ params }: EditPlacePageProps) {
+  return (
+    <Suspense>
+      <EditPlaceContent params={params} />
+    </Suspense>
   )
 }

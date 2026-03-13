@@ -198,7 +198,7 @@ export default function ProfilePage() {
         <a href="https://www.instagram.com/opensportmapde/" target="_blank" rel="noopener noreferrer" className="flex justify-center text-muted-foreground hover:text-foreground transition-colors">
           <Instagram className="h-5 w-5" />
         </a>
-        <p className="text-center text-xs text-muted-foreground">App Version 0.1.3-alpha</p>
+        <p className="text-center text-xs text-muted-foreground">App Version 0.2.0-alpha</p>
       </div>
     </div>
   )

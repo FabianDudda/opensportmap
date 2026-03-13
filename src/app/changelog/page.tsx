@@ -11,6 +11,7 @@ const CHANGELOG = [
     current: true,
     items: [
       'Added place type (Public / Club / School) with filter support on the map',
+      'Guests can now add places and suggest edits – without an account, subject to admin approval',
     ],
   },
   {

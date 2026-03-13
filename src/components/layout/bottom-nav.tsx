@@ -123,6 +123,22 @@ export default function BottomNav() {
                 <Button asChild variant="outline" className="w-full">
                   <Link href="/auth/signup" onClick={() => setIsGuestSheetOpen(false)}>Registrieren</Link>
                 </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full text-muted-foreground"
+                  onClick={() => {
+                    setIsGuestSheetOpen(false)
+                    const stored = sessionStorage.getItem('map-position')
+                    if (stored) {
+                      const { lat, lng, zoom } = JSON.parse(stored)
+                      router.push(`/map/new?guest=true&lat=${lat}&lng=${lng}&zoom=${zoom}`)
+                    } else {
+                      router.push('/map/new?guest=true')
+                    }
+                  }}
+                >
+                  Weiter als Gast
+                </Button>
               </div>
             </div>
           </div>

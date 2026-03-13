@@ -11,6 +11,7 @@ interface LoginPromptBottomSheetProps {
   title?: string
   description?: string
   icon?: LucideIcon
+  onGuestContinue?: () => void
 }
 
 export default function LoginPromptBottomSheet({
@@ -19,6 +20,7 @@ export default function LoginPromptBottomSheet({
   title = 'Ort bearbeiten',
   description = 'Melde dich an, um Änderungen an diesem Ort vorzuschlagen.',
   icon: Icon = Pencil,
+  onGuestContinue,
 }: LoginPromptBottomSheetProps) {
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange} modal={false} shouldScaleBackground={false}>
@@ -49,6 +51,15 @@ export default function LoginPromptBottomSheet({
               <Button asChild variant="outline" className="w-full">
                 <Link href="/auth/signup" onClick={() => onOpenChange(false)}>Registrieren</Link>
               </Button>
+              {onGuestContinue && (
+                <Button
+                  variant="ghost"
+                  className="w-full text-muted-foreground"
+                  onClick={() => { onOpenChange(false); onGuestContinue() }}
+                >
+                  Weiter als Gast
+                </Button>
+              )}
             </div>
           </div>
         </div>

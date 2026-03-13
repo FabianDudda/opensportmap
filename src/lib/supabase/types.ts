@@ -263,6 +263,8 @@ export type Database = {
         Row: {
           change_type: Database["public"]["Enums"]["place_change_type"]
           created_at: string
+          guest_ip: string | null
+          is_guest_submission: boolean
           current_data: Json | null
           id: string
           place_id: string | null
@@ -271,35 +273,39 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           status: Database["public"]["Enums"]["moderation_status"]
-          submitted_by: string
+          submitted_by: string | null
           updated_at: string
         }
         Insert: {
           change_type: Database["public"]["Enums"]["place_change_type"]
           created_at?: string
           current_data?: Json | null
+          guest_ip?: string | null
           id?: string
+          is_guest_submission?: boolean
           place_id?: string | null
           proposed_data: Json
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["moderation_status"]
-          submitted_by: string
+          submitted_by?: string | null
           updated_at?: string
         }
         Update: {
           change_type?: Database["public"]["Enums"]["place_change_type"]
           created_at?: string
           current_data?: Json | null
+          guest_ip?: string | null
           id?: string
+          is_guest_submission?: boolean
           place_id?: string | null
           proposed_data?: Json
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["moderation_status"]
-          submitted_by?: string
+          submitted_by?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -328,7 +334,7 @@ export type Database = {
       }
       places: {
         Row: {
-          added_by_user: string
+          added_by_user: string | null
           city: string | null
           country: string | null
           county: string | null
@@ -336,10 +342,12 @@ export type Database = {
           description: string | null
           district: string | null
           features: string[] | null
+          guest_ip: string | null
           house_number: string | null
           id: string
           image_url: string | null
           import_date: string | null
+          is_guest_submission: boolean
           latitude: number
           longitude: number
           moderated_at: string | null
@@ -357,7 +365,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          added_by_user: string
+          added_by_user?: string | null
           city?: string | null
           country?: string | null
           county?: string | null
@@ -365,10 +373,12 @@ export type Database = {
           description?: string | null
           district?: string | null
           features?: string[] | null
+          guest_ip?: string | null
           house_number?: string | null
           id?: string
           image_url?: string | null
           import_date?: string | null
+          is_guest_submission?: boolean
           latitude: number
           longitude: number
           moderated_at?: string | null
@@ -394,10 +404,12 @@ export type Database = {
           description?: string | null
           district?: string | null
           features?: string[] | null
+          guest_ip?: string | null
           house_number?: string | null
           id?: string
           image_url?: string | null
           import_date?: string | null
+          is_guest_submission?: boolean
           latitude?: number
           longitude?: number
           moderated_at?: string | null

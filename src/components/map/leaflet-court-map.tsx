@@ -385,16 +385,12 @@ function AddCourtButtonHandler({ onAddCourtClick, user }: { onAddCourtClick: () 
         <line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
     `
-    addCourtButton.title = user ? 'Add court' : 'Sign in to add court'
-    
+    addCourtButton.title = 'Ort hinzufügen'
+
     // Handle click events
     L.DomEvent.on(addCourtButton, 'click', (e) => {
       L.DomEvent.preventDefault(e)
-      if (!user) {
-        window.location.href = '/auth/signin'
-      } else {
-        onAddCourtClick()
-      }
+      onAddCourtClick()
     })
     
     // Prevent map interactions
