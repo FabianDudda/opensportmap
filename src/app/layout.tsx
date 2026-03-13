@@ -18,9 +18,43 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'OpenSportMap',
+  url: 'https://opensportmap.de',
+  description: 'Kostenlose Sportplätze in deiner Nähe finden – über 13.000 Plätze in Deutschland.',
+  inLanguage: 'de',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: 'https://opensportmap.de/map?q={search_term_string}',
+    'query-input': 'required name=search_term_string',
+  },
+}
+
 export const metadata: Metadata = {
   title: "OpenSportMap - Kostenlose Sportplätze in deiner Nähe finden",
-  description: "Finde kostenlose Sportplätze in deiner Nähe. Basketball, Fußball, Tennis, Calisthenics, Skateparks & mehr – über 1.600 Plätze in Deutschland.",
+  description: "Finde kostenlose Sportplätze in deiner Nähe. Basketball, Fußball, Tennis, Calisthenics, Skateparks & mehr – über 13.000 Plätze in Deutschland.",
+  metadataBase: new URL("https://opensportmap.de"),
+  openGraph: {
+    type: "website",
+    locale: "de_DE",
+    url: "https://opensportmap.de",
+    siteName: "OpenSportMap",
+    title: "OpenSportMap - Kostenlose Sportplätze in deiner Nähe finden",
+    description: "Finde kostenlose Sportplätze in deiner Nähe. Basketball, Fußball, Tennis, Calisthenics, Skateparks & mehr – über 13.000 Plätze in Deutschland.",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon_192x192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/favicon_192x192.png",
+  },
 }
 
 export default function RootLayout({
@@ -33,6 +67,10 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://abminvrgugkbzgxvqxap.supabase.co" />
         <link rel="dns-prefetch" href="https://abminvrgugkbzgxvqxap.supabase.co" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

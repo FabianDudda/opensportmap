@@ -14,24 +14,24 @@ type FaqItem = {
 
 const FAQ: FaqItem[] = [
   {
-    question: 'Wie füge ich einen Ort hinzu?',
+    question: 'Wie füge ich einen Sportplatz hinzu?',
     answer: 'Tippe auf der Karte auf das „+"-Symbol, fülle das Formular aus und bestätige die Position auf der Karte. Bist du eingeloggt, wird dein Beitrag direkt deinem Profil zugeordnet. Als Gast wird er zunächst zur Prüfung eingereicht.',
   },
   {
-    question: 'Wie bearbeite ich einen Ort?',
-    answer: 'Öffne einen Ort und tippe auf „Bearbeiten". Deine Änderungen werden als Vorschlag eingereicht und nach Prüfung übernommen.',
+    question: 'Wie bearbeite ich einen Sportplatz?',
+    answer: 'Öffne einen Sportplatz und tippe auf „Bearbeiten". Deine Änderungen werden als Vorschlag eingereicht und nach Prüfung übernommen.',
   },
   {
-    question: 'Wie melde ich einen Ort?',
-    answer: 'Öffne einen Ort und tippe auf „Platz melden". Du kannst dann angeben, was nicht stimmt – z. B. falsche Informationen, geschlossener Platz oder unangemessene Inhalte. Die Meldung wird von einem Admin geprüft.',
+    question: 'Wie melde ich einen Sportplatz?',
+    answer: 'Öffne einen Sportplatz und tippe auf „Platz melden". Du kannst dann angeben, was nicht stimmt – z. B. falsche Informationen, geschlossener Platz oder unangemessene Inhalte. Die Meldung wird von einem Admin geprüft.',
   },
   {
     question: 'Brauche ich ein Konto?',
-    answer: 'Nein. Du kannst die Karte ohne Konto nutzen, Orte anschauen, Orte hinzufügen und Bearbeitungen vorschlagen. Beiträge von Gästen werden jedoch erst nach Prüfung durch ein Admin freigeschaltet. Mit einem Konto werden deine Beiträge direkt deinem Profil zugeordnet und sind unter „Meine Beiträge" einsehbar.',
+    answer: 'Nein. Du kannst die Karte ohne Konto nutzen, Sportplätze anschauen, Sportplätze hinzufügen und Bearbeitungen vorschlagen. Beiträge von Gästen werden jedoch erst nach Prüfung durch ein Admin freigeschaltet. Mit einem Konto werden deine Beiträge direkt deinem Profil zugeordnet und sind unter „Meine Beiträge" einsehbar.',
   },
   {
     question: 'Was bedeuten die Platztypen?',
-    answer: 'Jeder Ort ist einem von drei Typen zugeordnet:',
+    answer: 'Jeder Sportplatz ist einem von drei Typen zugeordnet:',
     bullets: [
       'Öffentlich – frei zugänglich, kann von jedem genutzt werden.',
       'Verein – gehört einem Verein, Nutzung ggf. nur für Mitglieder.',
@@ -83,7 +83,7 @@ export default function FaqPage() {
               <div className="flex items-start gap-3">
                 <Map className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="text-sm">
-                  <p className="font-medium">Orte entdecken</p>
+                  <p className="font-medium">Sportplätze entdecken</p>
                   <p className="text-muted-foreground">Durchsuche die Karte und finde Sportplätze in deiner Umgebung.</p>
                 </div>
               </div>
@@ -97,7 +97,7 @@ export default function FaqPage() {
               <div className="flex items-start gap-3">
                 <Plus className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="text-sm">
-                  <p className="font-medium">Orte hinzufügen</p>
+                  <p className="font-medium">Sportplätze hinzufügen</p>
                   <p className="text-muted-foreground">Trage fehlende Sportplätze ein und hilf anderen, sie zu finden.</p>
                 </div>
               </div>

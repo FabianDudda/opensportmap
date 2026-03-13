@@ -31,8 +31,8 @@ export async function generateMetadata({ params }: PlacePageProps): Promise<Meta
   
   if (!place) {
     return {
-      title: 'Place Not Found - Court Sports',
-      description: 'The requested place could not be found.',
+      title: 'Ort nicht gefunden | OpenSportMap',
+      description: 'Der gesuchte Sportplatz konnte nicht gefunden werden.',
     }
   }
 
@@ -53,16 +53,16 @@ export async function generateMetadata({ params }: PlacePageProps): Promise<Meta
   const address = addressParts.length > 0 ? addressParts.join(', ') : `${place.latitude}, ${place.longitude}`
 
   return {
-    title: `${place.name} - Court Sports`,
-    description: `${place.description || `Sports facility offering ${sportsText}`}. Located at ${address}. Find court details, sports available, and location information.`,
+    title: `${place.name} | OpenSportMap`,
+    description: `${place.description || `Sportplatz mit ${sportsText}`}. Adresse: ${address}. Alle Infos, verfügbare Sportarten und Standort.`,
     openGraph: {
-      title: `${place.name} - Court Sports`,
-      description: `Sports facility with ${sportsText}. Located at ${address}`,
+      title: `${place.name} | OpenSportMap`,
+      description: `Sportplatz mit ${sportsText}. Adresse: ${address}`,
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${place.name} - Court Sports`,
-      description: `Sports facility with ${sportsText}`,
+      title: `${place.name} | OpenSportMap`,
+      description: `Sportplatz mit ${sportsText}`,
     }
   }
 }
