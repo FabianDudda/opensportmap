@@ -26,7 +26,7 @@ import {
   Flag,
   Trash2
 } from 'lucide-react'
-import { getSportBadgeClasses, sportNames, sportIcons } from '@/lib/utils/sport-utils'
+import { getSportBadgeClasses, sportNames, sportIcons, getPlaceTypeBadgeClasses, placeTypeLabels, placeTypeIcons, PlaceType } from '@/lib/utils/sport-utils'
 import Link from 'next/link'
 import {
   DropdownMenu,
@@ -185,8 +185,13 @@ function PlaceCard({
               </div>
             )}
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle className="text-lg">{place.name}</CardTitle>
+                {place.place_type && (
+                  <Badge className={`text-xs ${getPlaceTypeBadgeClasses(place.place_type)}`}>
+                    {placeTypeIcons[place.place_type as PlaceType] || ''} {placeTypeLabels[place.place_type as PlaceType] || place.place_type}
+                  </Badge>
+                )}
               {showStatus && (
                 <Badge className={`text-xs ${getStatusColor(place.moderation_status)}`}>
                   {getStatusIcon(place.moderation_status)}
@@ -789,6 +794,21 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="font-mono bg-green-100 text-green-800 px-2 py-1 rounded">{proposedData?.place?.name || '—'}</div>
                   <div className="font-mono bg-red-100 text-red-800 px-2 py-1 rounded">{currentData?.place?.name || '—'}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Place Type */}
+            {proposedData?.place?.place_type !== currentData?.place?.place_type && (
+              <div>
+                <p className="text-xs font-medium mb-1">Platzart</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="font-mono bg-green-100 text-green-800 px-2 py-1 rounded">
+                    {placeTypeIcons[proposedData?.place?.place_type as PlaceType] || ''} {placeTypeLabels[proposedData?.place?.place_type as PlaceType] || proposedData?.place?.place_type || '—'}
+                  </div>
+                  <div className="font-mono bg-red-100 text-red-800 px-2 py-1 rounded">
+                    {placeTypeIcons[currentData?.place?.place_type as PlaceType] || ''} {placeTypeLabels[currentData?.place?.place_type as PlaceType] || currentData?.place?.place_type || '—'}
+                  </div>
                 </div>
               </div>
             )}

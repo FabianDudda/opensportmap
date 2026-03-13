@@ -8,12 +8,20 @@ import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import { PlaceMarker, SportType } from '@/lib/supabase/types'
 import { createSportIcon } from '@/lib/utils/sport-styles'
+import { PlaceType } from '@/lib/utils/sport-utils'
 
 interface MarkerClusterGroupProps {
   courts: PlaceMarker[]
   onCourtSelect?: (court: PlaceMarker) => void
   selectedCourt?: PlaceMarker | null
   selectedSports?: SportType[]
+  selectedPlaceType?: PlaceType | null
+}
+
+function isMarkerVisible(court: PlaceMarker, selectedSports: SportType[], selectedPlaceType: PlaceType | null | undefined): boolean {
+  if (selectedSports.length > 0 && !selectedSports.some(s => court.sports?.includes(s))) return false
+  if (selectedPlaceType != null && (court.place_type || 'öffentlich') !== selectedPlaceType) return false
+  return true
 }
 
 // Create custom cluster icon
@@ -39,18 +47,21 @@ function createClusterIcon(cluster: L.MarkerCluster) {
   })
 }
 
-export default function MarkerClusterGroup({ courts, onCourtSelect, selectedCourt, selectedSports = [] }: MarkerClusterGroupProps) {
+export default function MarkerClusterGroup({ courts, onCourtSelect, selectedCourt, selectedSports = [], selectedPlaceType = null }: MarkerClusterGroupProps) {
   const map = useMap()
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null)
-  const markersRef = useRef<L.Marker[]>([])
-  const courtsRef = useRef<PlaceMarker[]>(courts)
+  // Stable maps: id → marker / court — rebuilt only when underlying data changes
+  const markerMapRef = useRef<Map<string, L.Marker>>(new Map())
+  const courtMapRef = useRef<Map<string, PlaceMarker>>(new Map())
   const onCourtSelectRef = useRef(onCourtSelect)
+  const selectedSportsRef = useRef(selectedSports)
+  const selectedPlaceTypeRef = useRef(selectedPlaceType)
 
-  // Keep refs in sync without triggering rebuilds
   useEffect(() => { onCourtSelectRef.current = onCourtSelect }, [onCourtSelect])
-  useEffect(() => { courtsRef.current = courts }, [courts])
+  useEffect(() => { selectedSportsRef.current = selectedSports }, [selectedSports])
+  useEffect(() => { selectedPlaceTypeRef.current = selectedPlaceType }, [selectedPlaceType])
 
-  // Full rebuild only when the courts data changes
+  // Full rebuild only when the underlying places data changes (e.g. initial load / cache refresh)
   useEffect(() => {
     if (!clusterGroupRef.current) {
       clusterGroupRef.current = L.markerClusterGroup({
@@ -67,56 +78,75 @@ export default function MarkerClusterGroup({ courts, onCourtSelect, selectedCour
 
     const clusterGroup = clusterGroupRef.current
     clusterGroup.clearLayers()
-    markersRef.current = []
+    markerMapRef.current.clear()
+    courtMapRef.current.clear()
 
     courts.forEach((court) => {
       const availableSports = court.sports || []
       const marker = L.marker([court.latitude, court.longitude], {
         icon: createSportIcon(availableSports, false),
       } as any)
-
       ;(marker as any).options.placeData = court
-
       marker.on('click', (e) => {
         e.originalEvent.stopPropagation()
         onCourtSelectRef.current?.(court)
       })
 
-      clusterGroup.addLayer(marker)
-      markersRef.current.push(marker)
+      markerMapRef.current.set(court.id, marker)
+      courtMapRef.current.set(court.id, court)
+
+      // Respect current filter state when adding
+      if (isMarkerVisible(court, selectedSportsRef.current, selectedPlaceTypeRef.current)) {
+        clusterGroup.addLayer(marker)
+      }
     })
 
     return () => {
       clusterGroup.clearLayers()
-      markersRef.current = []
+      markerMapRef.current.clear()
+      courtMapRef.current.clear()
     }
   }, [courts, map])
 
-  // Only update icons when sport filter changes — no marker rebuild needed
+  // Cheap show/hide + icon update when filters change — no marker rebuild
   useEffect(() => {
-    markersRef.current.forEach((marker, i) => {
-      const court = courtsRef.current[i]
+    const clusterGroup = clusterGroupRef.current
+    if (!clusterGroup) return
+
+    markerMapRef.current.forEach((marker, id) => {
+      const court = courtMapRef.current.get(id)
       if (!court) return
-      const availableSports = court.sports || []
-      const matchingSports = availableSports.filter(s => selectedSports.includes(s))
-      const sportsForIcon = selectedSports.length === 0 ? availableSports : matchingSports.length > 0 ? matchingSports : availableSports
-      marker.setIcon(createSportIcon(sportsForIcon, false))
+
+      const visible = isMarkerVisible(court, selectedSports, selectedPlaceType)
+      const inGroup = clusterGroup.hasLayer(marker)
+
+      if (visible && !inGroup) {
+        clusterGroup.addLayer(marker)
+      } else if (!visible && inGroup) {
+        clusterGroup.removeLayer(marker)
+      }
+
+      // Also update icon for sport highlight
+      if (visible) {
+        const availableSports = court.sports || []
+        const matchingSports = availableSports.filter(s => selectedSports.includes(s))
+        const sportsForIcon = selectedSports.length === 0 ? availableSports : matchingSports.length > 0 ? matchingSports : availableSports
+        marker.setIcon(createSportIcon(sportsForIcon, false))
+      }
     })
-  }, [selectedSports])
+  }, [selectedSports, selectedPlaceType])
 
   // Handle court selection events from popups
   useEffect(() => {
     const handleCourtSelect = (event: any) => {
       const courtId = event.detail
-      const court = courts.find(c => c.id === courtId)
-      if (court && onCourtSelect) {
-        onCourtSelect(court)
-      }
+      const court = courtMapRef.current.get(courtId)
+      if (court) onCourtSelectRef.current?.(court)
     }
 
     window.addEventListener('courtSelect', handleCourtSelect)
     return () => window.removeEventListener('courtSelect', handleCourtSelect)
-  }, [courts, onCourtSelect])
+  }, [])
 
   // Log zoom level changes
   useEffect(() => {

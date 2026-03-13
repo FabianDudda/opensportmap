@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { sportIcons } from '@/lib/utils/sport-utils'
 import { useToast } from '@/hooks/use-toast'
 import { SportType, PlaceWithCourts } from '@/lib/supabase/types'
+import { PlaceType, placeTypeLabels, placeTypeIcons } from '@/lib/utils/sport-utils'
 import { database } from '@/lib/supabase/database'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { reverseGeocode, AddressComponents } from '@/lib/geocoding'
@@ -42,8 +43,8 @@ const SPORTS = [
   { id: 'skatepark', label: 'Skatepark' },
   { id: 'calisthenics', label: 'Calisthenics' },
   { id: 'boule', label: 'Boule' },
-  { id: 'running', label: 'Running' },
-  { id: 'swimming', label: 'Swimming' },
+  { id: 'laufen', label: 'Laufen' },
+  { id: 'schwimmen', label: 'Schwimmen' },
 ] as const
 
 const SURFACE_TYPES = [
@@ -82,6 +83,7 @@ function AddPlacePage() {
   })
 
   const [name, setName] = useState('')
+  const [placeType, setPlaceType] = useState<PlaceType>('öffentlich')
   const [selectedSports, setSelectedSports] = useState<SportType[]>([])
   const [courtSurfaces, setCourtSurfaces] = useState<Partial<Record<SportType, string[]>>>({})
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
@@ -96,6 +98,7 @@ function AddPlacePage() {
   const createCourtMutation = useMutation({
     mutationFn: async (placeData: {
       name: string
+      place_type: PlaceType
       latitude: number
       longitude: number
       sports: SportType[]
@@ -107,6 +110,7 @@ function AddPlacePage() {
     }) => {
       const { data: place, error: placeError } = await database.courts.addCourt({
         name: placeData.name,
+        place_type: placeData.place_type,
         latitude: placeData.latitude,
         longitude: placeData.longitude,
         sports: placeData.sports,
@@ -245,6 +249,7 @@ function AddPlacePage() {
 
     createCourtMutation.mutate({
       name: name.trim(),
+      place_type: placeType,
       latitude: location.lat,
       longitude: location.lng,
       sports: selectedSports,
@@ -315,6 +320,29 @@ function AddPlacePage() {
           <div className="space-y-2">
             <Label htmlFor="ap-name">Ortsname *</Label>
             <Input id="ap-name" placeholder="z.B. Stadtpark Tennisplätze" value={name} onChange={e => setName(e.target.value)} required />
+          </div>
+
+          {/* Place Type */}
+          <div className="space-y-2">
+            <Label>Art des Ortes *</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['öffentlich', 'verein', 'schule'] as PlaceType[]).map(type => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setPlaceType(type)}
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border transition-all cursor-pointer',
+                    placeType === type
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                  )}
+                >
+                  <span className="text-[20px] leading-none">{placeTypeIcons[type]}</span>
+                  <span className="text-sm font-medium">{placeTypeLabels[type]}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Sports */}

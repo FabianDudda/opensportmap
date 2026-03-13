@@ -13,7 +13,7 @@ import { useAuth } from '@/components/providers/auth-provider'
 import FilterBottomSheetVaul from './filter-bottom-sheet-vaul'
 import PlaceBottomSheetVaul from './place-bottom-sheet-vaul'
 import FavoritesBottomSheetVaul from './favorites-bottom-sheet-vaul'
-import { sportNames, getSportBadgeClasses, sportIcons } from '@/lib/utils/sport-utils'
+import { sportNames, getSportBadgeClasses, sportIcons, PlaceType } from '@/lib/utils/sport-utils'
 import { createSportIcon, createUserLocationIcon, createSelectedLocationIcon } from '@/lib/utils/sport-styles'
 import { MAP_LAYERS, DEFAULT_LAYER_ID, createTileLayer, getSavedLayerPreference, saveLayerPreference } from '@/lib/utils/map-layers'
 import { getDistanceText } from '@/lib/utils/distance'
@@ -34,8 +34,10 @@ interface LeafletCourtMapProps {
   selectedLocation?: { lat: number; lng: number } | null
   enableClustering?: boolean
   selectedSports?: SportType[]
+  selectedPlaceType?: PlaceType | null
   // Filter props
   onSportsChange?: (sports: SportType[]) => void
+  onPlaceTypeChange?: (type: PlaceType | null) => void
   placesCount?: number
   showAddCourtButton?: boolean
   onAddCourtClick?: () => void
@@ -429,7 +431,9 @@ export default function LeafletCourtMap({
   selectedLocation = null,
   enableClustering = true,
   selectedSports = [],
+  selectedPlaceType = null,
   onSportsChange,
+  onPlaceTypeChange,
   placesCount = 0,
   showAddCourtButton = false,
   onAddCourtClick,
@@ -572,12 +576,18 @@ export default function LeafletCourtMap({
                   onCourtSelect={handleCourtSelect}
                   selectedCourt={selectedCourt}
                   selectedSports={selectedSports}
+                  selectedPlaceType={selectedPlaceType}
                 />
               )
             }
-            
-            // Individual markers when not clustering
-            return courts.map((court) => {
+
+            // Individual markers when not clustering — filter inline (few markers, trivial cost)
+            const visibleCourts = courts.filter(c => {
+              if (selectedSports.length > 0 && !selectedSports.some(s => c.sports?.includes(s))) return false
+              if (selectedPlaceType !== null && (c.place_type || 'öffentlich') !== selectedPlaceType) return false
+              return true
+            })
+            return visibleCourts.map((court) => {
               const allSports = court.sports || []
               const matchingSports = allSports.filter(s => selectedSports.includes(s))
               const sportsForIcon = selectedSports.length === 0 ? allSports : matchingSports.length > 0 ? matchingSports : allSports
@@ -600,7 +610,7 @@ export default function LeafletCourtMap({
               />
             )
             })
-          }, [enableClustering, courts, selectedSports, handleCourtSelect])}
+          }, [enableClustering, courts, selectedSports, selectedPlaceType, handleCourtSelect])}
           
           {/* User location marker */}
           {userLocation && (
@@ -636,7 +646,7 @@ export default function LeafletCourtMap({
           {flyToTarget && <FlyToHandler target={flyToTarget} onDone={() => setFlyToTarget(null)} />}
           
           {/* Filter button */}
-          {showFilter && <FilterButtonHandler onFilterClick={handleFilterClick} isFilterActive={selectedSports.length > 0} />}
+          {showFilter && <FilterButtonHandler onFilterClick={handleFilterClick} isFilterActive={selectedSports.length > 0 || selectedPlaceType !== null} />}
 
           {/* Favorites button */}
           {showFavorite && <FavoritesButtonHandler onClick={handleFavoritesClick} />}
@@ -684,6 +694,8 @@ export default function LeafletCourtMap({
         onExplicitClose={handleExplicitFilterClose}
         selectedSports={selectedSports}
         onSportsChange={onSportsChange ?? (() => {})}
+        selectedPlaceType={selectedPlaceType}
+        onPlaceTypeChange={onPlaceTypeChange ?? (() => {})}
       />
 
       {/* Favorites Bottom Sheet — vaul Drawer */}

@@ -4,11 +4,13 @@ import { useState } from 'react'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import LoginPromptBottomSheet from './login-prompt-bottom-sheet-vaul'
 import ReportPlaceBottomSheet from './report-place-bottom-sheet-vaul'
+import PlaceTypeInfoSheet from './place-type-info-sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MapPin, Navigation, Share2, Heart, Pencil, X, Upload, Image, Loader2, Maximize2, Flag } from 'lucide-react'
 import { PlaceWithCourts, PlaceMarker } from '@/lib/supabase/types'
-import { sportNames, sportIcons } from '@/lib/utils/sport-utils'
+import { sportNames, sportIcons, getPlaceTypeBadgeClasses, placeTypeLabels, placeTypeIcons, PlaceType } from '@/lib/utils/sport-utils'
+import { Badge } from '@/components/ui/badge'
 import { getDistanceText } from '@/lib/utils/distance'
 import { uploadCourtImage } from '@/lib/supabase/storage'
 import { database } from '@/lib/supabase/database'
@@ -40,6 +42,7 @@ export default function PlaceBottomSheetVaul({
   const [isLoginPromptOpen, setIsLoginPromptOpen] = useState(false)
   const [isSaveLoginPromptOpen, setIsSaveLoginPromptOpen] = useState(false)
   const [isReportOpen, setIsReportOpen] = useState(false)
+  const [isPlaceTypeInfoOpen, setIsPlaceTypeInfoOpen] = useState(false)
 
   // Fetch full place details on demand when the sheet opens
   const { data: fullPlace, isLoading: isLoadingPlace } = useQuery({
@@ -133,6 +136,10 @@ export default function PlaceBottomSheetVaul({
       placeId={selectedCourt?.id ?? null}
       placeName={selectedCourt?.name ?? null}
       userId={user?.id ?? null}
+    />
+    <PlaceTypeInfoSheet
+      isOpen={isPlaceTypeInfoOpen}
+      onOpenChange={setIsPlaceTypeInfoOpen}
     />
 
     {/* Fullscreen image overlay - outside drawer to avoid stacking context issues */}
@@ -256,6 +263,17 @@ export default function PlaceBottomSheetVaul({
                   </p>
                 )}
               </div>
+
+              {/* Place type badge — tappable to open info sheet */}
+              {place?.place_type && (
+                <div>
+                  <button onClick={() => setIsPlaceTypeInfoOpen(true)}>
+                    <Badge className={`text-xs cursor-pointer ${getPlaceTypeBadgeClasses(place.place_type)}`}>
+                      {placeTypeIcons[place.place_type as PlaceType] || ''} {placeTypeLabels[place.place_type as PlaceType] || place.place_type}
+                    </Badge>
+                  </button>
+                </div>
+              )}
 
               {/* Thumbnail + sports pills — show skeleton while loading full details */}
               {isLoadingPlace ? (

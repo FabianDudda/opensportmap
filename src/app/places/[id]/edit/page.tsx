@@ -50,6 +50,7 @@ export default function EditPlacePage({ params }: EditPlacePageProps) {
       const placeData = {
         name: formData.name,
         description: formData.description,
+        place_type: formData.placeType,
         latitude: formData.location.lat,
         longitude: formData.location.lng,
         sports: formData.selectedSports,

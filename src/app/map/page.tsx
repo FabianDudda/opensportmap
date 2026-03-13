@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useMemo, Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useQuery } from '@tanstack/react-query'
 import { database } from '@/lib/supabase/database'
 import { SportType, PlaceMarker } from '@/lib/supabase/types'
+import { PlaceType } from '@/lib/utils/sport-utils'
 
 const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map'), {
   ssr: false,
@@ -25,6 +26,7 @@ function MapPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [selectedSports, setSelectedSports] = useState<SportType[]>([])
+  const [selectedPlaceType, setSelectedPlaceType] = useState<PlaceType | null>(null)
   const [selectedPlace, setSelectedPlace] = useState<PlaceMarker | null>(null)
   const defaultFavoritesOpen = searchParams.get('favorites') === '1'
   const initialPlaceId = searchParams.get('place')
@@ -44,26 +46,32 @@ function MapPage() {
     if (isError) console.error('[Map] Failed to load map pins:', error)
   }, [isError, error])
 
-  const filteredPlaces = places.filter((place) => {
-    if (selectedSports.length === 0) return true
-    return selectedSports.some(sport => place.sports?.includes(sport))
-  })
+  // Only used for the pin count display — filtering is handled inside MarkerClusterGroup
+  const visibleCount = useMemo(() => {
+    return places.filter((place) => {
+      if (selectedSports.length > 0 && !selectedSports.some(sport => place.sports?.includes(sport))) return false
+      if (selectedPlaceType !== null && (place.place_type || 'öffentlich') !== selectedPlaceType) return false
+      return true
+    }).length
+  }, [places, selectedSports, selectedPlaceType])
 
   useEffect(() => {
     if (!isLoading) {
-      console.log('[Map] Pins displayed on map:', filteredPlaces.length, `(sports: ${selectedSports.join(', ') || 'all'})`)
+      console.log('[Map] Pins displayed on map:', visibleCount, `(sports: ${selectedSports.join(', ') || 'all'})`)
     }
-  }, [filteredPlaces.length, selectedSports, isLoading])
+  }, [visibleCount, selectedSports, isLoading])
 
   return (
     <>
       <LeafletCourtMap
-        courts={filteredPlaces}
+        courts={places}
         onCourtSelect={setSelectedPlace}
         height="100dvh"
         selectedSports={selectedSports}
         onSportsChange={setSelectedSports}
-        placesCount={filteredPlaces.length}
+        selectedPlaceType={selectedPlaceType}
+        onPlaceTypeChange={setSelectedPlaceType}
+        placesCount={visibleCount}
         defaultFavoritesOpen={defaultFavoritesOpen}
         onFavoritesClose={() => router.replace('/map')}
         initialCenter={savedPosition ? { lat: savedPosition.lat, lng: savedPosition.lng } : undefined}

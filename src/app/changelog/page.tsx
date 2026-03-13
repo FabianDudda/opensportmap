@@ -6,9 +6,17 @@ import Link from 'next/link'
 
 const CHANGELOG = [
   {
+    version: '0.2.0-alpha',
+    date: '13.03.2026',
+    current: true,
+    items: [
+      'Added place type (Public / Club / School) with filter support on the map',
+    ],
+  },
+  {
     version: '0.1.4-alpha',
     date: '12.03.2026',
-    current: true,
+    current: false,
     items: [
       'Increased cluster radius from 50px to 100px for fewer, larger clusters  ',
       'Clusters now persist one zoom level deeper before expanding to individual pins  ',

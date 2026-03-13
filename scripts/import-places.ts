@@ -31,6 +31,7 @@ interface JsonPlace {
   street?: string
   name: string
   district?: string
+  place_type?: 'öffentlich' | 'verein' | 'schule'
   image_url?: string | null
   fußballplätze?: number | null
   platzbelag_fußball?: string | null
@@ -45,6 +46,7 @@ interface JsonPlace {
   volleyballplätze?: number | null
   klettern?: number | null
   calisthenics?: number | null
+  laufbahnen?: number | null
   geometry: {
     x: number // longitude
     y: number // latitude
@@ -146,12 +148,20 @@ function transformJsonPlace(jsonPlace: JsonPlace, sourceFilename: string) {
     })
   }
 
+  if (jsonPlace.laufbahnen && jsonPlace.laufbahnen > 0) {
+    courts.push({
+      sport: 'laufen',
+      quantity: jsonPlace.laufbahnen
+    })
+  }
+
   // Create the place data (added_by_user will be set later)
   const place = {
     name: jsonPlace.name,
     latitude: geometry.y,
     longitude: geometry.x,
     district: jsonPlace.district || null,
+    place_type: jsonPlace.place_type || 'öffentlich',
     image_url: jsonPlace.image_url || null,
     sports: courts.map(c => c.sport as Database['public']['Enums']['sport_type']),
     source: sourceFilename,

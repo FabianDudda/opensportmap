@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { sportIcons } from '@/lib/utils/sport-utils'
+import { sportIcons, PlaceType, placeTypeLabels, placeTypeIcons } from '@/lib/utils/sport-utils'
 import { useToast } from '@/hooks/use-toast'
 import { SportType, PlaceWithCourts } from '@/lib/supabase/types'
 import { database } from '@/lib/supabase/database'
@@ -43,8 +43,8 @@ const SPORTS = [
   { id: 'skatepark', label: 'Skatepark' },
   { id: 'calisthenics', label: 'Calisthenics' },
   { id: 'boule', label: 'Boule' },
-  { id: 'running', label: 'Running' },
-  { id: 'swimming', label: 'Swimming' },
+  { id: 'laufen', label: 'Laufen' },
+  { id: 'schwimmen', label: 'Schwimmen' },
 ] as const
 
 const SURFACE_TYPES = [
@@ -75,6 +75,7 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
   })
 
   const [name, setName] = useState('')
+  const [placeType, setPlaceType] = useState<PlaceType>('öffentlich')
   const [selectedSports, setSelectedSports] = useState<SportType[]>([])
   const [courtSurfaces, setCourtSurfaces] = useState<Partial<Record<SportType, string[]>>>({})
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
@@ -88,6 +89,7 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
 
   const resetForm = () => {
     setName('')
+    setPlaceType('öffentlich')
     setSelectedSports([])
     setCourtSurfaces({})
     setLocation(null)
@@ -101,6 +103,7 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
   const createCourtMutation = useMutation({
     mutationFn: async (placeData: {
       name: string
+      place_type: PlaceType
       latitude: number
       longitude: number
       sports: SportType[]
@@ -112,6 +115,7 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
     }) => {
       const { data: place, error: placeError } = await database.courts.addCourt({
         name: placeData.name,
+        place_type: placeData.place_type,
         latitude: placeData.latitude,
         longitude: placeData.longitude,
         sports: placeData.sports,
@@ -251,6 +255,7 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
 
     createCourtMutation.mutate({
       name: name.trim(),
+      place_type: placeType,
       latitude: location.lat,
       longitude: location.lng,
       sports: selectedSports,
@@ -293,6 +298,29 @@ export default function AddPlaceBottomSheetVaul({ isOpen, onOpenChange, user }: 
               <div className="space-y-2">
                 <Label htmlFor="ap-name">Place Name *</Label>
                 <Input id="ap-name" placeholder="e.g., Central Park Tennis Courts" value={name} onChange={e => setName(e.target.value)} required />
+              </div>
+
+              {/* Place Type */}
+              <div className="space-y-2">
+                <Label>Art des Ortes *</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['öffentlich', 'verein', 'schule'] as PlaceType[]).map(type => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setPlaceType(type)}
+                      className={cn(
+                        'flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border transition-all cursor-pointer',
+                        placeType === type
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                      )}
+                    >
+                      <span className="text-[20px] leading-none">{placeTypeIcons[type]}</span>
+                      <span className="text-sm font-medium">{placeTypeLabels[type]}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Sports */}

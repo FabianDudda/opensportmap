@@ -122,7 +122,7 @@ export const database = {
         const data = await fetchAllRecords<PlaceMarker>(
           supabase
             .from('places')
-            .select('id, name, latitude, longitude, sports')
+            .select('id, name, latitude, longitude, sports, place_type')
             .eq('moderation_status', 'approved')
             .order('created_at', { ascending: false })
         )

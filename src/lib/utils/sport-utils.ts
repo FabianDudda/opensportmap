@@ -14,8 +14,8 @@ export const sportColors: Record<string, string> = {
   beachvolleyball: '#FCD34D', // Yellow
   boule: '#92400E',       // Brown
   skatepark: '#374151',   // Dark Gray
-  running: '#EF4444',     // Red
-  swimming: '#0EA5E9'     // Sky Blue
+  laufen: '#EF4444',     // Red
+  schwimmen: '#0EA5E9'     // Sky Blue
 }
 
 // Sport display names (for consistency)
@@ -36,8 +36,8 @@ export const sportNames: Record<string, string> = {
   boule: 'Boule',
   skatepark: 'Skatepark',
   calisthenics: 'Calisthenics',
-  running: 'Running',
-  swimming: 'Swimming'
+  laufen: 'Laufen',
+  schwimmen: 'Schwimmen'
 }
 
 // Modern badge styling with subtle backgrounds and default text color using Tailwind
@@ -57,8 +57,8 @@ export const sportBadgeStyles: Record<string, { bg: string, text: string }> = {
   beachvolleyball: { bg: 'bg-yellow-50', text: 'text-foreground' },
   boule: { bg: 'bg-amber-50', text: 'text-foreground' },
   skatepark: { bg: 'bg-gray-50', text: 'text-foreground' },
-  running: { bg: 'bg-red-50', text: 'text-foreground' },
-  swimming: { bg: 'bg-sky-50', text: 'text-foreground' }
+  laufen: { bg: 'bg-red-50', text: 'text-foreground' },
+  schwimmen: { bg: 'bg-sky-50', text: 'text-foreground' }
 }
 
 // Sport icon mapping - using Unicode symbols for visual representation
@@ -79,8 +79,8 @@ export const sportIcons: Record<string, string> = {
   boule: '🔵',         // Blue circle (boule ball)
   skatepark: '🛹',     // Skateboard
   calisthenics: '💪',  // Calisthenics
-  running: '🏃',       // Running
-  swimming: '🏊'       // Swimming
+  laufen: '🏃',       // Laufen
+  schwimmen: '🏊'       // Schwimmen
 }
 
 // Get color for a court based on its sports
@@ -124,6 +124,32 @@ export function getSportBadgeClasses(sport: string): string {
     return 'bg-gray-50 text-foreground'
   }
   return `${styles.bg} ${styles.text}`
+}
+
+// Place type utilities
+export type PlaceType = 'öffentlich' | 'verein' | 'schule'
+
+export const placeTypeLabels: Record<PlaceType, string> = {
+  öffentlich: 'Öffentlich',
+  verein: 'Verein',
+  schule: 'Schule',
+}
+
+export const placeTypeIcons: Record<PlaceType, string> = {
+  öffentlich: '🌳',
+  verein: '👥',
+  schule: '🏫',
+}
+
+export const placeTypeBadgeClasses: Record<PlaceType, string> = {
+  öffentlich: 'bg-green-100 text-green-800',
+  verein: 'bg-blue-100 text-blue-800',
+  schule: 'bg-amber-100 text-amber-800',
+}
+
+export function getPlaceTypeBadgeClasses(type: PlaceType | string | null | undefined): string {
+  if (!type) return 'bg-green-100 text-green-800'
+  return placeTypeBadgeClasses[type as PlaceType] || 'bg-gray-100 text-gray-800'
 }
 
 // Get modern badge inline styles for HTML templates (fallback when Tailwind classes aren't available)

@@ -346,6 +346,7 @@ export type Database = {
           moderated_by: string | null
           moderation_status: Database["public"]["Enums"]["moderation_status"]
           name: string
+          place_type: string
           postcode: string | null
           rejection_reason: string | null
           source: string
@@ -374,6 +375,7 @@ export type Database = {
           moderated_by?: string | null
           moderation_status?: Database["public"]["Enums"]["moderation_status"]
           name: string
+          place_type?: string
           postcode?: string | null
           rejection_reason?: string | null
           source?: string
@@ -402,6 +404,7 @@ export type Database = {
           moderated_by?: string | null
           moderation_status?: Database["public"]["Enums"]["moderation_status"]
           name?: string
+          place_type?: string
           postcode?: string | null
           rejection_reason?: string | null
           source?: string
@@ -560,8 +563,8 @@ export type Database = {
         | "boule"
         | "skatepark"
         | "calisthenics"
-        | "running"
-        | "swimming"
+        | "laufen"
+        | "schwimmen"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -707,8 +710,8 @@ export const Constants = {
         "beachvolleyball",
         "boule",
         "skatepark",
-        "running",
-        "swimming",
+        "laufen",
+        "schwimmen",
       ],
     },
   },
@@ -741,6 +744,7 @@ export interface PlaceMarker {
   latitude: number
   longitude: number
   sports: string[] | null
+  place_type?: string | null
 }
 
 export interface PlaceWithCourts extends Place {

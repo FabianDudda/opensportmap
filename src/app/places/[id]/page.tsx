@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { MapPin, ArrowLeft, Share2, Calendar, Users, Navigation, Edit, Plus } from 'lucide-react'
-import { getSportBadgeClasses, sportNames, sportIcons } from '@/lib/utils/sport-utils'
+import { getSportBadgeClasses, sportNames, sportIcons, getPlaceTypeBadgeClasses, placeTypeLabels, placeTypeIcons, PlaceType } from '@/lib/utils/sport-utils'
 import { Metadata } from 'next'
 import PlaceActions from '@/components/places/place-actions'
 import PlaceEventsSection from '@/components/places/place-events-section'
@@ -134,7 +134,14 @@ export default async function PlacePage({ params }: PlacePageProps) {
         <div className="flex flex-col md:flex-row gap-6">
           {/* Place Info */}
           <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-2">{place.name}</h1>
+            <div className="flex items-center gap-2 mb-2">
+              <h1 className="text-3xl font-bold">{place.name}</h1>
+              {place.place_type && (
+                <Badge className={`text-xs ${getPlaceTypeBadgeClasses(place.place_type)}`}>
+                  {placeTypeIcons[place.place_type as PlaceType] || ''} {placeTypeLabels[place.place_type as PlaceType] || place.place_type}
+                </Badge>
+              )}
+            </div>
             
             {/* Location */}
             <div className="flex items-start gap-2 text-muted-foreground mb-4">
@@ -302,6 +309,14 @@ export default async function PlacePage({ params }: PlacePageProps) {
               <CardTitle>Details</CardTitle>
             </CardHeader>
             <CardContent className="text-sm space-y-2">
+              {place.place_type && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Art:</span>
+                  <Badge className={`text-xs ${getPlaceTypeBadgeClasses(place.place_type)}`}>
+                    {placeTypeIcons[place.place_type as PlaceType] || ''} {placeTypeLabels[place.place_type as PlaceType] || place.place_type}
+                  </Badge>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Quelle:</span>
                 <span>{place.source || 'Unbekannt'}</span>

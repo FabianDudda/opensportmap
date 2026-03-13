@@ -60,6 +60,16 @@ const DATA_SOURCES = [
     url: 'https://opendata.muenchen.de/dataset/oeffentliche-spielplaetze-muenchen',
     license: 'Datenlizenz Deutschland Namensnennung 2.0',
   },
+  {
+    source: 'Stadt Dusiburg',
+    url: 'https://geoportal.duisburg.de/arcgisserver/rest/services/OpenData/OpenData/MapServer/29/query?where=OBJECTID+IS+NOT+NULL&text=&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&relationParam=&outFields=*&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&returnDistinctValues=false&resultOffset=&resultRecordCount=&f=pjson',
+    license: 'Datenlizenz Deutschland Namensnennung 2.0',
+  },
+  {
+    source: 'Stadt Dresden',
+    url: 'https://opendata.dresden.de/informationsportal/?open=1&result=289C064F-9263-4E07-9E1E-F9FDC0C643F0#app/mainpage////',
+    license: 'Datenlizenz Deutschland Namensnennung 2.0',
+  },
 
 ]
 

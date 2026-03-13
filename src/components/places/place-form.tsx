@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { SportType, PlaceWithCourts } from '@/lib/supabase/types'
+import { PlaceType, placeTypeLabels, placeTypeIcons } from '@/lib/utils/sport-utils'
 import { reverseGeocode, AddressComponents } from '@/lib/geocoding'
 import { uploadCourtImage, UploadProgress } from '@/lib/supabase/storage'
 import { sportIcons } from '@/lib/utils/sport-utils'
@@ -38,8 +39,8 @@ const SPORTS = [
   { id: 'skatepark', label: 'Skatepark' },
   { id: 'calisthenics', label: 'Calisthenics' },
   { id: 'boule', label: 'Boule' },
-  { id: 'running', label: 'Running' },
-  { id: 'swimming', label: 'Swimming' },
+  { id: 'laufen', label: 'Laufen' },
+  { id: 'schwimmen', label: 'Schwimmen' },
 ] as const
 
 const SURFACE_TYPES = [
@@ -57,6 +58,7 @@ export interface PlaceFormCourt {
 export interface PlaceFormData {
   name: string
   description: string
+  placeType: PlaceType
   selectedSports: SportType[]
   courts: PlaceFormCourt[]
   location: { lat: number; lng: number } | null
@@ -92,6 +94,7 @@ export default function PlaceForm({
   })
 
   const [name, setName] = useState(initialData?.name || '')
+  const [placeType, setPlaceType] = useState<PlaceType>((initialData?.place_type as PlaceType) || 'öffentlich')
 
   const [selectedSports, setSelectedSports] = useState<SportType[]>(() => {
     if (initialData?.courts?.length) {
@@ -234,6 +237,7 @@ export default function PlaceForm({
     await onSubmit({
       name: name.trim(),
       description: '',
+      placeType,
       selectedSports,
       courts,
       location,
@@ -261,6 +265,29 @@ export default function PlaceForm({
       <div className="space-y-2">
         <Label htmlFor="pf-name">Ortsname *</Label>
         <Input id="pf-name" placeholder="z.B. Stadtpark Tennisplätze" value={name} onChange={e => setName(e.target.value)} required />
+      </div>
+
+      {/* Place Type */}
+      <div className="space-y-2">
+        <Label>Art des Ortes *</Label>
+        <div className="grid grid-cols-3 gap-2">
+          {(['öffentlich', 'verein', 'schule'] as PlaceType[]).map(type => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setPlaceType(type)}
+              className={cn(
+                'flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border transition-all cursor-pointer',
+                placeType === type
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
+              )}
+            >
+              <span className="text-[20px] leading-none">{placeTypeIcons[type]}</span>
+              <span className="text-sm font-medium">{placeTypeLabels[type]}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Sports */}

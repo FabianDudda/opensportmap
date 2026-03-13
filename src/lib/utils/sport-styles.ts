@@ -25,8 +25,8 @@ export const sportColors: Record<string, string> = {
   boule: '#92400E',       // Brown
   skatepark: '#374151',   // Dark Gray
   calisthenics: '#F59E0B', // Amber
-  running: '#EF4444',     // Red
-  swimming: '#0EA5E9'     // Sky Blue
+  laufen: '#EF4444',     // Red
+  schwimmen: '#0EA5E9'     // Sky Blue
 }
 
 // Sport display names (for consistency)
@@ -45,8 +45,8 @@ export const sportNames: Record<string, string> = {
   beachvolleyball: 'Beachvolleyball',
   boule: 'Boule',
   skatepark: 'Skatepark',
-  running: 'Running',
-  swimming: 'Swimming'
+  laufen: 'Laufen',
+  schwimmen: 'Schwimmen'
 }
 
 // Modern badge styling with subtle backgrounds and default text color using Tailwind
@@ -66,8 +66,8 @@ export const sportBadgeStyles: Record<string, { bg: string, text: string }> = {
   boule: { bg: 'bg-amber-50', text: 'text-foreground' },
   skatepark: { bg: 'bg-gray-50', text: 'text-foreground' },
   calisthenics: { bg: 'bg-amber-50', text: 'text-foreground' },
-  running: { bg: 'bg-red-50', text: 'text-foreground' },
-  swimming: { bg: 'bg-sky-50', text: 'text-foreground' }
+  laufen: { bg: 'bg-red-50', text: 'text-foreground' },
+  schwimmen: { bg: 'bg-sky-50', text: 'text-foreground' }
 }
 
 // Sport icon mapping - using Unicode symbols for visual representation
@@ -87,8 +87,8 @@ export const sportIcons: Record<string, string> = {
   boule: '🔵',         // Blue circle (boule ball)
   skatepark: '🛹',     // Skateboard
   calisthenics: '💪',  // Calisthenics
-  running: '🏃',       // Running
-  swimming: '🏊'       // Swimming
+  laufen: '🏃',       // Laufen
+  schwimmen: '🏊'       // Schwimmen
 }
 
 // Get color for a court based on its sports
