@@ -121,7 +121,7 @@ export default async function PlacePage({ params }: PlacePageProps) {
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2 mb-6">
         <Link 
-          href="/map" 
+          href="/"
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />

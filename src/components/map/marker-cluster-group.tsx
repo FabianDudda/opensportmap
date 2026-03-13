@@ -152,11 +152,11 @@ export default function MarkerClusterGroup({ courts, onCourtSelect, selectedCour
   useEffect(() => {
     const handleZoomEnd = () => {
       const currentZoom = map.getZoom()
-      console.log(`🗺️ Current zoom level: ${currentZoom}`)
+      // console.log(`🗺️ Current zoom level: ${currentZoom}`)
     }
 
     // Log initial zoom level
-    console.log(`🗺️ Initial zoom level: ${map.getZoom()}`)
+    // console.log(`🗺️ Initial zoom level: ${map.getZoom()}`)
     
     // Listen for zoom changes
     map.on('zoomend', handleZoomEnd)

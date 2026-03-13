@@ -51,7 +51,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('[Auth] State change event:', event, session?.user ? `user: ${session.user.email}` : 'no user')
+        // console.log('[Auth] State change event:', event, session?.user ? `user: ${session.user.email}` : 'no user')
 
         setSession(session)
         setUser(session?.user ?? null)
@@ -80,7 +80,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     database.profiles.getProfile(user.id)
       .then((userProfile) => {
         if (cancelled) return
-        console.log('[Auth] User logged in:', { id: user.id, email: user.email })
+        // console.log('[Auth] User logged in:', { id: user.id, email: user.email })
         setProfile(userProfile)
         setError(null)
         setLoading(false)

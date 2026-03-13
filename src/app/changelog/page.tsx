@@ -12,6 +12,7 @@ const CHANGELOG = [
     items: [
       'Added place type (Public / Club / School) with filter support on the map',
       'Guests can now add places and suggest edits – without an account, subject to admin approval',
+      'fix Leaflet map control memory leak (stable DOM refs + mutation updates)',
     ],
   },
   {

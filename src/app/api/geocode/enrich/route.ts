@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log(`Starting geocoding for ${placesToEnrich.length} places...`)
+    // console.log(`Starting geocoding for ${placesToEnrich.length} places...`)
 
     let enrichedCount = 0
     const errors: string[] = []
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
       const results = await batchReverseGeocode(coordinates, {
         onProgress: (completed, total) => {
-          console.log(`Geocoding progress: ${completed}/${total}`)
+          // console.log(`Geocoding progress: ${completed}/${total}`)
         },
         onError: (id, error) => {
           console.error(`Geocoding error for place ${id}:`, error)
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
       // Update database with results
       for (const result of results) {
         if (result.address) {
-          console.log(`Updating place ${result.id} with address:`, result.address)
+          // console.log(`Updating place ${result.id} with address:`, result.address)
           
           const { error: updateError } = await supabase
             .from('places')
@@ -92,11 +92,11 @@ export async function POST(request: Request) {
             console.error(`Error updating place ${result.id}:`, updateError)
             errors.push(`Failed to update place ${result.id}`)
           } else {
-            console.log(`Successfully updated place ${result.id}`)
+            // console.log(`Successfully updated place ${result.id}`)
             enrichedCount++
           }
         } else {
-          console.log(`No address data returned for place ${result.id}`)
+          // console.log(`No address data returned for place ${result.id}`)
           errors.push(`No address found for place ${result.id}`)
         }
       }

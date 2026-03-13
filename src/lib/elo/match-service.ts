@@ -82,7 +82,7 @@ export class MatchService {
         score: matchData.score || null
       }
       
-      console.log('Inserting match data:', insertData)
+      // console.log('Inserting match data:', insertData)
       
       const { data: match, error: matchError } = await supabase
         .from('matches')

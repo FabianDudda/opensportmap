@@ -150,7 +150,7 @@ function AddPlacePage() {
     onSuccess: () => {
       toast({ title: 'Ort eingereicht!', description: 'Er erscheint auf der Karte, sobald er genehmigt wurde.' })
       queryClient.invalidateQueries({ queryKey: ['courts'] })
-      router.push('/map')
+      router.push('/')
     },
     onError: (error: Error) => {
       toast({ title: 'Fehler beim Hinzufügen', description: error.message, variant: 'destructive' })
@@ -271,7 +271,7 @@ function AddPlacePage() {
         if (!res.ok) throw new Error(json.error || 'Fehler beim Einreichen')
         toast({ title: 'Ort eingereicht!', description: 'Er erscheint auf der Karte, sobald er genehmigt wurde.' })
         queryClient.invalidateQueries({ queryKey: ['courts'] })
-        router.push('/map')
+        router.push('/')
       } catch (err) {
         toast({ title: 'Fehler beim Hinzufügen', description: err instanceof Error ? err.message : '', variant: 'destructive' })
       }
@@ -322,7 +322,7 @@ function AddPlacePage() {
                 <Link href="/auth/signup">Registrieren</Link>
               </Button>
               <Button asChild variant="ghost" className="w-full text-muted-foreground">
-                <Link href="/map/new?guest=true">Weiter als Gast</Link>
+                <Link href="/new?guest=true">Weiter als Gast</Link>
               </Button>
             </div>
           </CardContent>
@@ -337,7 +337,7 @@ function AddPlacePage() {
       <div className="max-w-xl mx-auto">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/map"><ArrowLeft className="h-5 w-5" /></Link>
+            <Link href="/"><ArrowLeft className="h-5 w-5" /></Link>
           </Button>
           <h1 className="text-2xl font-bold">Ort hinzufügen</h1>
         </div>

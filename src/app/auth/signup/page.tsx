@@ -41,7 +41,7 @@ export default function SignUpPage() {
     }
 
     setIsLoading(true)
-    console.log('[SignUp] Sign-up attempt for:', email)
+    // console.log('[SignUp] Sign-up attempt for:', email)
 
     try {
       const { data, error } = await auth.signUp(email, password, generateRandomName())
@@ -54,7 +54,7 @@ export default function SignUpPage() {
           variant: 'destructive',
         })
       } else {
-        console.log('[SignUp] Sign-up success:', { id: data.user?.id, email: data.user?.email })
+        // console.log('[SignUp] Sign-up success:', { id: data.user?.id, email: data.user?.email })
         toast({
           title: 'Willkommen!',
           description: 'Dein Konto wurde erfolgreich erstellt.',
@@ -75,7 +75,7 @@ export default function SignUpPage() {
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
-    console.log('[SignUp] Google sign-up attempt')
+    // console.log('[SignUp] Google sign-up attempt')
 
     try {
       const { error } = await auth.signInWithGoogle()
@@ -88,7 +88,7 @@ export default function SignUpPage() {
           variant: 'destructive',
         })
       } else {
-        console.log('[SignUp] Google sign-up redirect initiated')
+        // console.log('[SignUp] Google sign-up redirect initiated')
       }
     } catch (error) {
       console.error('[SignUp] Unexpected error during Google sign-up:', error)

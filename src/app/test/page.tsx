@@ -264,13 +264,13 @@ export default function TestPage() {
   const handleSaveAddresses = async () => {
     // Generate unique operation ID for tracking
     const operationId = `save-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    console.log(`🚀 [${operationId}] Starting handleSaveAddresses...`)
+    // console.log(`🚀 [${operationId}] Starting handleSaveAddresses...`)
     
     const selectedPlacesData = getSelectedPlacesData()
-    console.log(`📊 [${operationId}] Selected places: ${selectedPlacesData.length}`, selectedPlacesData.map(p => ({ id: p.id, name: p.name, street: p.street, city: p.city })))
+    // console.log(`📊 [${operationId}] Selected places: ${selectedPlacesData.length}`, selectedPlacesData.map(p => ({ id: p.id, name: p.name, street: p.street, city: p.city })))
     
     if (selectedPlacesData.length === 0) {
-      console.log(`❌ [${operationId}] No places selected, returning early`)
+      // console.log(`❌ [${operationId}] No places selected, returning early`)
       return
     }
     
@@ -280,10 +280,10 @@ export default function TestPage() {
     try {
       // Filter only selected places that have enriched address data
       const placesToUpdate = selectedPlacesData.filter(place => hasAddressData(place))
-      console.log(`📋 [${operationId}] Places to update (with address data): ${placesToUpdate.length}`, placesToUpdate.map(p => ({ id: p.id, name: p.name, street: p.street, city: p.city })))
+      // console.log(`📋 [${operationId}] Places to update (with address data): ${placesToUpdate.length}`, placesToUpdate.map(p => ({ id: p.id, name: p.name, street: p.street, city: p.city })))
       
       if (placesToUpdate.length === 0) {
-        console.log(`❌ [${operationId}] No places have address data`)
+        // console.log(`❌ [${operationId}] No places have address data`)
         setGeocodingResults('❌ No enriched addresses to save')
         return
       }
@@ -295,7 +295,7 @@ export default function TestPage() {
       const BATCH_SIZE = 10 // Process in batches of 10
       const DELAY_MS = 300 // Delay between operations to prevent overwhelming the database
       
-      console.log(`📦 [${operationId}] Processing ${placesToUpdate.length} places in batches of ${BATCH_SIZE}`)
+      // console.log(`📦 [${operationId}] Processing ${placesToUpdate.length} places in batches of ${BATCH_SIZE}`)
       
       // Process places in batches
       for (let batchStart = 0; batchStart < placesToUpdate.length; batchStart += BATCH_SIZE) {
@@ -304,15 +304,15 @@ export default function TestPage() {
         const batchNumber = Math.floor(batchStart / BATCH_SIZE) + 1
         const totalBatches = Math.ceil(placesToUpdate.length / BATCH_SIZE)
         
-        console.log(`🔄 [${operationId}] Starting batch ${batchNumber}/${totalBatches} with ${currentBatch.length} places`)
-        console.log(`📝 [${operationId}] Batch ${batchNumber} places:`, currentBatch.map(p => ({ id: p.id, name: p.name })))
+        // console.log(`🔄 [${operationId}] Starting batch ${batchNumber}/${totalBatches} with ${currentBatch.length} places`)
+        // console.log(`📝 [${operationId}] Batch ${batchNumber} places:`, currentBatch.map(p => ({ id: p.id, name: p.name })))
         
         // Process each place in the current batch
         for (let i = 0; i < currentBatch.length; i++) {
           const place = currentBatch[i]
           const overallIndex = batchStart + i
           
-          console.log(`🔍 [${operationId}] Processing place ${overallIndex + 1}/${placesToUpdate.length}: ${place.name} (${place.id})`)
+          // console.log(`🔍 [${operationId}] Processing place ${overallIndex + 1}/${placesToUpdate.length}: ${place.name} (${place.id})`)
           
           // Retry logic for database operations
           let retryCount = 0
@@ -321,25 +321,25 @@ export default function TestPage() {
           
           while (!success && retryCount < maxRetries) {
             try {
-              console.log(`🔄 [${operationId}] Starting retry loop iteration for ${place.id}, attempt ${retryCount + 1}`)
-              console.log(`💾 [${operationId}] Attempt ${retryCount + 1}/${maxRetries} to save place ${place.id}`)
-              console.log(`📝 [${operationId}] Update data for ${place.id}:`, {
-                street: place.street,
-                house_number: place.house_number,
-                city: place.city,
-                district: place.district,
-                county: place.county,
-                state: place.state,
-                country: place.country,
-                postcode: place.postcode,
-              })
+              // console.log(`🔄 [${operationId}] Starting retry loop iteration for ${place.id}, attempt ${retryCount + 1}`)
+              // console.log(`💾 [${operationId}] Attempt ${retryCount + 1}/${maxRetries} to save place ${place.id}`)
+              // console.log(`📝 [${operationId}] Update data for ${place.id}:`, {
+              //   street: place.street,
+              //   house_number: place.house_number,
+              //   city: place.city,
+              //   district: place.district,
+              //   county: place.county,
+              //   state: place.state,
+              //   country: place.country,
+              //   postcode: place.postcode,
+              // })
               
               // Update the place with address data in database with timeout
               const startTime = Date.now()
-              console.log(`🚀 [${operationId}] About to call database.courts.updateCourt for ${place.id}`)
+              // console.log(`🚀 [${operationId}] About to call database.courts.updateCourt for ${place.id}`)
               
               // Test if the database module is accessible
-              console.log(`🔍 [${operationId}] Database module check:`, typeof database?.courts?.updateCourt)
+              // console.log(`🔍 [${operationId}] Database module check:`, typeof database?.courts?.updateCourt)
               
               // Create a timeout promise
               const timeoutPromise = new Promise((_, reject) => {
@@ -374,10 +374,10 @@ export default function TestPage() {
               
               const endTime = Date.now()
               const duration = endTime - startTime
-              console.log(`🎯 [${operationId}] Database call completed for ${place.id}`)
+              // console.log(`🎯 [${operationId}] Database call completed for ${place.id}`)
               
-              console.log(`⏱️ [${operationId}] Database operation took ${duration}ms for place ${place.id}`)
-              console.log(`🔄 [${operationId}] Database response for ${place.id}:`, { data: data ? 'received' : 'null', error: error || 'none' })
+              // console.log(`⏱️ [${operationId}] Database operation took ${duration}ms for place ${place.id}`)
+              // console.log(`🔄 [${operationId}] Database response for ${place.id}:`, { data: data ? 'received' : 'null', error: error || 'none' })
               
               if (error) {
                 console.error(`🚨 [${operationId}] Database error details for ${place.id}:`, error)
@@ -386,7 +386,7 @@ export default function TestPage() {
                 successCount++
                 succeededPlaces.push(place.id)
                 success = true
-                console.log(`✅ [${operationId}] Successfully saved place ${place.id} (${place.name}) - database returned:`, data ? 'data received' : 'no data')
+                // console.log(`✅ [${operationId}] Successfully saved place ${place.id} (${place.name}) - database returned:`, data ? 'data received' : 'no data')
               }
               
             } catch (error) {
@@ -403,7 +403,7 @@ export default function TestPage() {
               } else {
                 // Wait before retry with exponential backoff
                 const retryDelay = 500 * retryCount
-                console.log(`⏳ [${operationId}] Waiting ${retryDelay}ms before retry ${retryCount + 1} for place ${place.id}`)
+                // console.log(`⏳ [${operationId}] Waiting ${retryDelay}ms before retry ${retryCount + 1} for place ${place.id}`)
                 await new Promise(resolve => setTimeout(resolve, retryDelay))
               }
             }
@@ -416,31 +416,31 @@ export default function TestPage() {
           
           // Add delay between operations to prevent overwhelming the database
           if (overallIndex < placesToUpdate.length - 1) {
-            console.log(`⏳ [${operationId}] Waiting ${DELAY_MS}ms before next operation`)
+            // console.log(`⏳ [${operationId}] Waiting ${DELAY_MS}ms before next operation`)
             await new Promise(resolve => setTimeout(resolve, DELAY_MS))
           }
         }
         
-        console.log(`✅ [${operationId}] Completed batch ${batchNumber}/${totalBatches}. Success: ${successCount}, Errors: ${errorCount}`)
+        // console.log(`✅ [${operationId}] Completed batch ${batchNumber}/${totalBatches}. Success: ${successCount}, Errors: ${errorCount}`)
         
         // NOTE: Removed per-batch query invalidation to prevent race conditions
         // Query will be invalidated once at the end of the entire operation
       }
       
-      console.log(`📊 [${operationId}] Final results: ${successCount} succeeded, ${errorCount} failed`)
-      console.log(`✅ [${operationId}] Succeeded places:`, succeededPlaces)
+      // console.log(`📊 [${operationId}] Final results: ${successCount} succeeded, ${errorCount} failed`)
+      // console.log(`✅ [${operationId}] Succeeded places:`, succeededPlaces)
       if (failedPlaces.length > 0) {
-        console.log(`❌ [${operationId}] Failed places:`, failedPlaces)
+        // console.log(`❌ [${operationId}] Failed places:`, failedPlaces)
       }
       
       // Only invalidate queries and update state AFTER all operations are complete
       if (successCount > 0) {
-        console.log(`🔄 [${operationId}] Invalidating queries for ${successCount} successful updates`)
+        // console.log(`🔄 [${operationId}] Invalidating queries for ${successCount} successful updates`)
         await queryClient.invalidateQueries({ queryKey: ['test-places'] })
         
         // Only remove successfully saved places from enriched places array
         const successfullyUpdatedPlaces = placesToUpdate.filter(p => succeededPlaces.includes(p.id))
-        console.log(`🧹 [${operationId}] Removing ${successfullyUpdatedPlaces.length} successfully saved places from enriched state`)
+        // console.log(`🧹 [${operationId}] Removing ${successfullyUpdatedPlaces.length} successfully saved places from enriched state`)
         setEnrichedPlaces(prev => prev.filter(p => !successfullyUpdatedPlaces.some(saved => saved.id === p.id)))
         
         // Clear selection only for successfully saved places
@@ -457,7 +457,7 @@ export default function TestPage() {
       console.error(`💥 [${operationId}] Critical error in handleSaveAddresses:`, error)
       setGeocodingResults(`❌ Save failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
-      console.log(`🏁 [${operationId}] Finished handleSaveAddresses`)
+      // console.log(`🏁 [${operationId}] Finished handleSaveAddresses`)
       setIsSavingAddresses(false)
     }
   }
@@ -477,7 +477,7 @@ export default function TestPage() {
 
     // Generate unique operation ID for tracking
     const operationId = `delete-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    console.log(`🗑️ [${operationId}] Starting handleBulkDelete for ${selectedPlacesData.length} places...`)
+    // console.log(`🗑️ [${operationId}] Starting handleBulkDelete for ${selectedPlacesData.length} places...`)
 
     setIsDeletingPlaces(true)
     setGeocodingResults(null)
@@ -490,7 +490,7 @@ export default function TestPage() {
       const BATCH_SIZE = 5 // Smaller batches for delete operations
       const DELAY_MS = 500 // Longer delay for delete operations
 
-      console.log(`📦 [${operationId}] Processing ${selectedPlacesData.length} places in batches of ${BATCH_SIZE}`)
+      // console.log(`📦 [${operationId}] Processing ${selectedPlacesData.length} places in batches of ${BATCH_SIZE}`)
 
       // Process places in batches
       for (let batchStart = 0; batchStart < selectedPlacesData.length; batchStart += BATCH_SIZE) {
@@ -499,14 +499,14 @@ export default function TestPage() {
         const batchNumber = Math.floor(batchStart / BATCH_SIZE) + 1
         const totalBatches = Math.ceil(selectedPlacesData.length / BATCH_SIZE)
 
-        console.log(`🔄 [${operationId}] Starting batch ${batchNumber}/${totalBatches} with ${currentBatch.length} places`)
+        // console.log(`🔄 [${operationId}] Starting batch ${batchNumber}/${totalBatches} with ${currentBatch.length} places`)
 
         // Process each place in the current batch
         for (let i = 0; i < currentBatch.length; i++) {
           const place = currentBatch[i]
           const overallIndex = batchStart + i
 
-          console.log(`🗑️ [${operationId}] Deleting place ${overallIndex + 1}/${selectedPlacesData.length}: ${place.name} (${place.id})`)
+          // console.log(`🗑️ [${operationId}] Deleting place ${overallIndex + 1}/${selectedPlacesData.length}: ${place.name} (${place.id})`)
 
           // Retry logic for database operations
           let retryCount = 0
@@ -515,11 +515,11 @@ export default function TestPage() {
 
           while (!success && retryCount < maxRetries) {
             try {
-              console.log(`🔄 [${operationId}] Attempt ${retryCount + 1}/${maxRetries} to delete place ${place.id}`)
+              // console.log(`🔄 [${operationId}] Attempt ${retryCount + 1}/${maxRetries} to delete place ${place.id}`)
 
               // Step 1: Delete all associated courts first (to respect foreign key constraints)
               if (place.courts && place.courts.length > 0) {
-                console.log(`🏟️ [${operationId}] Deleting ${place.courts.length} courts for place ${place.id}`)
+                // console.log(`🏟️ [${operationId}] Deleting ${place.courts.length} courts for place ${place.id}`)
                 
                 for (const court of place.courts) {
                   const courtDeleteResult = await database.courts.deleteCourt(court.id)
@@ -527,12 +527,12 @@ export default function TestPage() {
                     console.error(`❌ [${operationId}] Failed to delete court ${court.id}:`, courtDeleteResult.error)
                     throw new Error(`Failed to delete court ${court.id}: ${courtDeleteResult.error.message}`)
                   }
-                  console.log(`✅ [${operationId}] Successfully deleted court ${court.id}`)
+                  // console.log(`✅ [${operationId}] Successfully deleted court ${court.id}`)
                 }
               }
 
               // Step 2: Delete the place itself
-              console.log(`🏠 [${operationId}] Deleting place ${place.id}`)
+              // console.log(`🏠 [${operationId}] Deleting place ${place.id}`)
               const placeDeleteResult = await database.courts.deleteCourt(place.id)
 
               if (placeDeleteResult.error) {
@@ -543,7 +543,7 @@ export default function TestPage() {
               successCount++
               succeededPlaces.push(place.id)
               success = true
-              console.log(`✅ [${operationId}] Successfully deleted place ${place.id} (${place.name})`)
+              // console.log(`✅ [${operationId}] Successfully deleted place ${place.id} (${place.name})`)
 
             } catch (error) {
               retryCount++
@@ -556,7 +556,7 @@ export default function TestPage() {
               } else {
                 // Wait before retry with exponential backoff
                 const retryDelay = 1000 * retryCount
-                console.log(`⏳ [${operationId}] Waiting ${retryDelay}ms before retry ${retryCount + 1} for place ${place.id}`)
+                // console.log(`⏳ [${operationId}] Waiting ${retryDelay}ms before retry ${retryCount + 1} for place ${place.id}`)
                 await new Promise(resolve => setTimeout(resolve, retryDelay))
               }
             }
@@ -569,23 +569,23 @@ export default function TestPage() {
 
           // Add delay between operations
           if (overallIndex < selectedPlacesData.length - 1) {
-            console.log(`⏳ [${operationId}] Waiting ${DELAY_MS}ms before next operation`)
+            // console.log(`⏳ [${operationId}] Waiting ${DELAY_MS}ms before next operation`)
             await new Promise(resolve => setTimeout(resolve, DELAY_MS))
           }
         }
 
-        console.log(`✅ [${operationId}] Completed batch ${batchNumber}/${totalBatches}. Success: ${successCount}, Errors: ${errorCount}`)
+        // console.log(`✅ [${operationId}] Completed batch ${batchNumber}/${totalBatches}. Success: ${successCount}, Errors: ${errorCount}`)
       }
 
-      console.log(`📊 [${operationId}] Final results: ${successCount} deleted, ${errorCount} failed`)
-      console.log(`✅ [${operationId}] Deleted places:`, succeededPlaces)
+      // console.log(`📊 [${operationId}] Final results: ${successCount} deleted, ${errorCount} failed`)
+      // console.log(`✅ [${operationId}] Deleted places:`, succeededPlaces)
       if (failedPlaces.length > 0) {
-        console.log(`❌ [${operationId}] Failed places:`, failedPlaces)
+        // console.log(`❌ [${operationId}] Failed places:`, failedPlaces)
       }
 
       // Update UI state after successful deletions
       if (successCount > 0) {
-        console.log(`🔄 [${operationId}] Invalidating queries for ${successCount} successful deletions`)
+        // console.log(`🔄 [${operationId}] Invalidating queries for ${successCount} successful deletions`)
         await queryClient.invalidateQueries({ queryKey: ['test-places'] })
 
         // Remove successfully deleted places from enriched places array
@@ -605,7 +605,7 @@ export default function TestPage() {
       console.error(`💥 [${operationId}] Critical error in handleBulkDelete:`, error)
       setGeocodingResults(`❌ Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
-      console.log(`🏁 [${operationId}] Finished handleBulkDelete`)
+      // console.log(`🏁 [${operationId}] Finished handleBulkDelete`)
       setIsDeletingPlaces(false)
     }
   }
@@ -721,11 +721,11 @@ export default function TestPage() {
     setGeocodingResults(null)
 
     try {
-      console.log(`🗑️ Starting deletion of place: ${place.name} (${place.id})`)
+      // console.log(`🗑️ Starting deletion of place: ${place.name} (${place.id})`)
 
       // Step 1: Delete all associated courts first (to respect foreign key constraints)
       if (place.courts && place.courts.length > 0) {
-        console.log(`🏟️ Deleting ${place.courts.length} courts for place ${place.id}`)
+        // console.log(`🏟️ Deleting ${place.courts.length} courts for place ${place.id}`)
         
         for (const court of place.courts) {
           const courtDeleteResult = await database.courts.deleteCourt(court.id)
@@ -733,12 +733,12 @@ export default function TestPage() {
             console.error(`❌ Failed to delete court ${court.id}:`, courtDeleteResult.error)
             throw new Error(`Failed to delete court ${court.id}: ${courtDeleteResult.error.message}`)
           }
-          console.log(`✅ Successfully deleted court ${court.id}`)
+          // console.log(`✅ Successfully deleted court ${court.id}`)
         }
       }
 
       // Step 2: Delete the place itself
-      console.log(`🏠 Deleting place ${place.id}`)
+      // console.log(`🏠 Deleting place ${place.id}`)
       const placeDeleteResult = await database.courts.deleteCourt(place.id)
 
       if (placeDeleteResult.error) {
@@ -748,7 +748,7 @@ export default function TestPage() {
       }
 
       // Success - update UI
-      console.log(`✅ Successfully deleted place ${place.id} (${place.name})`)
+      // console.log(`✅ Successfully deleted place ${place.id} (${place.name})`)
       
       // Invalidate and refetch the query to get updated data from database
       await queryClient.invalidateQueries({ queryKey: ['test-places'] })
@@ -774,11 +774,11 @@ export default function TestPage() {
   }
 
   const handleDebugData = () => {
-    console.log('Original places data:', places)
-    console.log('Display places data (enriched):', displayPlaces)
+    // console.log('Original places data:', places)
+    // console.log('Display places data (enriched):', displayPlaces)
     // Check if any place has address data
     const enrichedPlaces = displayPlaces.filter(p => p.street || p.city)
-    console.log(`Places with address data: ${enrichedPlaces.length}/${displayPlaces.length}`)
+    // console.log(`Places with address data: ${enrichedPlaces.length}/${displayPlaces.length}`)
     setGeocodingResults(`🔍 Debug: ${enrichedPlaces.length}/${displayPlaces.length} places have address data. Check browser console for details.`)
   }
 

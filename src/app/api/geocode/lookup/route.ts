@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log(`🔍 Looking up address for coordinates: ${latitude}, ${longitude}`)
+    // console.log(`🔍 Looking up address for coordinates: ${latitude}, ${longitude}`)
 
     // Apply rate limiting for Nominatim
     await rateLimiter.throttle()
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     url.searchParams.set('addressdetails', '1')
     url.searchParams.set('accept-language', language)
     
-    console.log(`📡 Making request to: ${url.toString()}`)
+    // console.log(`📡 Making request to: ${url.toString()}`)
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     })
 
     clearTimeout(timeoutId)
-    console.log(`📡 Response status: ${response.status}`)
+    // console.log(`📡 Response status: ${response.status}`)
 
     if (!response.ok) {
       console.error(`❌ Reverse geocoding failed: ${response.status} ${response.statusText}`)
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     }
 
     const data: ReverseGeocodeResponse = await response.json()
-    console.log(`📋 Raw geocoding response:`, JSON.stringify(data, null, 2))
+    // console.log(`📋 Raw geocoding response:`, JSON.stringify(data, null, 2))
     
     if (!data.address) {
       console.warn('⚠️ No address data returned for coordinates:', latitude, longitude)
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
       postcode: rawAddress.postcode,
     }
 
-    console.log(`✅ Processed address:`, JSON.stringify(address, null, 2))
+    // console.log(`✅ Processed address:`, JSON.stringify(address, null, 2))
 
     const formattedAddress = formatAddress(address)
 

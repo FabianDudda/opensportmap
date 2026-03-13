@@ -29,7 +29,7 @@ async function fetchAllRecords<T>(queryBuilder: any): Promise<T[]> {
     start += limit
   }
   
-  console.log(`📊 fetchAllRecords completed: fetched ${allRecords.length} total records`)
+  // console.log(`📊 fetchAllRecords completed: fetched ${allRecords.length} total records`)
   return allRecords
 }
 
@@ -126,7 +126,7 @@ export const database = {
             .eq('moderation_status', 'approved')
             .order('created_at', { ascending: false })
         )
-        console.log(`📊 getAllPlacesLightweight returned ${data.length} places`)
+        // console.log(`📊 getAllPlacesLightweight returned ${data.length} places`)
         return data
       } catch (error) {
         console.error('Error fetching lightweight places:', error)
@@ -166,7 +166,7 @@ export const database = {
         // Use automatic pagination to get ALL records
         const data = await fetchAllRecords<PlaceWithCourts>(query)
         
-        console.log(`📊 getAllCourts returned ${data.length} places (includeModeration: ${includeModeration})`)
+        // console.log(`📊 getAllCourts returned ${data.length} places (includeModeration: ${includeModeration})`)
         return data
       } catch (error) {
         console.error('Error fetching places:', error)
@@ -204,7 +204,7 @@ export const database = {
         // Use automatic pagination to get ALL records
         const data = await fetchAllRecords<PlaceWithCourts>(query)
         
-        console.log(`📊 getCourtsBySport returned ${data.length} places for sport: ${sport}`)
+        // console.log(`📊 getCourtsBySport returned ${data.length} places for sport: ${sport}`)
         return data
       } catch (error) {
         console.error('Error fetching places by sport:', error)
@@ -874,7 +874,7 @@ export const database = {
         // Use automatic pagination to get ALL pending places
         const data = await fetchAllRecords<PlaceWithCourts>(query)
         
-        console.log(`📊 getPendingPlaces returned ${data.length} pending places`)
+        // console.log(`📊 getPendingPlaces returned ${data.length} pending places`)
         return data
       } catch (error) {
         console.error('Error fetching pending places:', error)
@@ -909,7 +909,7 @@ export const database = {
         // Use automatic pagination to get ALL places with this status
         const data = await fetchAllRecords<PlaceWithCourts>(query)
         
-        console.log(`📊 getPlacesByStatus(${status}) returned ${data.length} places`)
+        // console.log(`📊 getPlacesByStatus(${status}) returned ${data.length} places`)
         return data
       } catch (error) {
         console.error('Error fetching places by status:', error)
@@ -919,15 +919,15 @@ export const database = {
 
     // Approve a place
     approvePlace: async (placeId: string, moderatorId: string) => {
-      console.log('🔍 Approving place:', { placeId, moderatorId })
+      // console.log('🔍 Approving place:', { placeId, moderatorId })
       
       // Check current user info for debugging RLS issues
       const { data: { user } } = await supabase.auth.getUser()
-      console.log('👤 Current user for approval:', { 
-        userId: user?.id, 
-        role: user?.role,
-        userMetadata: user?.user_metadata 
-      })
+      // console.log('👤 Current user for approval:', {
+      //   userId: user?.id,
+      //   role: user?.role,
+      //   userMetadata: user?.user_metadata
+      // })
       
       // First check if place exists and what its current status is
       const { data: existingPlace, error: fetchError } = await supabase
@@ -941,7 +941,7 @@ export const database = {
         return { data: null, error: fetchError }
       }
       
-      console.log('📍 Found place to approve:', existingPlace)
+      // console.log('📍 Found place to approve:', existingPlace)
       
       const { data, error } = await supabase
         .from('places')
@@ -957,20 +957,20 @@ export const database = {
         console.error('❌ Error approving place:', error)
         return { data: null, error }
       } else {
-        console.log('✅ Place approved successfully:', data)
+        // console.log('✅ Place approved successfully:', data)
       }
       
       // If we get an empty array, it means the update worked but RLS prevents seeing the result
       // Let's do a separate fetch to verify the update worked
       if (!data || data.length === 0) {
-        console.log('⚠️ Update returned empty - checking if place was actually updated')
+        // console.log('⚠️ Update returned empty - checking if place was actually updated')
         const { data: verifyData, error: verifyError } = await supabase
           .from('places')
           .select('id, moderation_status, name')
           .eq('id', placeId)
           .single()
         
-        console.log('🔍 Verification result:', { verifyData, verifyError })
+        // console.log('🔍 Verification result:', { verifyData, verifyError })
         
         // Return success with the existing place data if update worked
         return { data: { ...existingPlace, moderation_status: 'approved' }, error: null }
@@ -981,7 +981,7 @@ export const database = {
 
     // Bulk approve multiple places
     bulkApprovePlace: async (placeIds: string[], moderatorId: string) => {
-      console.log('🔍 Bulk approving places:', { placeIds, moderatorId })
+      // console.log('🔍 Bulk approving places:', { placeIds, moderatorId })
       
       const results = await Promise.allSettled(
         placeIds.map(async (placeId) => {
@@ -1001,7 +1001,7 @@ export const database = {
             return { placeId, success: false, error: error.message }
           }
           
-          console.log(`✅ Place approved successfully:`, data)
+          // console.log(`✅ Place approved successfully:`, data)
           return { placeId, success: true, data }
         })
       )
@@ -1019,7 +1019,7 @@ export const database = {
           : (result as any).value
       )
       
-      console.log(`📊 Bulk approval results: ${successful.length} successful, ${failed.length} failed`)
+      // console.log(`📊 Bulk approval results: ${successful.length} successful, ${failed.length} failed`)
       
       return {
         successful,
@@ -1074,7 +1074,7 @@ export const database = {
         // Use automatic pagination to get ALL user places
         const data = await fetchAllRecords<PlaceWithCourts>(query)
         
-        console.log(`📊 getUserPlaces returned ${data.length} places for user: ${userId}`)
+        // console.log(`📊 getUserPlaces returned ${data.length} places for user: ${userId}`)
         return data
       } catch (error) {
         console.error('Error fetching user places:', error)
@@ -1207,7 +1207,7 @@ export const database = {
         // Use automatic pagination to get ALL pending changes
         const data = await fetchAllRecords<PendingPlaceChange>(query)
         
-        console.log(`📊 getPendingPlaceChanges returned ${data.length} pending changes`)
+        // console.log(`📊 getPendingPlaceChanges returned ${data.length} pending changes`)
         return data
       } catch (error) {
         console.error('Error fetching pending changes:', error)

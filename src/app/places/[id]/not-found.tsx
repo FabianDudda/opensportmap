@@ -8,8 +8,8 @@ export default function PlaceNotFound() {
     <div className="container px-4 py-6 max-w-2xl mx-auto">
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2 mb-6">
-        <Link 
-          href="/map" 
+        <Link
+          href="/"
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -40,7 +40,7 @@ export default function PlaceNotFound() {
           
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
             <Button asChild>
-              <Link href="/map" className="flex items-center gap-2">
+              <Link href="/" className="flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
                 Browse All Courts
               </Link>

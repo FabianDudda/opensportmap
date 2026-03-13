@@ -181,7 +181,7 @@ export function measureTime<T>(name: string, fn: () => T): T {
   const result = fn()
   const endTime = performance.now()
   
-  console.log(`⏱️ ${name}: ${(endTime - startTime).toFixed(2)}ms`)
+  // console.log(`⏱️ ${name}: ${(endTime - startTime).toFixed(2)}ms`)
   return result
 }
 
@@ -193,7 +193,7 @@ export async function measureTimeAsync<T>(name: string, fn: () => Promise<T>): P
   const result = await fn()
   const endTime = performance.now()
   
-  console.log(`⏱️ ${name}: ${(endTime - startTime).toFixed(2)}ms`)
+  // console.log(`⏱️ ${name}: ${(endTime - startTime).toFixed(2)}ms`)
   return result
 }
 
@@ -231,9 +231,9 @@ export function logPerformanceMetrics(): void {
   const leakDetection = performanceMonitor.detectMemoryLeaks()
 
   console.group('🏃 Map Performance Metrics')
-  console.log('Current:', stats.current)
-  console.log('Averages:', stats.averages)
-  console.log('Memory Trend:', stats.memoryTrend)
+  // console.log('Current:', stats.current)
+  // console.log('Averages:', stats.averages)
+  // console.log('Memory Trend:', stats.memoryTrend)
   
   if (leakDetection.hasLeak) {
     console.group(`⚠️ Potential Memory Issues (${leakDetection.severity})`)

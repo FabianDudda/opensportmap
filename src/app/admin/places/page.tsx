@@ -415,13 +415,13 @@ function PlacesList({ status }: { status: ModerationStatus }) {
   const approveMutation = useMutation({
     mutationFn: (placeId: string) => database.moderation.approvePlace(placeId, user!.id),
     onSuccess: (data) => {
-      console.log('✅ Place approval successful:', data)
+      // console.log('✅ Place approval successful:', data)
       toast({
         title: 'Place approved',
         description: 'The place has been approved and is now visible on the map.',
       })
       // Invalidate all places queries (including those with status filters)
-      console.log('🔄 Invalidating queries after place approval')
+      // console.log('🔄 Invalidating queries after place approval')
       queryClient.invalidateQueries({ queryKey: ['places'], exact: false })
       queryClient.invalidateQueries({ queryKey: ['courts'] })
       queryClient.invalidateQueries({ queryKey: ['moderation-stats'] })
@@ -598,7 +598,7 @@ function PlacesList({ status }: { status: ModerationStatus }) {
           key={place.id}
           place={place}
           onApprove={(id) => {
-            console.log('🎯 Approving place from PlacesList:', id)
+            // console.log('🎯 Approving place from PlacesList:', id)
             approveMutation.mutate(id)
           }}
           onReject={(id, reason) => rejectMutation.mutate({ placeId: id, reason })}

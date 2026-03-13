@@ -18,9 +18,9 @@ export default function BottomNav() {
     const stored = sessionStorage.getItem('map-position')
     if (stored) {
       const { lat, lng, zoom } = JSON.parse(stored)
-      router.push(`/map/new?lat=${lat}&lng=${lng}&zoom=${zoom}`)
+      router.push(`/new?lat=${lat}&lng=${lng}&zoom=${zoom}`)
     } else {
-      router.push('/map/new')
+      router.push('/new')
     }
   }
 
@@ -43,18 +43,18 @@ export default function BottomNav() {
   }, [isGuestSheetOpen])
 
   const navItems = [
-    { name: 'Karte', href: '/map', icon: Map, active: pathname === '/map' },
+    { name: 'Karte', href: '/', icon: Map, active: pathname === '/' },
     { name: 'Profil', href: '/profile', icon: User, active: pathname === '/profile' },
   ]
 
-  const addActive = pathname === '/map/new'
+  const addActive = pathname === '/new'
 
   return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center justify-around px-4 max-w-2xl mx-auto w-full">
           <Link
-            href="/map"
+            href="/"
             className={`flex flex-1 flex-col items-center gap-1 text-xs font-medium transition-colors ${
               navItems[0].active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
             }`}
@@ -131,9 +131,9 @@ export default function BottomNav() {
                     const stored = sessionStorage.getItem('map-position')
                     if (stored) {
                       const { lat, lng, zoom } = JSON.parse(stored)
-                      router.push(`/map/new?guest=true&lat=${lat}&lng=${lng}&zoom=${zoom}`)
+                      router.push(`/new?guest=true&lat=${lat}&lng=${lng}&zoom=${zoom}`)
                     } else {
-                      router.push('/map/new?guest=true')
+                      router.push('/new?guest=true')
                     }
                   }}
                 >

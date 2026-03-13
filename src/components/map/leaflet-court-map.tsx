@@ -67,7 +67,7 @@ function MapClickHandler({
 }) {
   useMapEvents({
     click: (e) => {
-      console.log('🗺️ Map click detected - closing sheets')
+      // console.log('🗺️ Map click detected - closing sheets')
       // Close both sheets on any map click (but not marker clicks)
       if (onCloseFilterSheet) {
         onCloseFilterSheet()
@@ -103,45 +103,50 @@ function MapPositionTracker({ enabled }: { enabled: boolean }) {
 // Component to handle filter button in top right corner
 function FilterButtonHandler({ onFilterClick, isFilterActive }: { onFilterClick: () => void, isFilterActive: boolean }) {
   const map = useMap()
+  const callbackRef = useRef(onFilterClick)
+  useEffect(() => { callbackRef.current = onFilterClick }, [onFilterClick])
 
+  // Create DOM once
   useEffect(() => {
-    // Create top-right stack container if it doesn't exist
     let topRightStack = map.getContainer().querySelector('.map-control-top-right-stack') as HTMLElement
     if (!topRightStack) {
       topRightStack = L.DomUtil.create('div', 'map-control-top-right-stack')
       map.getContainer().appendChild(topRightStack)
     }
 
-    // Create filter button container
     const filterContainer = L.DomUtil.create('div', 'leaflet-control-filter')
-
-    // Create modern filter button
     const filterButton = L.DomUtil.create('button', 'filter-button map-control-button', filterContainer)
     filterButton.innerHTML = `
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
       </svg>
-      ${isFilterActive ? '<span class="filter-active-dot"></span>' : ''}
     `
     filterButton.title = 'Filter'
 
-    // Handle click events
     L.DomEvent.on(filterButton, 'click', (e) => {
       L.DomEvent.preventDefault(e)
-      onFilterClick()
+      callbackRef.current()
     })
-
-    // Prevent map interactions
     L.DomEvent.disableClickPropagation(filterContainer)
     L.DomEvent.disableScrollPropagation(filterContainer)
-
-    // Add to top-right stack
     topRightStack.appendChild(filterContainer)
 
-    return () => {
-      filterContainer.remove()
+    return () => { filterContainer.remove() }
+  }, [map])
+
+  // Update active dot via DOM mutation — no teardown
+  useEffect(() => {
+    const button = map.getContainer().querySelector('.leaflet-control-filter .filter-button')
+    if (!button) return
+    const existing = button.querySelector('.filter-active-dot')
+    if (isFilterActive && !existing) {
+      const dot = document.createElement('span')
+      dot.className = 'filter-active-dot'
+      button.appendChild(dot)
+    } else if (!isFilterActive && existing) {
+      existing.remove()
     }
-  }, [map, onFilterClick, isFilterActive])
+  }, [map, isFilterActive])
 
   return null
 }
@@ -149,6 +154,8 @@ function FilterButtonHandler({ onFilterClick, isFilterActive }: { onFilterClick:
 // Component to handle favorites button in top right corner below filter
 function FavoritesButtonHandler({ onClick }: { onClick: () => void }) {
   const map = useMap()
+  const callbackRef = useRef(onClick)
+  useEffect(() => { callbackRef.current = onClick }, [onClick])
 
   useEffect(() => {
     let topRightStack = map.getContainer().querySelector('.map-control-top-right-stack') as HTMLElement
@@ -168,18 +175,14 @@ function FavoritesButtonHandler({ onClick }: { onClick: () => void }) {
 
     L.DomEvent.on(button, 'click', (e) => {
       L.DomEvent.preventDefault(e)
-      onClick()
+      callbackRef.current()
     })
-
     L.DomEvent.disableClickPropagation(container)
     L.DomEvent.disableScrollPropagation(container)
-
     topRightStack.appendChild(container)
 
-    return () => {
-      container.remove()
-    }
-  }, [map, onClick])
+    return () => { container.remove() }
+  }, [map])
 
   return null
 }
@@ -187,36 +190,34 @@ function FavoritesButtonHandler({ onClick }: { onClick: () => void }) {
 // Component to handle user location with modern bottom-right positioning
 function UserLocationHandler({ onLocationFound }: { onLocationFound: (lat: number, lng: number) => void }) {
   const map = useMap()
-  
-  const findUserLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude
-          const lng = position.coords.longitude
-          onLocationFound(lat, lng)
-          map.setView([lat, lng], 14)
-        },
-        (error) => {
-          console.warn('Could not get user location:', error)
-          alert('Could not access your location. Please check your browser settings and try again.')
-        }
-      )
-    }
-  }
+  const callbackRef = useRef(onLocationFound)
+  useEffect(() => { callbackRef.current = onLocationFound }, [onLocationFound])
 
   useEffect(() => {
-    // Create bottom-right stack container if it doesn't exist
+    const findUserLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude
+            const lng = position.coords.longitude
+            callbackRef.current(lat, lng)
+            map.setView([lat, lng], 14)
+          },
+          (error) => {
+            console.warn('Could not get user location:', error)
+            alert('Could not access your location. Please check your browser settings and try again.')
+          }
+        )
+      }
+    }
+
     let bottomRightStack = map.getContainer().querySelector('.map-control-bottom-right-stack') as HTMLElement
     if (!bottomRightStack) {
       bottomRightStack = L.DomUtil.create('div', 'map-control-bottom-right-stack')
       map.getContainer().appendChild(bottomRightStack)
     }
-    
-    // Create location button container
+
     const locationContainer = L.DomUtil.create('div', 'leaflet-control-location-modern')
-    
-    // Create modern location button
     const locationButton = L.DomUtil.create('button', 'location-button map-control-button', locationContainer)
     locationButton.innerHTML = `
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -225,32 +226,25 @@ function UserLocationHandler({ onLocationFound }: { onLocationFound: (lat: numbe
       </svg>
     `
     locationButton.title = 'Find my location'
-    
-    // Handle click events
+
     L.DomEvent.on(locationButton, 'click', L.DomEvent.preventDefault)
     L.DomEvent.on(locationButton, 'click', findUserLocation)
-    
-    // Prevent map interactions
     L.DomEvent.disableClickPropagation(locationContainer)
     L.DomEvent.disableScrollPropagation(locationContainer)
-    
-    // Add to bottom-right stack
     bottomRightStack.appendChild(locationContainer)
-    
-    return () => {
-      locationContainer.remove()
-    }
+
+    return () => { locationContainer.remove() }
   }, [map])
-  
+
   return null
 }
 
 // Component to handle custom attribution control positioned at bottom-left
 function AttributionControlHandler({ attribution }: { attribution: string }) {
   const map = useMap()
-  
+
+  // Create DOM once
   useEffect(() => {
-    // Create bottom-left stack container if it doesn't exist
     let bottomLeftStack = map.getContainer().querySelector('.map-control-bottom-left-stack') as HTMLElement
     if (!bottomLeftStack) {
       bottomLeftStack = L.DomUtil.create('div', 'map-control-bottom-left-stack')
@@ -258,126 +252,112 @@ function AttributionControlHandler({ attribution }: { attribution: string }) {
     }
 
     const container = L.DomUtil.create('div', 'leaflet-control-attribution leaflet-control')
-    container.innerHTML = attribution
-
-    // Prevent map interactions
     L.DomEvent.disableClickPropagation(container)
     L.DomEvent.disableScrollPropagation(container)
-
-    // Add to bottom-left stack
     bottomLeftStack.appendChild(container)
 
-    return () => {
-      container.remove()
-    }
+    return () => { container.remove() }
+  }, [map])
+
+  // Update text via DOM mutation — no teardown
+  useEffect(() => {
+    const container = map.getContainer().querySelector('.leaflet-control-attribution.leaflet-control') as HTMLElement | null
+    if (container) container.innerHTML = attribution
   }, [map, attribution])
-  
+
   return null
 }
 
 // Component to handle layer toggle button positioned above places count
 function LayerToggleHandler({ currentLayerId, onLayerChange }: { currentLayerId: string, onLayerChange: (layerId: string) => void }) {
   const map = useMap()
-  
-  const toggleLayer = () => {
-    const cycle = ['light', 'voyager']
-    const nextIndex = (cycle.indexOf(currentLayerId) + 1) % cycle.length
-    onLayerChange(cycle[nextIndex])
-  }
-  
-  const getLayersIcon = () => {
-    return `
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-        <polyline points="2 17 12 22 22 17"/>
-        <polyline points="2 12 12 17 22 12"/>
-      </svg>
-    `
-  }
+  const currentLayerIdRef = useRef(currentLayerId)
+  const onLayerChangeRef = useRef(onLayerChange)
+  useEffect(() => { currentLayerIdRef.current = currentLayerId }, [currentLayerId])
+  useEffect(() => { onLayerChangeRef.current = onLayerChange }, [onLayerChange])
 
+  // Create DOM once
   useEffect(() => {
-    // Create bottom-right stack container if it doesn't exist
+    const toggleLayer = () => {
+      const cycle = ['light', 'voyager']
+      const nextIndex = (cycle.indexOf(currentLayerIdRef.current) + 1) % cycle.length
+      onLayerChangeRef.current(cycle[nextIndex])
+    }
+
     let bottomRightStack = map.getContainer().querySelector('.map-control-bottom-right-stack') as HTMLElement
     if (!bottomRightStack) {
       bottomRightStack = L.DomUtil.create('div', 'map-control-bottom-right-stack')
       map.getContainer().appendChild(bottomRightStack)
     }
 
-    // Create layer toggle button container
     const layerContainer = L.DomUtil.create('div', 'leaflet-control-layer-toggle')
-
-    // Create modern layer toggle button
     const layerButton = L.DomUtil.create('button', 'layer-toggle-button map-control-button', layerContainer)
-    layerButton.innerHTML = getLayersIcon()
+    layerButton.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+        <polyline points="2 17 12 22 22 17"/>
+        <polyline points="2 12 12 17 22 12"/>
+      </svg>
+    `
     layerButton.title = 'Toggle Map Style'
 
-    // Handle click events
     L.DomEvent.on(layerButton, 'click', (e) => {
       L.DomEvent.preventDefault(e)
       toggleLayer()
     })
-
-    // Prevent map interactions
     L.DomEvent.disableClickPropagation(layerContainer)
     L.DomEvent.disableScrollPropagation(layerContainer)
-
-    // Add to bottom-right stack above the location button (column-reverse: appended later = visually higher)
     bottomRightStack.appendChild(layerContainer)
-    
-    return () => {
-      layerContainer.remove()
-    }
-  }, [map, currentLayerId, onLayerChange])
-  
+
+    return () => { layerContainer.remove() }
+  }, [map])
+
   return null
 }
 
 // Component to display places count above attribution
 function PlacesCountHandler({ count }: { count: number }) {
   const map = useMap()
-  
+
+  // Create DOM once
   useEffect(() => {
-    // Create bottom-left stack container if it doesn't exist
     let bottomLeftStack = map.getContainer().querySelector('.map-control-bottom-left-stack') as HTMLElement
     if (!bottomLeftStack) {
       bottomLeftStack = L.DomUtil.create('div', 'map-control-bottom-left-stack')
       map.getContainer().appendChild(bottomLeftStack)
     }
-    
+
     const container = L.DomUtil.create('div', 'leaflet-control-places-count')
-    container.innerHTML = `${count} Plätze gefunden`
-    
-    // Prevent map interactions
     L.DomEvent.disableClickPropagation(container)
     L.DomEvent.disableScrollPropagation(container)
-    
-    // Add to bottom-left stack (will appear above attribution due to flex order)
     bottomLeftStack.appendChild(container)
-    
-    return () => {
-      container.remove()
-    }
+
+    return () => { container.remove() }
+  }, [map])
+
+  // Update text via DOM mutation — no teardown
+  useEffect(() => {
+    const container = map.getContainer().querySelector('.leaflet-control-places-count') as HTMLElement | null
+    if (container) container.innerHTML = `${count} Plätze gefunden`
   }, [map, count])
-  
+
   return null
 }
 
 // Component to handle add court button positioned above locate button
 function AddCourtButtonHandler({ onAddCourtClick, user }: { onAddCourtClick: () => void, user: any }) {
   const map = useMap()
-  
+  const callbackRef = useRef(onAddCourtClick)
+  useEffect(() => { callbackRef.current = onAddCourtClick }, [onAddCourtClick])
+
   useEffect(() => {
-    // Create top-right stack container if it doesn't exist
     let topRightStack = map.getContainer().querySelector('.map-control-top-right-stack') as HTMLElement
     if (!topRightStack) {
       topRightStack = L.DomUtil.create('div', 'map-control-top-right-stack')
       map.getContainer().appendChild(topRightStack)
     }
-    
-    // Create add court button container
+
     const addCourtContainer = L.DomUtil.create('div', 'leaflet-control-add-court')
-    
-    // Create modern add court button
     const addCourtButton = L.DomUtil.create('button', 'add-court-button map-control-button', addCourtContainer)
     addCourtButton.innerHTML = `
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -387,24 +367,17 @@ function AddCourtButtonHandler({ onAddCourtClick, user }: { onAddCourtClick: () 
     `
     addCourtButton.title = 'Ort hinzufügen'
 
-    // Handle click events
     L.DomEvent.on(addCourtButton, 'click', (e) => {
       L.DomEvent.preventDefault(e)
-      onAddCourtClick()
+      callbackRef.current()
     })
-    
-    // Prevent map interactions
     L.DomEvent.disableClickPropagation(addCourtContainer)
     L.DomEvent.disableScrollPropagation(addCourtContainer)
-    
-    // Add to top-right stack (will appear below filter due to flex order)
     topRightStack.appendChild(addCourtContainer)
-    
-    return () => {
-      addCourtContainer.remove()
-    }
-  }, [map, onAddCourtClick])
-  
+
+    return () => { addCourtContainer.remove() }
+  }, [map])
+
   return null
 }
 
@@ -501,13 +474,13 @@ export default function LeafletCourtMap({
   }, [initialPlaceId, courts, handleFavoriteSelect])
 
   const handleExplicitClose = useCallback(() => {
-    console.log('🗂️ Explicit close requested - clearing selection and closing sheet')
+    // console.log('🗂️ Explicit close requested - clearing selection and closing sheet')
     setSelectedCourt(null)
     setIsBottomSheetOpen(false)
   }, [])
 
   const handleExplicitFilterClose = useCallback(() => {
-    console.log('🗂️ Explicit filter close requested')
+    // console.log('🗂️ Explicit filter close requested')
     isClosingFilterExplicitly.current = true
     setIsFilterSheetOpen(false)
   }, [])
@@ -595,10 +568,10 @@ export default function LeafletCourtMap({
                 icon={createSportIcon(sportsForIcon, false)}
                 eventHandlers={{
                   click: (e) => {
-                    console.log('📍 Regular marker clicked:', {
-                      courtId: court.id,
-                      eventPropagationStopped: true
-                    })
+                    // console.log('📍 Regular marker clicked:', {
+                    //   courtId: court.id,
+                    //   eventPropagationStopped: true
+                    // })
                     e.originalEvent.stopPropagation()
                     handleCourtSelect(court)
                   }
@@ -630,7 +603,7 @@ export default function LeafletCourtMap({
             allowAddCourt={allowAddCourt} 
             onCloseFilterSheet={handleExplicitFilterClose}
             onCloseMapPinSheet={() => {
-              console.log('🗺️ Explicitly closing map pin sheet via map click')
+              // console.log('🗺️ Explicitly closing map pin sheet via map click')
               handleExplicitClose()
             }}
           />

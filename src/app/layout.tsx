@@ -27,22 +27,22 @@ const organizationJsonLd = {
   inLanguage: 'de',
   potentialAction: {
     '@type': 'SearchAction',
-    target: 'https://opensportmap.de/map?q={search_term_string}',
+    target: 'https://opensportmap.de/?q={search_term_string}',
     'query-input': 'required name=search_term_string',
   },
 }
 
 export const metadata: Metadata = {
-  title: "OpenSportMap - Kostenlose Sportplätze in deiner Nähe finden",
-  description: "Finde kostenlose Sportplätze in deiner Nähe. Basketball, Fußball, Tennis, Calisthenics, Skateparks & mehr – über 13.000 Plätze in Deutschland.",
+  title: "Kostenlose Sportplätze finden | OpenSportMap",
+  description: "Über 13.000 kostenlose Sportplätze in Deutschland auf einer interaktiven Karte. Basketball, Fußball, Tennis, Skateparks & mehr – jetzt entdecken.",
   metadataBase: new URL("https://opensportmap.de"),
   openGraph: {
     type: "website",
     locale: "de_DE",
     url: "https://opensportmap.de",
     siteName: "OpenSportMap",
-    title: "OpenSportMap - Kostenlose Sportplätze in deiner Nähe finden",
-    description: "Finde kostenlose Sportplätze in deiner Nähe. Basketball, Fußball, Tennis, Calisthenics, Skateparks & mehr – über 13.000 Plätze in Deutschland.",
+    title: "Kostenlose Sportplätze finden | OpenSportMap",
+    description: "Über 13.000 kostenlose Sportplätze in Deutschland auf einer interaktiven Karte. Basketball, Fußball, Tennis, Skateparks & mehr.",
   },
   twitter: {
     card: "summary_large_image",
