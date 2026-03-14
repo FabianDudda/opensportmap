@@ -1,94 +1,107 @@
-'use client'
+import { Metadata } from 'next'
+import { createClient } from '@/lib/supabase/server'
+import { sportNames } from '@/lib/utils/sport-utils'
+import MapPageClient from './map-page-client'
 
-import { useState, useEffect, useMemo, Suspense } from 'react'
-import dynamic from 'next/dynamic'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useAuth } from '@/components/providers/auth-provider'
-import { useQuery } from '@tanstack/react-query'
-import { database } from '@/lib/supabase/database'
-import { SportType, PlaceMarker } from '@/lib/supabase/types'
-import { PlaceType } from '@/lib/utils/sport-utils'
+interface PageProps {
+  searchParams: Promise<{ place?: string }>
+}
 
-const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-        <p className="text-sm text-muted-foreground">Loading map...</p>
-      </div>
-    </div>
-  )
-})
+async function getPlaceForSeo(placeId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('places')
+    .select(`
+      id, name, description, latitude, longitude,
+      street, house_number, city, postcode, state, country,
+      image_url, updated_at,
+      courts (sport)
+    `)
+    .eq('id', placeId)
+    .eq('moderation_status', 'approved')
+    .single()
+  return data
+}
 
-function MapPage() {
-  const { user, loading } = useAuth()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [selectedSports, setSelectedSports] = useState<SportType[]>([])
-  const [selectedPlaceType, setSelectedPlaceType] = useState<PlaceType | null>(null)
-  const [selectedPlace, setSelectedPlace] = useState<PlaceMarker | null>(null)
-  const defaultFavoritesOpen = searchParams.get('favorites') === '1'
-  const initialPlaceId = searchParams.get('place')
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const { place: placeId } = await searchParams
 
-  const savedPosition = typeof window !== 'undefined'
-    ? (() => { try { return JSON.parse(sessionStorage.getItem('map-position') || '') } catch { return null } })()
-    : null
+  if (!placeId) return {}
 
-  const { data: places = [], isLoading, isError, error } = useQuery({
-    queryKey: ['places-lightweight'],
-    queryFn: () => database.courts.getAllPlacesLightweight(),
-    enabled: !loading,
-    staleTime: 5 * 60 * 1000,
-  })
+  const place = await getPlaceForSeo(placeId)
+  if (!place) return {}
 
-  useEffect(() => {
-    if (isError) console.error('[Map] Failed to load map pins:', error)
-  }, [isError, error])
+  const sports = [...new Set((place.courts as { sport: string }[] ?? []).map(c => c.sport))]
+  const sportsText = sports.map(s => sportNames[s] ?? s).join(', ')
 
-  // Only used for the pin count display — filtering is handled inside MarkerClusterGroup
-  const visibleCount = useMemo(() => {
-    return places.filter((place) => {
-      if (selectedSports.length > 0 && !selectedSports.some(sport => place.sports?.includes(sport))) return false
-      if (selectedPlaceType !== null && (place.place_type || 'öffentlich') !== selectedPlaceType) return false
-      return true
-    }).length
-  }, [places, selectedSports, selectedPlaceType])
+  const addressParts = [
+    place.street && place.house_number ? `${place.street} ${place.house_number}` : place.street,
+    place.city,
+    place.state,
+    place.country,
+  ].filter(Boolean)
+  const address = addressParts.length > 0 ? addressParts.join(', ') : `${place.latitude}, ${place.longitude}`
 
-  useEffect(() => {
-    if (!isLoading) {
-      // console.log('[Map] Pins displayed on map:', visibleCount, `(sports: ${selectedSports.join(', ') || 'all'})`)
+  const description = place.description
+    ? `${place.description}. Adresse: ${address}.`
+    : `Sportplatz${sportsText ? ` mit ${sportsText}` : ''}. Adresse: ${address}.`
+
+  return {
+    title: `${place.name} | OpenSportMap`,
+    description,
+    openGraph: {
+      title: `${place.name} | OpenSportMap`,
+      description: `Sportplatz${sportsText ? ` mit ${sportsText}` : ''}. ${address}`,
+      ...(place.image_url && { images: [place.image_url] }),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${place.name} | OpenSportMap`,
+      description: `Sportplatz${sportsText ? ` mit ${sportsText}` : ''}`,
+    },
+  }
+}
+
+export default async function CourtsPage({ searchParams }: PageProps) {
+  const { place: placeId } = await searchParams
+
+  let jsonLd: object | null = null
+
+  if (placeId) {
+    const place = await getPlaceForSeo(placeId)
+    if (place) {
+      jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'SportsActivityLocation',
+        name: place.name,
+        ...(place.description && { description: place.description }),
+        url: `https://opensportmap.de/?place=${place.id}`,
+        ...(place.image_url && { image: place.image_url }),
+        address: {
+          '@type': 'PostalAddress',
+          ...(place.street && { streetAddress: [place.street, place.house_number].filter(Boolean).join(' ') }),
+          ...(place.city && { addressLocality: place.city }),
+          ...(place.postcode && { postalCode: place.postcode }),
+          addressCountry: place.country ?? 'DE',
+        },
+        geo: {
+          '@type': 'GeoCoordinates',
+          latitude: place.latitude,
+          longitude: place.longitude,
+        },
+      }
     }
-  }, [visibleCount, selectedSports, isLoading])
+  }
 
   return (
     <>
-      <h1 className="sr-only">Kostenlose Sportplätze in deiner Nähe finden</h1>
-      <h2 className="sr-only">Interaktive Karte mit über 13.000 Sportplätzen in Deutschland</h2>
-      <LeafletCourtMap
-        courts={places}
-        onCourtSelect={setSelectedPlace}
-        height="100dvh"
-        selectedSports={selectedSports}
-        onSportsChange={setSelectedSports}
-        selectedPlaceType={selectedPlaceType}
-        onPlaceTypeChange={setSelectedPlaceType}
-        placesCount={visibleCount}
-        defaultFavoritesOpen={defaultFavoritesOpen}
-        onFavoritesClose={() => router.replace('/')}
-        initialCenter={savedPosition ? { lat: savedPosition.lat, lng: savedPosition.lng } : undefined}
-        initialZoom={savedPosition?.zoom}
-        initialPlaceId={initialPlaceId}
-        trackPosition={true}
-      />
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      <MapPageClient />
     </>
-  )
-}
-
-export default function CourtsPage() {
-  return (
-    <Suspense>
-      <MapPage />
-    </Suspense>
   )
 }

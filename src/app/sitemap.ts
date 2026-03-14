@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 const BASE_URL = 'https://opensportmap.de'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: places } = await supabase
     .from('places')
@@ -12,7 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .order('updated_at', { ascending: false })
 
   const placeUrls: MetadataRoute.Sitemap = (places ?? []).map((place) => ({
-    url: `${BASE_URL}/places/${place.id}`,
+    url: `${BASE_URL}/?place=${place.id}`,
     lastModified: new Date(place.updated_at),
     changeFrequency: 'weekly',
     priority: 0.8,
