@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import React from 'react'
+import dynamic from 'next/dynamic'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/components/providers/auth-provider'
 import { database } from '@/lib/supabase/database'
@@ -10,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
@@ -33,6 +35,9 @@ import {
   Loader2,
   Save,
   Filter,
+  ChevronDown,
+  ChevronUp,
+  Copy,
 } from 'lucide-react'
 import { getSportBadgeClasses, sportNames, sportIcons, getPlaceTypeBadgeClasses, placeTypeLabels, placeTypeIcons, PlaceType } from '@/lib/utils/sport-utils'
 import Link from 'next/link'
@@ -52,6 +57,53 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+
+const AdminMiniMap = dynamic(() => import('@/components/map/admin-mini-map'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[220px] bg-gray-100 rounded-lg flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary mx-auto mb-1" />
+        <p className="text-xs text-muted-foreground">Loading map...</p>
+      </div>
+    </div>
+  ),
+})
+
+interface CourtEditRow {
+  id?: string
+  sport: string
+  surface: string
+  quantity: string
+  notes: string
+}
+
+interface PlaceEditForm {
+  name: string
+  description: string
+  place_type: string
+  street: string
+  house_number: string
+  city: string
+  postcode: string
+  district: string
+  county: string
+  state: string
+  country: string
+  latitude: string
+  longitude: string
+  sports: string[]
+  courts: CourtEditRow[]
+}
+
+function getSourceLabel(source: string | null | undefined): string {
+  if (!source) return '— Unknown'
+  if (source === 'openstreetmap') return '🗺 OpenStreetMap'
+  if (source === 'user') return '👤 User submission'
+  if (source === 'guest') return '👤 Guest submission'
+  if (source.startsWith('import_')) return `📥 Imported (${source.replace('import_', '')})`
+  return source
+}
 
 function ModerationStats() {
   const { data: stats, isLoading } = useQuery({
@@ -125,14 +177,14 @@ function ModerationStats() {
   )
 }
 
-function PlaceCard({ 
-  place, 
-  onApprove, 
-  onReject, 
+function PlaceCard({
+  place,
+  onApprove,
+  onReject,
   showStatus = true,
   isSelectable = false,
   isSelected = false,
-  onToggleSelection
+  onToggleSelection,
 }: {
   place: PlaceWithCourts
   onApprove: (id: string) => void
@@ -142,23 +194,131 @@ function PlaceCard({
   isSelected?: boolean
   onToggleSelection?: () => void
 }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [editForm, setEditForm] = useState<PlaceEditForm>({
+    name: '', description: '', place_type: '',
+    street: '', house_number: '', city: '', postcode: '',
+    district: '', county: '', state: '', country: '',
+    latitude: '', longitude: '', sports: [], courts: [],
+  })
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
 
-  // Get unique sports from the courts array, fallback to legacy sports array
-  const availableSports = place.courts?.length > 0 
+  const hasCoords = place.latitude != null && place.longitude != null
+
+  const { data: nearbyData } = useQuery({
+    queryKey: ['nearby-places', place.id],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/admin/places/nearby?lat=${place.latitude}&lng=${place.longitude}&radius=500&exclude_id=${place.id}`
+      )
+      return res.json()
+    },
+    enabled: isExpanded && hasCoords,
+    staleTime: 60000,
+  })
+  const nearbyPlaces: { id: string; name: string; moderation_status: string; distance: number }[] =
+    nearbyData?.places || []
+
+  const availableSports = place.courts?.length > 0
     ? [...new Set(place.courts.map(court => court.sport))]
     : (place.sports || [])
 
-  // Build address string
   const addressParts = [
     place.street && place.house_number ? `${place.street} ${place.house_number}` : place.street,
     place.city,
     place.district,
     place.state,
-    place.country
+    place.country,
   ].filter(Boolean)
   const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : null
+
+  const getStatusIcon = (status: ModerationStatus) => {
+    switch (status) {
+      case 'pending': return <AlertCircle className="h-4 w-4 text-orange-600" />
+      case 'approved': return <CheckCircle className="h-4 w-4 text-green-600" />
+      case 'rejected': return <XCircle className="h-4 w-4 text-red-600" />
+    }
+  }
+
+  const getStatusColor = (status: ModerationStatus) => {
+    switch (status) {
+      case 'pending': return 'bg-orange-100 text-orange-800'
+      case 'approved': return 'bg-green-100 text-green-800'
+      case 'rejected': return 'bg-red-100 text-red-800'
+    }
+  }
+
+  const handleToggleExpand = () => {
+    if (isExpanded && isEditing) setIsEditing(false)
+    setIsExpanded(prev => !prev)
+  }
+
+  const startEditing = () => {
+    setEditForm({
+      name: place.name || '',
+      description: place.description || '',
+      place_type: place.place_type || '',
+      street: place.street || '',
+      house_number: place.house_number || '',
+      city: place.city || '',
+      postcode: place.postcode || '',
+      district: place.district || '',
+      county: place.county || '',
+      state: place.state || '',
+      country: place.country || '',
+      latitude: place.latitude?.toString() || '',
+      longitude: place.longitude?.toString() || '',
+      sports: (place.sports as string[]) || [],
+      courts: (place.courts || []).map(c => ({
+        id: c.id,
+        sport: c.sport,
+        surface: c.surface || '',
+        quantity: c.quantity?.toString() || '',
+        notes: c.notes || '',
+      })),
+    })
+    setIsEditing(true)
+  }
+
+  const handleSave = async (andApprove: boolean) => {
+    setIsSaving(true)
+    try {
+      const res = await fetch(`/api/admin/places/${place.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...editForm,
+          latitude: editForm.latitude ? parseFloat(editForm.latitude) : null,
+          longitude: editForm.longitude ? parseFloat(editForm.longitude) : null,
+          courts: editForm.courts.map(c => ({
+            ...(c.id ? { id: c.id } : {}),
+            sport: c.sport,
+            surface: c.surface || null,
+            quantity: c.quantity ? parseInt(c.quantity) : null,
+            notes: c.notes || null,
+          })),
+        }),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      queryClient.invalidateQueries({ queryKey: ['places'] })
+      queryClient.invalidateQueries({ queryKey: ['nearby-places', place.id] })
+      if (andApprove) {
+        onApprove(place.id)
+      } else {
+        toast({ title: 'Saved', description: `${place.name} updated` })
+      }
+      setIsEditing(false)
+    } catch {
+      toast({ title: 'Error', description: 'Could not save changes', variant: 'destructive' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const handleReject = () => {
     if (!rejectionReason.trim()) return
@@ -167,35 +327,27 @@ function PlaceCard({
     setIsRejectDialogOpen(false)
   }
 
-  const getStatusIcon = (status: ModerationStatus) => {
-    switch (status) {
-      case 'pending':
-        return <AlertCircle className="h-4 w-4 text-orange-600" />
-      case 'approved':
-        return <CheckCircle className="h-4 w-4 text-green-600" />
-      case 'rejected':
-        return <XCircle className="h-4 w-4 text-red-600" />
-    }
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    toast({ title: 'Copied', description: text })
   }
 
-  const getStatusColor = (status: ModerationStatus) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-orange-100 text-orange-800'
-      case 'approved':
-        return 'bg-green-100 text-green-800'
-      case 'rejected':
-        return 'bg-red-100 text-red-800'
-    }
+  const toggleSport = (sport: string) => {
+    setEditForm(prev => ({
+      ...prev,
+      sports: prev.sports.includes(sport)
+        ? prev.sports.filter(s => s !== sport)
+        : [...prev.sports, sport],
+    }))
   }
 
   return (
     <Card className="mb-4">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3 flex-1">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
             {isSelectable && (
-              <div className="pt-1">
+              <div className="pt-1 shrink-0">
                 <input
                   type="checkbox"
                   checked={isSelected}
@@ -204,7 +356,18 @@ function PlaceCard({
                 />
               </div>
             )}
-            <div className="flex-1">
+            {place.image_url ? (
+              <img
+                src={place.image_url}
+                alt={place.name}
+                className="w-16 h-16 rounded-lg object-cover shrink-0"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                <MapPin className="h-6 w-6 text-muted-foreground" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle className="text-lg">{place.name}</CardTitle>
                 {place.place_type && (
@@ -213,26 +376,24 @@ function PlaceCard({
                   </Badge>
                 )}
                 {place.is_guest_submission && (
-                  <Badge className="text-xs bg-yellow-100 text-yellow-800">
-                    Gast
+                  <Badge className="text-xs bg-yellow-100 text-yellow-800">Gast</Badge>
+                )}
+                {showStatus && (
+                  <Badge className={`text-xs ${getStatusColor(place.moderation_status)}`}>
+                    {getStatusIcon(place.moderation_status)}
+                    <span className="ml-1 capitalize">{place.moderation_status}</span>
                   </Badge>
                 )}
-              {showStatus && (
-                <Badge className={`text-xs ${getStatusColor(place.moderation_status)}`}>
-                  {getStatusIcon(place.moderation_status)}
-                  <span className="ml-1 capitalize">{place.moderation_status}</span>
-                </Badge>
-              )}
-            </div>
-            
-            {fullAddress && (
-              <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                <MapPin className="h-3 w-3" />
-                {fullAddress}
               </div>
-            )}
-            
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+
+              {fullAddress && (
+                <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{fullAddress}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                 <div className="flex items-center gap-1">
                   <User className="h-3 w-3" />
                   {place.profiles?.name ?? 'Gast'}
@@ -244,175 +405,549 @@ function PlaceCard({
               </div>
             </div>
           </div>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href={`/places/${place.id}`}>
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Details
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleToggleExpand}
+            className="shrink-0"
+          >
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            <span className="ml-1 text-xs hidden sm:inline">{isExpanded ? 'Collapse' : 'View Details'}</span>
+          </Button>
         </div>
       </CardHeader>
-      
-      <CardContent className="space-y-4">
-        {/* Image */}
-        {place.image_url && (
-          <img
-            src={place.image_url}
-            alt={place.name}
-            className="w-full h-40 object-cover rounded-lg"
-          />
-        )}
 
-        {/* Description */}
-        {place.description && (
-          <div>
-            <Label className="text-xs font-medium text-muted-foreground">Description</Label>
-            <p className="text-sm mt-1">{place.description}</p>
-          </div>
-        )}
-
-        {/* Address */}
-        {(place.street || place.city || place.postcode || place.country) && (
-          <div>
-            <Label className="text-xs font-medium text-muted-foreground">Address</Label>
-            <div className="mt-1 text-sm space-y-0.5">
-              {(place.street || place.house_number) && (
-                <div>{[place.street, place.house_number].filter(Boolean).join(' ')}</div>
-              )}
-              {(place.postcode || place.city) && (
-                <div>{[place.postcode, place.city].filter(Boolean).join(' ')}</div>
-              )}
-              {place.district && <div className="text-muted-foreground">{place.district}</div>}
-              {place.county && <div className="text-muted-foreground">{place.county}</div>}
-              {place.state && <div className="text-muted-foreground">{place.state}</div>}
-              {place.country && <div className="text-muted-foreground">{place.country}</div>}
+      {isExpanded && (
+        <CardContent className="space-y-4 pt-0">
+          {/* Map */}
+          {hasCoords ? (
+            <AdminMiniMap
+              latitude={Number(place.latitude)}
+              longitude={Number(place.longitude)}
+              placeName={place.name}
+              sports={availableSports}
+              nearbyPlaces={nearbyPlaces}
+              height="220px"
+              className="w-full"
+            />
+          ) : (
+            <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              No coordinates — map and duplicate check unavailable
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Location */}
-        {(place.latitude != null && place.longitude != null) && (
-          <div>
-            <Label className="text-xs font-medium text-muted-foreground">Coordinates</Label>
-            <p className="text-xs font-mono mt-1 text-muted-foreground">
-              {Number(place.latitude).toFixed(6)}, {Number(place.longitude).toFixed(6)}
-            </p>
-          </div>
-        )}
-
-        {/* Sports */}
-        <div>
-          <Label className="text-xs font-medium text-muted-foreground">Sports</Label>
-          <div className="flex flex-wrap gap-1 mt-1">
-            {availableSports.length > 0 ? (
-              availableSports.map((sport) => (
-                <Badge key={sport} className={`text-xs ${getSportBadgeClasses(sport)}`}>
-                  {sportIcons[sport] || '📍'} {sportNames[sport] || sport}
-                </Badge>
-              ))
-            ) : (
-              <span className="text-sm text-muted-foreground">No sports specified</span>
-            )}
-          </div>
-        </div>
-
-        {/* Courts */}
-        {place.courts && place.courts.length > 0 && (
-          <div>
-            <Label className="text-xs font-medium text-muted-foreground">Courts</Label>
-            <div className="space-y-2 mt-1">
-              {place.courts.map((court) => (
-                <div key={court.id} className="text-xs bg-muted p-2 rounded">
-                  <div className="flex justify-between">
-                    <span className="font-medium">{sportNames[court.sport] || court.sport}</span>
-                    <span>Qty: {court.quantity}</span>
-                  </div>
-                  {court.surface && <div className="text-muted-foreground">Surface: {court.surface}</div>}
-                  {court.notes && <div className="text-muted-foreground">Notes: {court.notes}</div>}
+          {/* Duplicate alert */}
+          {nearbyPlaces.length > 0 && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded space-y-1">
+              <div className="flex items-center gap-2 text-sm font-medium text-yellow-800">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {nearbyPlaces.length} nearby place{nearbyPlaces.length > 1 ? 's' : ''} within 500m
+              </div>
+              {nearbyPlaces.map(np => (
+                <div key={np.id} className="flex items-center justify-between text-xs text-yellow-700 pl-6">
+                  <Link
+                    href={`/places/${np.id}`}
+                    target="_blank"
+                    className="font-medium underline underline-offset-2 hover:text-yellow-900"
+                  >
+                    {np.name}
+                  </Link>
+                  <span className="text-yellow-600">{np.distance}m · {np.moderation_status}</span>
                 </div>
               ))}
             </div>
-          </div>
-        )}
-        
-        {/* Rejection reason for rejected items */}
-        {place.moderation_status === 'rejected' && place.rejection_reason && (
-          <div className="bg-red-50 border border-red-200 rounded p-3">
-            <Label className="text-xs font-medium text-red-700">Rejection Reason:</Label>
-            <p className="text-sm text-red-600 mt-1">{place.rejection_reason}</p>
-          </div>
-        )}
-        
-        {/* Moderated info */}
-        {place.moderated_at && (
-          <div className="text-xs text-muted-foreground">
-            Moderated on {new Date(place.moderated_at).toLocaleString()}
-          </div>
-        )}
-        
-        {/* Actions for pending items */}
-        {place.moderation_status === 'pending' && (
-          <div className="flex gap-2 pt-2">
-            <Button 
-              
-              onClick={() => onApprove(place.id)}
-              className="flex-1"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Approve
-            </Button>
-            
-            <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="destructive" className="flex-1">
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Reject
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Reject Place</DialogTitle>
-                  <DialogDescription>
-                    Please provide a reason for rejecting "{place.name}". This will be shown to the user.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-2">
-                  <Label htmlFor="rejection-reason">Rejection Reason</Label>
-                  <Textarea
-                    id="rejection-reason"
-                    placeholder="Enter reason for rejection..."
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
-                    rows={3}
-                  />
+          )}
+
+          {/* Image */}
+          {place.image_url && (
+            <img
+              src={place.image_url}
+              alt={place.name}
+              className="w-full h-40 object-cover rounded-lg"
+            />
+          )}
+
+          {!isEditing ? (
+            <>
+              {/* Core Info */}
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs font-medium text-muted-foreground">Place ID</Label>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className="font-mono text-xs text-muted-foreground truncate">{place.id}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 shrink-0"
+                      onClick={() => copyToClipboard(place.id)}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>
-                    Cancel
+
+                <div>
+                  <Label className="text-xs font-medium text-muted-foreground">Source</Label>
+                  <p className="text-sm mt-0.5">{getSourceLabel(place.source)}</p>
+                </div>
+
+                {place.description && (
+                  <div>
+                    <Label className="text-xs font-medium text-muted-foreground">Description</Label>
+                    <p className="text-sm mt-0.5">{place.description}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Address */}
+              {(place.street || place.city || place.postcode || place.country) && (
+                <div>
+                  <Label className="text-xs font-medium text-muted-foreground">Address</Label>
+                  <div className="mt-1 text-sm space-y-0.5">
+                    {(place.street || place.house_number) && (
+                      <div>{[place.street, place.house_number].filter(Boolean).join(' ')}</div>
+                    )}
+                    {(place.postcode || place.city) && (
+                      <div>{[place.postcode, place.city].filter(Boolean).join(' ')}</div>
+                    )}
+                    {place.district && <div className="text-muted-foreground">{place.district}</div>}
+                    {place.county && <div className="text-muted-foreground">{place.county}</div>}
+                    {place.state && <div className="text-muted-foreground">{place.state}</div>}
+                    {place.country && <div className="text-muted-foreground">{place.country}</div>}
+                  </div>
+                </div>
+              )}
+
+              {/* Coordinates */}
+              {hasCoords && (
+                <div>
+                  <Label className="text-xs font-medium text-muted-foreground">Coordinates</Label>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {Number(place.latitude).toFixed(6)}, {Number(place.longitude).toFixed(6)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 shrink-0"
+                      onClick={() => copyToClipboard(`${place.latitude}, ${place.longitude}`)}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Sports */}
+              <div>
+                <Label className="text-xs font-medium text-muted-foreground">Sports</Label>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {availableSports.length > 0 ? (
+                    availableSports.map((sport) => (
+                      <Badge key={sport} className={`text-xs ${getSportBadgeClasses(sport)}`}>
+                        {sportIcons[sport] || '📍'} {sportNames[sport] || sport}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">No sports specified</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Courts */}
+              {place.courts && place.courts.length > 0 && (
+                <div>
+                  <Label className="text-xs font-medium text-muted-foreground">Courts</Label>
+                  <div className="space-y-2 mt-1">
+                    {place.courts.map((court) => (
+                      <div key={court.id} className="text-xs bg-muted p-2 rounded">
+                        <div className="flex justify-between">
+                          <span className="font-medium">{sportNames[court.sport] || court.sport}</span>
+                          <span>Qty: {court.quantity}</span>
+                        </div>
+                        {court.surface && <div className="text-muted-foreground">Surface: {court.surface}</div>}
+                        {court.notes && <div className="text-muted-foreground">Notes: {court.notes}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Submitter */}
+              <div>
+                <Label className="text-xs font-medium text-muted-foreground">Submitted by</Label>
+                <p className="text-sm mt-0.5">
+                  {place.profiles?.name ?? 'Gast'}{' '}
+                  <span className="text-muted-foreground text-xs">
+                    on {new Date(place.created_at).toLocaleString()}
+                  </span>
+                </p>
+              </div>
+
+              {/* Rejection reason */}
+              {place.moderation_status === 'rejected' && place.rejection_reason && (
+                <div className="bg-red-50 border border-red-200 rounded p-3">
+                  <Label className="text-xs font-medium text-red-700">Rejection Reason</Label>
+                  <p className="text-sm text-red-600 mt-1">{place.rejection_reason}</p>
+                </div>
+              )}
+
+              {/* Moderated info */}
+              {place.moderated_at && (
+                <div className="text-xs text-muted-foreground">
+                  Moderated on {new Date(place.moderated_at).toLocaleString()}
+                </div>
+              )}
+
+              {/* Actions */}
+              {place.moderation_status === 'pending' && (
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={() => onApprove(place.id)} className="flex-1">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Approve
                   </Button>
-                  <Button 
-                    variant="destructive" 
-                    onClick={handleReject}
-                    disabled={!rejectionReason.trim()}
+
+                  <Button variant="outline" onClick={startEditing} className="flex-1">
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+
+                  <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="destructive" className="flex-1">
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Reject
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Reject Place</DialogTitle>
+                        <DialogDescription>
+                          Please provide a reason for rejecting "{place.name}". This will be shown to the user.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-2">
+                        <Label htmlFor="rejection-reason">Rejection Reason</Label>
+                        <Textarea
+                          id="rejection-reason"
+                          placeholder="Enter reason for rejection..."
+                          value={rejectionReason}
+                          onChange={(e) => setRejectionReason(e.target.value)}
+                          rows={3}
+                        />
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={handleReject}
+                          disabled={!rejectionReason.trim()}
+                        >
+                          Reject Place
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              )}
+            </>
+          ) : (
+            // ── Edit form ──
+            <>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <Label className="text-xs">Name</Label>
+                    <Input
+                      value={editForm.name}
+                      onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <Label className="text-xs">Place Type</Label>
+                    <Select
+                      value={editForm.place_type}
+                      onValueChange={val => setEditForm(prev => ({ ...prev, place_type: val }))}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select type..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="öffentlich">🌳 Öffentlich</SelectItem>
+                        <SelectItem value="verein">👥 Verein</SelectItem>
+                        <SelectItem value="schule">🏫 Schule</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="col-span-2">
+                    <Label className="text-xs">Description</Label>
+                    <Textarea
+                      value={editForm.description}
+                      onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                      rows={2}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Street</Label>
+                    <Input
+                      value={editForm.street}
+                      onChange={e => setEditForm(prev => ({ ...prev, street: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">House No.</Label>
+                    <Input
+                      value={editForm.house_number}
+                      onChange={e => setEditForm(prev => ({ ...prev, house_number: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Postcode</Label>
+                    <Input
+                      value={editForm.postcode}
+                      onChange={e => setEditForm(prev => ({ ...prev, postcode: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">City</Label>
+                    <Input
+                      value={editForm.city}
+                      onChange={e => setEditForm(prev => ({ ...prev, city: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">District</Label>
+                    <Input
+                      value={editForm.district}
+                      onChange={e => setEditForm(prev => ({ ...prev, district: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">County</Label>
+                    <Input
+                      value={editForm.county}
+                      onChange={e => setEditForm(prev => ({ ...prev, county: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">State</Label>
+                    <Input
+                      value={editForm.state}
+                      onChange={e => setEditForm(prev => ({ ...prev, state: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Country</Label>
+                    <Input
+                      value={editForm.country}
+                      onChange={e => setEditForm(prev => ({ ...prev, country: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Latitude</Label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={editForm.latitude}
+                      onChange={e => setEditForm(prev => ({ ...prev, latitude: e.target.value }))}
+                      className="mt-1 font-mono text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Longitude</Label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={editForm.longitude}
+                      onChange={e => setEditForm(prev => ({ ...prev, longitude: e.target.value }))}
+                      className="mt-1 font-mono text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs">Sports</Label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {Object.entries(sportNames).map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => toggleSport(key)}
+                        className={`text-xs px-2 py-1 rounded border transition-colors ${
+                          editForm.sports.includes(key)
+                            ? getSportBadgeClasses(key) + ' border-transparent'
+                            : 'bg-background border-border text-muted-foreground hover:border-primary'
+                        }`}
+                      >
+                        {sportIcons[key] || '📍'} {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Courts editor */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-xs">Courts</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() => setEditForm(prev => ({
+                      ...prev,
+                      courts: [...prev.courts, { sport: '', surface: '', quantity: '', notes: '' }],
+                    }))}
                   >
-                    Reject Place
+                    + Add court
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        )}
-      </CardContent>
+                </div>
+                {editForm.courts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No courts — click &quot;Add court&quot; to add one.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {editForm.courts.map((court, i) => (
+                      <div key={i} className="grid grid-cols-[1fr_1fr_60px_1fr_28px] gap-2 items-start bg-muted/50 p-2 rounded">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Sport</Label>
+                          <Select
+                            value={court.sport}
+                            onValueChange={val => setEditForm(prev => {
+                              const courts = [...prev.courts]
+                              courts[i] = { ...courts[i], sport: val }
+                              return { ...prev, courts }
+                            })}
+                          >
+                            <SelectTrigger className="mt-0.5 h-7 text-xs">
+                              <SelectValue placeholder="Select…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(sportNames).map(([key, label]) => (
+                                <SelectItem key={key} value={key} className="text-xs">
+                                  {sportIcons[key] || '📍'} {label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Surface</Label>
+                          <Select
+                            value={court.surface || ''}
+                            onValueChange={val => setEditForm(prev => {
+                              const courts = [...prev.courts]
+                              courts[i] = { ...courts[i], surface: val }
+                              return { ...prev, courts }
+                            })}
+                          >
+                            <SelectTrigger className="mt-0.5 h-7 text-xs">
+                              <SelectValue placeholder="Select…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {['Unbekannt', 'Rasen', 'Kunstrasen', 'Hartplatz', 'Asphalt', 'Kunststoffbelag', 'Asche', 'Sand', 'Sonstiges'].map(s => (
+                                <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Qty</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={court.quantity}
+                            onChange={e => setEditForm(prev => {
+                              const courts = [...prev.courts]
+                              courts[i] = { ...courts[i], quantity: e.target.value }
+                              return { ...prev, courts }
+                            })}
+                            className="mt-0.5 h-7 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Notes</Label>
+                          <Input
+                            value={court.notes}
+                            onChange={e => setEditForm(prev => {
+                              const courts = [...prev.courts]
+                              courts[i] = { ...courts[i], notes: e.target.value }
+                              return { ...prev, courts }
+                            })}
+                            className="mt-0.5 h-7 text-xs"
+                            placeholder="Optional"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditForm(prev => ({
+                            ...prev,
+                            courts: prev.courts.filter((_, idx) => idx !== i),
+                          }))}
+                          className="mt-5 text-muted-foreground hover:text-destructive transition-colors"
+                          aria-label="Remove court"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                {place.moderation_status === 'pending' && (
+                  <Button
+                    onClick={() => handleSave(true)}
+                    disabled={isSaving || !editForm.name.trim()}
+                    className="flex-1"
+                  >
+                    {isSaving
+                      ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      : <CheckCircle className="h-4 w-4 mr-2" />}
+                    Save & Approve
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => handleSave(false)}
+                  disabled={isSaving || !editForm.name.trim()}
+                  className="flex-1"
+                >
+                  {isSaving
+                    ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    : <Save className="h-4 w-4 mr-2" />}
+                  Save draft
+                </Button>
+                <Button variant="ghost" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                  Cancel
+                </Button>
+              </div>
+            </>
+          )}
+        </CardContent>
+      )}
     </Card>
   )
 }
@@ -640,98 +1175,62 @@ function CommunityEditsTab() {
   const { data: pendingEdits, isLoading } = useQuery({
     queryKey: ['community-edits'],
     queryFn: database.community.getPendingPlaceChanges,
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: 10000,
   })
 
   const approveMutation = useMutation({
     mutationFn: (editId: string) => database.community.approvePlaceEdit(editId, user!.id),
     onSuccess: () => {
-      toast({
-        title: 'Community edit approved',
-        description: 'The suggested changes have been applied to the place.',
-      })
+      toast({ title: 'Community edit approved', description: 'The suggested changes have been applied to the place.' })
       queryClient.invalidateQueries({ queryKey: ['community-edits'] })
       queryClient.invalidateQueries({ queryKey: ['places'], exact: false })
       queryClient.invalidateQueries({ queryKey: ['courts'] })
     },
     onError: (error) => {
-      toast({
-        title: 'Error approving edit',
-        description: error instanceof Error ? error.message : 'Failed to approve edit',
-        variant: 'destructive',
-      })
+      toast({ title: 'Error approving edit', description: error instanceof Error ? error.message : 'Failed to approve edit', variant: 'destructive' })
     },
   })
 
   const rejectMutation = useMutation({
-    mutationFn: ({ editId, reason }: { editId: string; reason: string }) => 
+    mutationFn: ({ editId, reason }: { editId: string; reason: string }) =>
       database.community.rejectPlaceEdit(editId, user!.id, reason),
     onSuccess: () => {
-      toast({
-        title: 'Community edit rejected',
-        description: 'The contributor will be notified of the rejection.',
-      })
+      toast({ title: 'Community edit rejected', description: 'The contributor will be notified of the rejection.' })
       queryClient.invalidateQueries({ queryKey: ['community-edits'] })
     },
     onError: (error) => {
-      toast({
-        title: 'Error rejecting edit',
-        description: error instanceof Error ? error.message : 'Failed to reject edit',
-        variant: 'destructive',
-      })
+      toast({ title: 'Error rejecting edit', description: error instanceof Error ? error.message : 'Failed to reject edit', variant: 'destructive' })
     },
   })
 
-  if (isLoading) {
-    return <div className="text-center py-8">Loading community edits...</div>
-  }
+  if (isLoading) return <div className="text-center py-8">Loading community edits...</div>
 
   if (!pendingEdits || pendingEdits.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5 text-blue-600" />
-            Community Edits
-          </CardTitle>
-          <CardDescription>
-            Community-suggested changes to existing places
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            No pending community edits found.
-          </div>
-        </CardContent>
-      </Card>
+      <div className="text-center py-8 text-muted-foreground">No pending community edits found.</div>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Edit className="h-5 w-5 text-blue-600" />
-          Community Edits ({pendingEdits.length})
-        </CardTitle>
-        <CardDescription>
-          Review and approve community-suggested changes to places
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {pendingEdits.map((edit: any) => (
-            <CommunityEditCard
-              key={edit.id}
-              edit={edit}
-              onApprove={(id) => approveMutation.mutate(id)}
-              onReject={(id, reason) => rejectMutation.mutate({ editId: id, reason })}
-            />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      {pendingEdits.map((edit: any) => (
+        <CommunityEditCard
+          key={edit.id}
+          edit={edit}
+          onApprove={(id) => approveMutation.mutate(id)}
+          onReject={(id, reason) => rejectMutation.mutate({ editId: id, reason })}
+        />
+      ))}
+    </div>
   )
+}
+
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
 }
 
 function CommunityEditCard({ edit, onApprove, onReject }: {
@@ -739,9 +1238,9 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
   onApprove: (id: string) => void
   onReject: (id: string, reason: string) => void
 }) {
+  const [isExpanded, setIsExpanded] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
-  const [showDiff, setShowDiff] = useState(false)
 
   const handleReject = () => {
     if (!rejectionReason.trim()) return
@@ -753,6 +1252,7 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
   const proposedData = edit.proposed_data as any
   const currentData = edit.current_data as any
 
+  // ── Change detection ──
   const addressFields: { key: string; label: string }[] = [
     { key: 'street', label: 'Street' },
     { key: 'house_number', label: 'House No.' },
@@ -771,49 +1271,140 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
   const sportsChanged = JSON.stringify([...proposedSports].sort()) !== JSON.stringify([...currentSports].sort())
   const currentCourts: any[] = currentData?.courts || currentData?.place?.courts || []
   const proposedCourts: any[] = proposedData?.courts || []
+  const courtsChanged = JSON.stringify(proposedCourts) !== JSON.stringify(currentCourts)
   const locationChanged =
     proposedData?.place?.latitude !== currentData?.place?.latitude ||
     proposedData?.place?.longitude !== currentData?.place?.longitude
+  const nameChanged = proposedData?.place?.name !== currentData?.place?.name
+  const placeTypeChanged = proposedData?.place?.place_type !== currentData?.place?.place_type
+  const descriptionChanged = proposedData?.place?.description !== currentData?.place?.description
+  const imageChanged = proposedData?.place?.image_url !== currentData?.place?.image_url
+
+  const changeSummary: string[] = [
+    nameChanged && 'Name',
+    placeTypeChanged && 'Platzart',
+    descriptionChanged && 'Description',
+    imageChanged && 'Image',
+    locationChanged && 'Location',
+    changedAddressFields.length > 0 && 'Address',
+    sportsChanged && 'Sports',
+    courtsChanged && 'Courts',
+  ].filter(Boolean) as string[]
+
+  // ── Map data ──
+  const currentLat = currentData?.place?.latitude
+  const currentLng = currentData?.place?.longitude
+  const hasCurrentCoords = currentLat != null && currentLng != null
+  const proposedLat = proposedData?.place?.latitude
+  const proposedLng = proposedData?.place?.longitude
+
+  const proposedLocation = locationChanged && proposedLat != null && proposedLng != null
+    ? {
+        latitude: Number(proposedLat),
+        longitude: Number(proposedLng),
+        distanceMeters: hasCurrentCoords
+          ? haversineMeters(Number(currentLat), Number(currentLng), Number(proposedLat), Number(proposedLng))
+          : undefined,
+      }
+    : undefined
+
+  const thumbnail = currentData?.place?.image_url || edit.places?.image_url
 
   return (
-    <Card className="border-l-4 border-l-blue-400">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-base">
-              Edit suggestion for "{edit.places?.name || 'Unknown Place'}"
-            </CardTitle>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-              <div className="flex items-center gap-1">
-                <User className="h-3 w-3" />
-                {edit.profiles?.name || 'Unknown User'}
+    <Card className="mb-4 border-l-4 border-l-blue-400">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {/* Thumbnail */}
+            {thumbnail ? (
+              <img
+                src={thumbnail}
+                alt={edit.places?.name}
+                className="w-16 h-16 rounded-lg object-cover shrink-0"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                <MapPin className="h-6 w-6 text-muted-foreground" />
               </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {new Date(edit.created_at).toLocaleDateString()}
+            )}
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-lg">
+                  <Link href={`/places/${edit.place_id}`} target="_blank" className="hover:underline underline-offset-2">
+                    {edit.places?.name || 'Unknown Place'}
+                  </Link>
+                </CardTitle>
+                <Badge className="text-xs bg-blue-100 text-blue-800">
+                  <Edit className="h-3 w-3 mr-1" />
+                  Community Edit
+                </Badge>
+              </div>
+
+              {/* Change summary badges */}
+              {changeSummary.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {changeSummary.map(label => (
+                    <Badge key={label} variant="outline" className="text-xs px-1.5 py-0">
+                      {label}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                <div className="flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  {edit.profiles?.name || 'Unknown User'}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(edit.created_at).toLocaleDateString()}
+                </div>
               </div>
             </div>
           </div>
+
           <Button
-            variant="outline"
-           
-            onClick={() => setShowDiff(!showDiff)}
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(prev => !prev)}
+            className="shrink-0"
           >
-            {showDiff ? 'Hide Changes' : 'Show Changes'}
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            <span className="ml-1 text-xs hidden sm:inline">{isExpanded ? 'Collapse' : 'View Details'}</span>
           </Button>
         </div>
       </CardHeader>
-      
-      <CardContent className="space-y-4">
-        {showDiff && (
+
+      {isExpanded && (
+        <CardContent className="space-y-4 pt-0">
+          {/* Map */}
+          {hasCurrentCoords ? (
+            <AdminMiniMap
+              latitude={Number(currentLat)}
+              longitude={Number(currentLng)}
+              placeName={edit.places?.name || ''}
+              sports={currentSports}
+              proposedLocation={proposedLocation}
+              height="220px"
+              className="w-full"
+            />
+          ) : (
+            <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              No coordinates — map unavailable
+            </div>
+          )}
+
+          {/* Diff */}
           <div className="border rounded-lg p-4 bg-muted/50 space-y-4">
-            <div className="grid grid-cols-2 gap-2 text-xs font-medium text-muted-foreground">
+            <div className="grid grid-cols-2 gap-2 text-xs font-medium">
               <span className="text-green-700">▲ Proposed</span>
               <span className="text-red-700">▼ Current</span>
             </div>
 
-            {/* Name */}
-            {proposedData?.place?.name !== currentData?.place?.name && (
+            {nameChanged && (
               <div>
                 <p className="text-xs font-medium mb-1">Name</p>
                 <div className="grid grid-cols-2 gap-2 text-sm">
@@ -823,8 +1414,7 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
               </div>
             )}
 
-            {/* Place Type */}
-            {proposedData?.place?.place_type !== currentData?.place?.place_type && (
+            {placeTypeChanged && (
               <div>
                 <p className="text-xs font-medium mb-1">Platzart</p>
                 <div className="grid grid-cols-2 gap-2 text-sm">
@@ -838,8 +1428,7 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
               </div>
             )}
 
-            {/* Description */}
-            {proposedData?.place?.description !== currentData?.place?.description && (
+            {descriptionChanged && (
               <div>
                 <p className="text-xs font-medium mb-1">Description</p>
                 <div className="grid grid-cols-2 gap-2 text-xs">
@@ -849,49 +1438,45 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
               </div>
             )}
 
-            {/* Image */}
-            {proposedData?.place?.image_url !== currentData?.place?.image_url && (
+            {imageChanged && (
               <div>
                 <p className="text-xs font-medium mb-1">Image</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    {proposedData?.place?.image_url ? (
-                      <img src={proposedData.place.image_url} alt="Proposed" className="w-full h-32 object-cover rounded border-2 border-green-400" />
-                    ) : (
-                      <div className="w-full h-32 bg-green-100 text-green-800 rounded flex items-center justify-center text-xs">No image</div>
-                    )}
+                    {proposedData?.place?.image_url
+                      ? <img src={proposedData.place.image_url} alt="Proposed" className="w-full h-32 object-cover rounded border-2 border-green-400" />
+                      : <div className="w-full h-32 bg-green-100 text-green-800 rounded flex items-center justify-center text-xs">No image</div>
+                    }
                   </div>
                   <div>
-                    {currentData?.place?.image_url ? (
-                      <img src={currentData.place.image_url} alt="Current" className="w-full h-32 object-cover rounded border-2 border-red-400" />
-                    ) : (
-                      <div className="w-full h-32 bg-red-100 text-red-800 rounded flex items-center justify-center text-xs">No image</div>
-                    )}
+                    {currentData?.place?.image_url
+                      ? <img src={currentData.place.image_url} alt="Current" className="w-full h-32 object-cover rounded border-2 border-red-400" />
+                      : <div className="w-full h-32 bg-red-100 text-red-800 rounded flex items-center justify-center text-xs">No image</div>
+                    }
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Location */}
             {locationChanged && (
               <div>
-                <p className="text-xs font-medium mb-1">Location</p>
+                <p className="text-xs font-medium mb-1">
+                  Location
+                  {proposedLocation?.distanceMeters != null && (
+                    <span className="ml-2 font-normal text-muted-foreground">({proposedLocation.distanceMeters}m moved)</span>
+                  )}
+                </p>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="font-mono bg-green-100 text-green-800 px-2 py-1 rounded">
-                    {proposedData?.place?.latitude != null
-                      ? `${Number(proposedData.place.latitude).toFixed(6)}, ${Number(proposedData.place.longitude).toFixed(6)}`
-                      : '—'}
+                    {proposedLat != null ? `${Number(proposedLat).toFixed(6)}, ${Number(proposedLng).toFixed(6)}` : '—'}
                   </div>
                   <div className="font-mono bg-red-100 text-red-800 px-2 py-1 rounded">
-                    {currentData?.place?.latitude != null
-                      ? `${Number(currentData.place.latitude).toFixed(6)}, ${Number(currentData.place.longitude).toFixed(6)}`
-                      : '—'}
+                    {currentLat != null ? `${Number(currentLat).toFixed(6)}, ${Number(currentLng).toFixed(6)}` : '—'}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Address fields */}
             {changedAddressFields.length > 0 && (
               <div>
                 <p className="text-xs font-medium mb-1">Address</p>
@@ -910,108 +1495,105 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
               </div>
             )}
 
-            {/* Sports */}
             {sportsChanged && (
               <div>
                 <p className="text-xs font-medium mb-1">Sports</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-wrap gap-1">
-                    {proposedSports.length > 0 ? proposedSports.map((sport: string) => (
-                      <Badge key={sport} className={`text-xs ${getSportBadgeClasses(sport)}`}>
-                        {sportIcons[sport] || '📍'} {sportNames[sport] || sport}
-                      </Badge>
-                    )) : <span className="text-xs text-muted-foreground">—</span>}
+                    {proposedSports.length > 0
+                      ? proposedSports.map((sport: string) => (
+                          <Badge key={sport} className={`text-xs ${getSportBadgeClasses(sport)}`}>
+                            {sportIcons[sport] || '📍'} {sportNames[sport] || sport}
+                          </Badge>
+                        ))
+                      : <span className="text-xs text-muted-foreground">—</span>}
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {currentSports.length > 0 ? currentSports.map((sport: string) => (
-                      <Badge key={sport} className={`text-xs ${getSportBadgeClasses(sport)}`}>
-                        {sportIcons[sport] || '📍'} {sportNames[sport] || sport}
-                      </Badge>
-                    )) : <span className="text-xs text-muted-foreground">—</span>}
+                    {currentSports.length > 0
+                      ? currentSports.map((sport: string) => (
+                          <Badge key={sport} className={`text-xs ${getSportBadgeClasses(sport)}`}>
+                            {sportIcons[sport] || '📍'} {sportNames[sport] || sport}
+                          </Badge>
+                        ))
+                      : <span className="text-xs text-muted-foreground">—</span>}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Courts */}
-            {(proposedCourts.length > 0 || currentCourts.length > 0) && (
+            {courtsChanged && (proposedCourts.length > 0 || currentCourts.length > 0) && (
               <div>
                 <p className="text-xs font-medium mb-1">Courts</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    {proposedCourts.length > 0 ? proposedCourts.map((court: any, i: number) => (
-                      <div key={i} className="text-xs bg-green-50 border border-green-200 rounded p-2">
-                        <div className="font-medium">{sportNames[court.sport] || court.sport}</div>
-                        <div>Qty: {court.quantity}{court.surface ? `, ${court.surface}` : ''}</div>
-                        {court.notes && <div className="text-muted-foreground">{court.notes}</div>}
-                      </div>
-                    )) : <span className="text-xs text-muted-foreground">—</span>}
+                    {proposedCourts.length > 0
+                      ? proposedCourts.map((court: any, i: number) => (
+                          <div key={i} className="text-xs bg-green-50 border border-green-200 rounded p-2">
+                            <div className="font-medium">{sportNames[court.sport] || court.sport}</div>
+                            <div>Qty: {court.quantity}{court.surface ? `, ${court.surface}` : ''}</div>
+                            {court.notes && <div className="text-muted-foreground">{court.notes}</div>}
+                          </div>
+                        ))
+                      : <span className="text-xs text-muted-foreground">—</span>}
                   </div>
                   <div className="space-y-1">
-                    {currentCourts.length > 0 ? currentCourts.map((court: any, i: number) => (
-                      <div key={i} className="text-xs bg-red-50 border border-red-200 rounded p-2">
-                        <div className="font-medium">{sportNames[court.sport] || court.sport}</div>
-                        <div>Qty: {court.quantity}{court.surface ? `, ${court.surface}` : ''}</div>
-                        {court.notes && <div className="text-muted-foreground">{court.notes}</div>}
-                      </div>
-                    )) : <span className="text-xs text-muted-foreground">—</span>}
+                    {currentCourts.length > 0
+                      ? currentCourts.map((court: any, i: number) => (
+                          <div key={i} className="text-xs bg-red-50 border border-red-200 rounded p-2">
+                            <div className="font-medium">{sportNames[court.sport] || court.sport}</div>
+                            <div>Qty: {court.quantity}{court.surface ? `, ${court.surface}` : ''}</div>
+                            {court.notes && <div className="text-muted-foreground">{court.notes}</div>}
+                          </div>
+                        ))
+                      : <span className="text-xs text-muted-foreground">—</span>}
                   </div>
                 </div>
               </div>
             )}
           </div>
-        )}
-        
-        <div className="flex gap-2 pt-2">
-          <Button 
-            
-            onClick={() => onApprove(edit.id)}
-            className="flex-1"
-          >
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Approve Changes
-          </Button>
-          
-          <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="destructive" className="flex-1">
-                <XCircle className="h-4 w-4 mr-2" />
-                Reject
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Reject Community Edit</DialogTitle>
-                <DialogDescription>
-                  Please provide a reason for rejecting this community contribution. This will help the contributor understand what needs to be improved.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-2">
-                <Label htmlFor="rejection-reason">Rejection Reason</Label>
-                <Textarea
-                  id="rejection-reason"
-                  placeholder="Enter reason for rejection..."
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  rows={3}
-                />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>
-                  Cancel
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-2">
+            <Button onClick={() => onApprove(edit.id)} className="flex-1">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Approve Changes
+            </Button>
+
+            <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="destructive" className="flex-1">
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Reject
                 </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={handleReject}
-                  disabled={!rejectionReason.trim()}
-                >
-                  Reject Edit
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </CardContent>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Reject Community Edit</DialogTitle>
+                  <DialogDescription>
+                    Please provide a reason for rejecting this community contribution. This will help the contributor understand what needs to be improved.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2">
+                  <Label htmlFor="community-rejection-reason">Rejection Reason</Label>
+                  <Textarea
+                    id="community-rejection-reason"
+                    placeholder="Enter reason for rejection..."
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>Cancel</Button>
+                  <Button variant="destructive" onClick={handleReject} disabled={!rejectionReason.trim()}>
+                    Reject Edit
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardContent>
+      )}
     </Card>
   )
 }
