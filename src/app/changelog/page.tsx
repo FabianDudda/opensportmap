@@ -16,6 +16,7 @@ const CHANGELOG = [
       'Performance fixes',
       'Edit /places/id layout',
       'Url now updates when place-sheet opens',
+      'rework admin dashboard'
     ],
   },
   {
