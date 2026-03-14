@@ -7,7 +7,7 @@ import ReportPlaceBottomSheet from './report-place-bottom-sheet-vaul'
 import PlaceTypeInfoSheet from './place-type-info-sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { MapPin, Navigation, Share2, Heart, Pencil, X, Upload, Image, Loader2, Maximize2, Flag } from 'lucide-react'
+import { MapPin, Navigation, Share2, Heart, Pencil, X, Upload, Image, Loader2, Maximize2, Flag, Phone, Mail, Globe } from 'lucide-react'
 import { PlaceWithCourts, PlaceMarker } from '@/lib/supabase/types'
 import { sportNames, sportIcons, getPlaceTypeBadgeClasses, placeTypeLabels, placeTypeIcons, PlaceType } from '@/lib/utils/sport-utils'
 import { Badge } from '@/components/ui/badge'
@@ -252,35 +252,6 @@ export default function PlaceBottomSheetVaul({
 
             <div className="space-y-4 p-4 overflow-y-auto">
 
-              {/* Address + distance */}
-              <div className="flex flex-col gap-1">
-                {(() => {
-                  const quickAddress = [place?.street, place?.district || place?.city]
-                    .filter(Boolean)
-                    .join(', ')
-                  return quickAddress && (
-                    <p className="text-base text-muted-foreground">{quickAddress}</p>
-                  )
-                })()}
-                {userLocation && (
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <MapPin className="h-3 w-3 shrink-0" />
-                    {getDistanceText(userLocation, { lat: selectedCourt.latitude, lng: selectedCourt.longitude })}
-                  </p>
-                )}
-              </div>
-
-              {/* Place type badge — tappable to open info sheet */}
-              {place?.place_type && (
-                <div>
-                  <button onClick={() => setIsPlaceTypeInfoOpen(true)}>
-                    <Badge className={`text-xs cursor-pointer ${getPlaceTypeBadgeClasses(place.place_type)}`}>
-                      {placeTypeIcons[place.place_type as PlaceType] || ''} {placeTypeLabels[place.place_type as PlaceType] || place.place_type}
-                    </Badge>
-                  </button>
-                </div>
-              )}
-
               {/* Thumbnail + sports pills — show skeleton while loading full details */}
               {isLoadingPlace ? (
                 <div className="flex gap-3 items-start">
@@ -291,7 +262,7 @@ export default function PlaceBottomSheetVaul({
                 </div>
               ) : (
                 <div className="flex gap-3 items-start">
-                  {/* 72×72 thumbnail */}
+                  {/* 88×88 thumbnail */}
                   {place?.image_url ? (
                     <button
                       className="relative shrink-0 w-[88px] h-[88px] rounded-[10px] overflow-hidden block"
@@ -315,7 +286,7 @@ export default function PlaceBottomSheetVaul({
                     </div>
                   )}
 
-                  {/* Sports pills stacked */}
+                  {/* Sports pills */}
                   {(() => {
                     const sportsWithCounts = (place?.courts?.length ?? 0) > 0
                       ? place!.courts!.reduce((acc, c) => {
@@ -341,8 +312,84 @@ export default function PlaceBottomSheetVaul({
                 </div>
               )}
 
+              {/* Place type badge — tappable to open info sheet */}
+              {place?.place_type && (
+                <div>
+                  <button onClick={() => setIsPlaceTypeInfoOpen(true)}>
+                    <Badge className={`text-xs cursor-pointer ${getPlaceTypeBadgeClasses(place.place_type)}`}>
+                      {placeTypeIcons[place.place_type as PlaceType] || ''} {placeTypeLabels[place.place_type as PlaceType] || place.place_type}
+                    </Badge>
+                  </button>
+                </div>
+              )}
+
+              {/* Address + distance */}
+              {(() => {
+                const quickAddress = [place?.street, place?.district || place?.city]
+                  .filter(Boolean)
+                  .join(', ')
+                const hasAddress = quickAddress || userLocation
+                return hasAddress && (
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Adresse</p>
+                    {quickAddress && (
+                      <p className="text-sm text-foreground">{quickAddress}</p>
+                    )}
+                    {userLocation && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        {getDistanceText(userLocation, { lat: selectedCourt.latitude, lng: selectedCourt.longitude })}
+                      </p>
+                    )}
+                  </div>
+                )
+              })()}
+
               {place?.description && (
                 <p className="text-sm text-muted-foreground">{place.description}</p>
+              )}
+
+              {/* Verein: contact */}
+              {place?.place_type === 'verein' && !isLoadingPlace && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Kontakt</p>
+                  {(place?.contact_phone || place?.contact_email || place?.contact_website) ? (
+                    <>
+                      {place.contact_phone && (
+                        <a href={`tel:${place.contact_phone}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+                          <Phone className="h-4 w-4 shrink-0" />
+                          <span>{place.contact_phone}</span>
+                        </a>
+                      )}
+                      {place.contact_email && (
+                        <a href={`mailto:${place.contact_email}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+                          <Mail className="h-4 w-4 shrink-0" />
+                          <span>{place.contact_email}</span>
+                        </a>
+                      )}
+                      {place.contact_website && (
+                        <a href={place.contact_website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+                          <Globe className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{place.contact_website.replace(/^https?:\/\//, '')}</span>
+                        </a>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      className="flex items-center gap-1.5 text-sm text-muted-foreground/60 hover:text-muted-foreground transition-colors self-start"
+                      onClick={() => {
+                        if (!user) {
+                          setIsLoginPromptOpen(true)
+                        } else {
+                          window.location.href = `/places/${selectedCourt.id}/edit`
+                        }
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      <span>Kontaktdaten ergänzen</span>
+                    </button>
+                  )}
+                </div>
               )}
 
               <div className="flex gap-2">

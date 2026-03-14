@@ -359,6 +359,10 @@ export type Database = {
           rejection_reason: string | null
           source: string
           source_id: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          contact_website: string | null
+          opening_hours: Json | null
           sports: Database["public"]["Enums"]["sport_type"][] | null
           state: string | null
           street: string | null
@@ -390,6 +394,10 @@ export type Database = {
           rejection_reason?: string | null
           source?: string
           source_id?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          contact_website?: string | null
+          opening_hours?: Json | null
           sports?: Database["public"]["Enums"]["sport_type"][] | null
           state?: string | null
           street?: string | null
@@ -421,6 +429,10 @@ export type Database = {
           rejection_reason?: string | null
           source?: string
           source_id?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          contact_website?: string | null
+          opening_hours?: Json | null
           sports?: Database["public"]["Enums"]["sport_type"][] | null
           state?: string | null
           street?: string | null
@@ -762,6 +774,22 @@ export interface PlaceMarker {
 export interface PlaceWithCourts extends Place {
   courts?: Court[]
   profiles?: Pick<Profile, 'name' | 'avatar'>
+}
+
+export interface DayHours {
+  closed: boolean
+  open?: string   // "09:00"
+  close?: string  // "21:00"
+}
+
+export interface OpeningHours {
+  monday?: DayHours
+  tuesday?: DayHours
+  wednesday?: DayHours
+  thursday?: DayHours
+  friday?: DayHours
+  saturday?: DayHours
+  sunday?: DayHours
 }
 
 export interface LegacyCourt extends Place {

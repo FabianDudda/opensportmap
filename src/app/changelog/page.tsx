@@ -16,7 +16,9 @@ const CHANGELOG = [
       'Performance fixes',
       'Edit /places/id layout',
       'Url now updates when place-sheet opens',
-      'rework admin dashboard'
+      'rework admin dashboard',
+      'Added contact details and opening hours for places (only for vereine)',
+      'rework add-place and edit-place form',
     ],
   },
   {

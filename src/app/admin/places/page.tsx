@@ -94,6 +94,9 @@ interface PlaceEditForm {
   longitude: string
   sports: string[]
   courts: CourtEditRow[]
+  contact_phone: string
+  contact_email: string
+  contact_website: string
 }
 
 function getSourceLabel(source: string | null | undefined): string {
@@ -204,6 +207,7 @@ function PlaceCard({
     street: '', house_number: '', city: '', postcode: '',
     district: '', county: '', state: '', country: '',
     latitude: '', longitude: '', sports: [], courts: [],
+    contact_phone: '', contact_email: '', contact_website: '',
   })
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -281,6 +285,9 @@ function PlaceCard({
         quantity: c.quantity?.toString() || '',
         notes: c.notes || '',
       })),
+      contact_phone: place.contact_phone || '',
+      contact_email: place.contact_email || '',
+      contact_website: place.contact_website || '',
     })
     setIsEditing(true)
   }
@@ -292,7 +299,18 @@ function PlaceCard({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...editForm,
+          name: editForm.name,
+          description: editForm.description,
+          place_type: editForm.place_type,
+          street: editForm.street,
+          house_number: editForm.house_number,
+          city: editForm.city,
+          postcode: editForm.postcode,
+          district: editForm.district,
+          county: editForm.county,
+          state: editForm.state,
+          country: editForm.country,
+          sports: editForm.sports,
           latitude: editForm.latitude ? parseFloat(editForm.latitude) : null,
           longitude: editForm.longitude ? parseFloat(editForm.longitude) : null,
           courts: editForm.courts.map(c => ({
@@ -302,6 +320,9 @@ function PlaceCard({
             quantity: c.quantity ? parseInt(c.quantity) : null,
             notes: c.notes || null,
           })),
+          contact_phone: editForm.contact_phone || null,
+          contact_email: editForm.contact_email || null,
+          contact_website: editForm.contact_website || null,
         }),
       })
       if (!res.ok) throw new Error('Save failed')
@@ -575,6 +596,18 @@ function PlaceCard({
                 </div>
               )}
 
+              {/* Verein contact & hours */}
+              {(place.contact_phone || place.contact_email || place.contact_website) && (
+                <div>
+                  <Label className="text-xs font-medium text-muted-foreground">Kontakt</Label>
+                  <div className="mt-1 text-sm space-y-0.5">
+                    {place.contact_phone && <div>{place.contact_phone}</div>}
+                    {place.contact_email && <div>{place.contact_email}</div>}
+                    {place.contact_website && <div className="text-muted-foreground truncate">{place.contact_website}</div>}
+                  </div>
+                </div>
+              )}
+
               {/* Submitter */}
               <div>
                 <Label className="text-xs font-medium text-muted-foreground">Submitted by</Label>
@@ -695,6 +728,38 @@ function PlaceCard({
                       className="mt-1"
                     />
                   </div>
+
+                  {(editForm.place_type === 'verein' || editForm.contact_phone || editForm.contact_email || editForm.contact_website) && (
+                    <>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Kontakt: Telefon</Label>
+                        <Input
+                          value={editForm.contact_phone}
+                          onChange={e => setEditForm(prev => ({ ...prev, contact_phone: e.target.value }))}
+                          className="mt-1"
+                          placeholder="z.B. +49 228 123456"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Kontakt: E-Mail</Label>
+                        <Input
+                          value={editForm.contact_email}
+                          onChange={e => setEditForm(prev => ({ ...prev, contact_email: e.target.value }))}
+                          className="mt-1"
+                          placeholder="info@verein.de"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Kontakt: Website</Label>
+                        <Input
+                          value={editForm.contact_website}
+                          onChange={e => setEditForm(prev => ({ ...prev, contact_website: e.target.value }))}
+                          className="mt-1"
+                          placeholder="https://verein.de"
+                        />
+                      </div>
+                    </>
+                  )}
 
                   <div>
                     <Label className="text-xs">Street</Label>
@@ -1279,6 +1344,10 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
   const placeTypeChanged = proposedData?.place?.place_type !== currentData?.place?.place_type
   const descriptionChanged = proposedData?.place?.description !== currentData?.place?.description
   const imageChanged = proposedData?.place?.image_url !== currentData?.place?.image_url
+  const contactPhoneChanged = proposedData?.place?.contact_phone !== currentData?.place?.contact_phone
+  const contactEmailChanged = proposedData?.place?.contact_email !== currentData?.place?.contact_email
+  const contactWebsiteChanged = proposedData?.place?.contact_website !== currentData?.place?.contact_website
+  const contactChanged = contactPhoneChanged || contactEmailChanged || contactWebsiteChanged
 
   const changeSummary: string[] = [
     nameChanged && 'Name',
@@ -1289,6 +1358,7 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
     changedAddressFields.length > 0 && 'Address',
     sportsChanged && 'Sports',
     courtsChanged && 'Courts',
+    contactChanged && 'Kontakt',
   ].filter(Boolean) as string[]
 
   // ── Map data ──
@@ -1551,6 +1621,26 @@ function CommunityEditCard({ edit, onApprove, onReject }: {
               </div>
             )}
           </div>
+
+            {contactChanged && (
+              <div>
+                <p className="text-xs font-medium mb-1">Kontakt</p>
+                {[
+                  { label: 'Telefon', propKey: 'contact_phone', changed: contactPhoneChanged },
+                  { label: 'E-Mail', propKey: 'contact_email', changed: contactEmailChanged },
+                  { label: 'Website', propKey: 'contact_website', changed: contactWebsiteChanged },
+                ].filter(f => f.changed).map(({ label, propKey }) => (
+                  <div key={propKey} className="grid grid-cols-2 gap-2 text-xs mb-1">
+                    <div className="font-mono bg-green-100 text-green-800 px-2 py-1 rounded">
+                      <span className="font-medium">{label}: </span>{proposedData?.place?.[propKey] || '—'}
+                    </div>
+                    <div className="font-mono bg-red-100 text-red-800 px-2 py-1 rounded">
+                      <span className="font-medium">{label}: </span>{currentData?.place?.[propKey] || '—'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
           {/* Actions */}
           <div className="flex gap-2 pt-2">

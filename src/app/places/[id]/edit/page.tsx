@@ -67,6 +67,11 @@ function EditPlaceContent({ params }: EditPlacePageProps) {
         country: formData.address.country,
         postcode: formData.address.postcode,
         district: formData.address.district,
+        // Verein contact & hours
+        contact_phone: formData.contactPhone || null,
+        contact_email: formData.contactEmail || null,
+        contact_website: formData.contactWebsite || null,
+        opening_hours: formData.openingHours || null,
       }
 
       const courts = formData.courts

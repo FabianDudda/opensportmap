@@ -15,7 +15,8 @@ import { reverseGeocode, AddressComponents } from '@/lib/geocoding'
 import { uploadCourtImage, UploadProgress } from '@/lib/supabase/storage'
 import { sportIcons } from '@/lib/utils/sport-utils'
 import { cn } from '@/lib/utils'
-import { MapPin, Plus, Check, Upload, X, Image, Loader2, RefreshCcw, AlertCircle } from 'lucide-react'
+import { MapPin, Plus, Check, Upload, X, Image, Loader2, RefreshCcw, AlertCircle, Phone, Mail, Globe } from 'lucide-react'
+import { OpeningHours } from '@/lib/supabase/types'
 
 const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map'), {
   ssr: false,
@@ -65,6 +66,10 @@ export interface PlaceFormData {
   address: AddressComponents
   imageFile: File | null
   imageUrl?: string | null
+  contactPhone: string
+  contactEmail: string
+  contactWebsite: string
+  openingHours: OpeningHours | null
 }
 
 interface PlaceFormProps {
@@ -135,6 +140,13 @@ export default function PlaceForm({
   const [imageRemoved, setImageRemoved] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
+
+  const [contactPhone, setContactPhone] = useState(initialData?.contact_phone || '')
+  const [contactEmail, setContactEmail] = useState(initialData?.contact_email || '')
+  const [contactWebsite, setContactWebsite] = useState(initialData?.contact_website || '')
+  const [phoneError, setPhoneError] = useState('')
+  const [websiteError, setWebsiteError] = useState('')
+  const hasExistingContact = !!(initialData?.contact_phone || initialData?.contact_email || initialData?.contact_website)
 
   const handleMapClick = useCallback(async (lng: number, lat: number) => {
     setLocation({ lat, lng })
@@ -212,6 +224,19 @@ export default function PlaceForm({
     if (selectedSports.length === 0) { toast({ title: 'Mindestens eine Sportart auswählen', variant: 'destructive' }); return }
     if (!location) { toast({ title: 'Standort erforderlich', description: 'Tippe auf die Karte, um einen Standort zu setzen.', variant: 'destructive' }); return }
 
+    if (placeType === 'verein') {
+      let hasContactError = false
+      if (contactPhone.trim() && /\D/.test(contactPhone.trim())) {
+        setPhoneError('Nur Ziffern erlaubt'); hasContactError = true
+      } else if (contactPhone.trim() && contactPhone.trim().length < 7) {
+        setPhoneError('Telefonnummer zu kurz'); hasContactError = true
+      }
+      if (contactWebsite.trim() && !/\.[a-zA-Z]{2,6}$/.test(contactWebsite.trim())) {
+        setWebsiteError('Ungültige Website-Adresse'); hasContactError = true
+      }
+      if (hasContactError) return
+    }
+
     let finalImageUrl = imageRemoved ? null : (initialData?.image_url || null)
     if (imageFile) {
       try {
@@ -244,6 +269,10 @@ export default function PlaceForm({
       address: Object.values(address).some(v => v) ? address : {},
       imageFile,
       imageUrl: finalImageUrl,
+      contactPhone: placeType === 'verein' ? contactPhone.trim() : '',
+      contactEmail: placeType === 'verein' ? contactEmail.trim() : '',
+      contactWebsite: placeType === 'verein' ? contactWebsite.trim() : '',
+      openingHours: null,
     })
   }
 
@@ -290,6 +319,33 @@ export default function PlaceForm({
         </div>
       </div>
 
+      {/* Verein: Contact */}
+      {placeType === 'verein' && (
+        <div className="space-y-2">
+          <Label>Kontakt (Optional)</Label>
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Input placeholder="Telefon" value={contactPhone} onChange={e => { setContactPhone(e.target.value); setPhoneError('') }} className={phoneError ? 'border-destructive' : ''} />
+              </div>
+              {phoneError && <p className="text-xs text-destructive pl-6">{phoneError}</p>}
+            </div>
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Input type="email" placeholder="E-Mail" value={contactEmail} onChange={e => setContactEmail(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Input placeholder="Website (https://...)" value={contactWebsite} onChange={e => { setContactWebsite(e.target.value); setWebsiteError('') }} className={websiteError ? 'border-destructive' : ''} />
+              </div>
+              {websiteError && <p className="text-xs text-destructive pl-6">{websiteError}</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sports */}
       <div className="space-y-2">
         <Label>Verfügbare Sportarten *</Label>
@@ -322,25 +378,23 @@ export default function PlaceForm({
           <Label>Platz-Details</Label>
           {selectedSports.map(sport => {
             const surfaces = courtSurfaces[sport] || ['']
+            const sportLabel = sport.charAt(0).toUpperCase() + sport.slice(1)
             return (
-              <div key={sport} className="border rounded-lg p-4 space-y-3">
-                <h4 className="font-medium">{sport.charAt(0).toUpperCase() + sport.slice(1)}</h4>
-                <div className="space-y-2">
-                  {surfaces.map((surface, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground min-w-[4.5rem]">Platz {idx + 1}</span>
-                      <Select value={surface || 'Unbekannt'} onValueChange={val => updateCourtSurface(sport, idx, val)}>
-                        <SelectTrigger className="flex-1"><SelectValue placeholder="Belagstyp..." /></SelectTrigger>
-                        <SelectContent>
-                          {SURFACE_TYPES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeCourtForSport(sport, idx)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+              <div key={sport} className="space-y-2">
+                {surfaces.map((surface, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground min-w-[8rem]">{sportLabel} Platz {idx + 1}</span>
+                    <Select value={surface || 'Unbekannt'} onValueChange={val => updateCourtSurface(sport, idx, val)}>
+                      <SelectTrigger className="flex-1"><SelectValue placeholder="Belagstyp..." /></SelectTrigger>
+                      <SelectContent>
+                        {SURFACE_TYPES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeCourtForSport(sport, idx)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
                 <Button type="button" variant="outline" size="sm" onClick={() => addCourtForSport(sport)}>
                   <Plus className="h-4 w-4 mr-1" />Weiteren Platz hinzufügen
                 </Button>

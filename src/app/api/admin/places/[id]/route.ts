@@ -42,6 +42,7 @@ export async function PATCH(
     'street', 'house_number', 'city', 'postcode',
     'district', 'county', 'state', 'country',
     'latitude', 'longitude', 'sports',
+    'contact_phone', 'contact_email', 'contact_website', 'opening_hours',
   ] as const
   type AllowedKey = typeof allowed[number]
 
