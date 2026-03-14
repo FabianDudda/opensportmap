@@ -57,9 +57,11 @@ export async function POST(request: Request) {
     
     // console.log(`📡 Making request to: ${url.toString()}`)
 
+    const contact = process.env.NOMINATIM_CONTACT ?? 'court-sports-app'
     const response = await fetch(url.toString(), {
       headers: {
-        'User-Agent': 'Court-Sports-App/1.0 (contact@example.com)', // Required by Nominatim
+        'User-Agent': `Court-Sports-App/1.0 (${contact})`,
+        'Referer': contact,
       },
       signal: controller.signal,
     })

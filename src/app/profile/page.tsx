@@ -4,7 +4,7 @@ import { useAuth } from '@/components/providers/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { User, Mail, Trophy, Calendar, Edit2, Plus, TestTube, Shield, LogOut, ChevronRight, MessageSquare, Info, Bell, Instagram, BookOpen, Sparkles, Download } from 'lucide-react'
+import { User, Mail, Trophy, Calendar, Edit2, Plus, Shield, LogOut, ChevronRight, MessageSquare, Info, Bell, Instagram, BookOpen, Sparkles, Download } from 'lucide-react'
 import { useInstallPrompt } from '@/hooks/use-install-prompt'
 import Link from 'next/link'
 
@@ -14,7 +14,6 @@ const NAV_ITEMS = [
   { name: 'Rangliste', href: '/rankings', icon: Trophy, adminOnly: true },
   { name: 'Spiel hinzufügen', href: '/matches/new', icon: Plus, adminOnly: true },
   { name: 'Events', href: '/events', icon: Calendar, adminOnly: true },
-  { name: 'Test', href: '/test', icon: TestTube, adminOnly: true },
   { name: 'Admin', href: '/admin/places', icon: Shield, adminOnly: true },
   { name: 'Meine Statistiken', href: '/profile/stats', icon: Trophy, adminOnly: true },
 ]

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import React from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/components/providers/auth-provider'
 import { database } from '@/lib/supabase/database'
@@ -8,6 +9,9 @@ import { PlaceWithCourts, ModerationStatus, PendingPlaceChange } from '@/lib/sup
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
@@ -24,7 +28,11 @@ import {
   Calendar,
   Edit,
   Flag,
-  Trash2
+  Trash2,
+  MapIcon,
+  Loader2,
+  Save,
+  Filter,
 } from 'lucide-react'
 import { getSportBadgeClasses, sportNames, sportIcons, getPlaceTypeBadgeClasses, placeTypeLabels, placeTypeIcons, PlaceType } from '@/lib/utils/sport-utils'
 import Link from 'next/link'
@@ -55,7 +63,8 @@ function ModerationStats() {
   if (isLoading) return <div>Loading stats...</div>
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <>
+    <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Pending</CardTitle>
@@ -94,6 +103,15 @@ function ModerationStats() {
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+          <XCircle className="h-4 w-4 text-red-600" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats?.rejected || 0}</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total</CardTitle>
           <MapPin className="h-4 w-4 text-blue-600" />
         </CardHeader>
@@ -102,6 +120,8 @@ function ModerationStats() {
         </CardContent>
       </Card>
     </div>
+
+    </>
   )
 }
 
@@ -1178,9 +1198,755 @@ function ReportedTab() {
   )
 }
 
-function AdminPlacesPage() {
+const PAGE_SIZE = 50
+
+function DataToolsTab({ isActive }: { isActive: boolean }) {
+  const [isGeocoding, setIsGeocoding] = useState(false)
+  const [isSavingAddresses, setIsSavingAddresses] = useState(false)
+  const [isDeletingPlaces, setIsDeletingPlaces] = useState(false)
+  const [geocodingPlace, setGeocodingPlace] = useState<string | null>(null)
+  const [savingPlace, setSavingPlace] = useState<string | null>(null)
+  const [deletingPlace, setDeletingPlace] = useState<string | null>(null)
+  const [geocodingResults, setGeocodingResults] = useState<string | null>(null)
+  const [enrichedPlaces, setEnrichedPlaces] = useState<PlaceWithCourts[]>([])
+  const [selectedPlaces, setSelectedPlaces] = useState<Set<string>>(new Set())
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null)
+  const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set())
+  const [missingAddressOnly, setMissingAddressOnly] = useState(false)
+  const [page, setPage] = useState(0)
+  const queryClient = useQueryClient()
+
+  // Reset to page 0 whenever a filter changes
+  const setFilter = <T,>(setter: React.Dispatch<React.SetStateAction<T>>) => (value: T) => {
+    setter(value)
+    setPage(0)
+    setSelectedPlaces(new Set())
+  }
+
+  const filters = {
+    sources: selectedSources.size > 0 ? [...selectedSources] : undefined,
+    addressStatus: missingAddressOnly ? 'coordinates-only' as const : 'all' as const,
+    page,
+    pageSize: PAGE_SIZE,
+  }
+
+  const { data: pagedResult, isLoading, isFetching, error } = useQuery({
+    queryKey: ['data-tools-places', filters],
+    queryFn: () => database.places.getPlacesAdminPaged(filters),
+    enabled: isActive,
+    placeholderData: (prev) => prev,
+  })
+
+  const { data: meta } = useQuery({
+    queryKey: ['data-tools-meta'],
+    queryFn: () => database.places.getPlacesAdminMeta(),
+    enabled: isActive,
+    staleTime: 60_000,
+  })
+
+  const totalCount = pagedResult?.count ?? 0
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+
+  // Overlay locally enriched places on top of the current page data
+  const displayPlaces: PlaceWithCourts[] = (pagedResult?.data ?? []).map(place =>
+    enrichedPlaces.find(e => e.id === place.id) ?? place
+  )
+
+  const hasAddressData = (place: PlaceWithCourts) => {
+    return !!(place.street || place.city || place.district || place.state || place.country || place.county || place.postcode)
+  }
+
+  const getSelectedPlacesData = () => displayPlaces.filter(place => selectedPlaces.has(place.id))
+
+  const handleSelectAll = () => {
+    if (selectedPlaces.size === displayPlaces.length) {
+      setSelectedPlaces(new Set())
+    } else {
+      setSelectedPlaces(new Set(displayPlaces.map(place => place.id)))
+    }
+    setLastSelectedIndex(null)
+  }
+
+  const handleBulkGeocode = async () => {
+    const selectedPlacesData = getSelectedPlacesData()
+    if (selectedPlacesData.length === 0) return
+    setIsGeocoding(true)
+    setGeocodingResults(null)
+    try {
+      let successCount = 0
+      let noAddressCount = 0
+      let errorCount = 0
+      for (let i = 0; i < selectedPlacesData.length; i++) {
+        const place = selectedPlacesData[i]
+        try {
+          if (place.latitude == null || place.longitude == null) {
+            noAddressCount++
+            continue
+          }
+          const response = await fetch('/api/geocode/lookup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ latitude: Number(place.latitude), longitude: Number(place.longitude), language: 'de' }),
+          })
+          if (response.ok) {
+            const result = await response.json()
+            const addressFields = {
+              street: result.address.street || null,
+              house_number: result.address.house_number || null,
+              city: result.address.city || null,
+              district: result.address.district || place.district || null,
+              county: result.address.county || null,
+              state: result.address.state || null,
+              country: result.address.country || null,
+              postcode: result.address.postcode || null,
+            }
+            const saveRes = await fetch('/api/admin/places/update-address', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ placeId: place.id, address: addressFields }),
+            })
+            if (!saveRes.ok) {
+              errorCount++
+            } else {
+              setEnrichedPlaces(prev => {
+                const enrichedPlace = { ...place, ...addressFields }
+                const existing = prev.find(p => p.id === place.id)
+                if (existing) return prev.map(p => p.id === place.id ? enrichedPlace : p)
+                return [...prev, enrichedPlace]
+              })
+              successCount++
+              setGeocodingResults(`🔄 Processing... ${i + 1}/${selectedPlacesData.length} (${successCount} saved)`)
+            }
+          } else if (response.status === 404) {
+            noAddressCount++
+          } else {
+            errorCount++
+          }
+        } catch {
+          errorCount++
+        }
+        if (i < selectedPlacesData.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1100))
+        }
+      }
+      if (successCount > 0) {
+        await queryClient.invalidateQueries({ queryKey: ['data-tools-places'] })
+        await queryClient.invalidateQueries({ queryKey: ['data-tools-meta'] })
+      }
+      setGeocodingResults(`✅ Completed! ${successCount} saved${noAddressCount > 0 ? `, ${noAddressCount} no address found` : ''}${errorCount > 0 ? `, ${errorCount} errors` : ''}`)
+    } catch (error) {
+      setGeocodingResults(`❌ Request failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsGeocoding(false)
+    }
+  }
+
+  const handleSaveAddresses = async () => {
+    const selectedPlacesData = getSelectedPlacesData()
+    if (selectedPlacesData.length === 0) return
+    setIsSavingAddresses(true)
+    setGeocodingResults(null)
+    try {
+      const placesToUpdate = selectedPlacesData.filter(place => hasAddressData(place))
+      if (placesToUpdate.length === 0) {
+        setGeocodingResults('❌ No enriched addresses to save')
+        return
+      }
+      let successCount = 0
+      let errorCount = 0
+      const failedPlaces: string[] = []
+      const succeededPlaces: string[] = []
+      const BATCH_SIZE = 10
+      const DELAY_MS = 300
+      for (let batchStart = 0; batchStart < placesToUpdate.length; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, placesToUpdate.length)
+        const currentBatch = placesToUpdate.slice(batchStart, batchEnd)
+        const batchNumber = Math.floor(batchStart / BATCH_SIZE) + 1
+        const totalBatches = Math.ceil(placesToUpdate.length / BATCH_SIZE)
+        for (let i = 0; i < currentBatch.length; i++) {
+          const place = currentBatch[i]
+          const overallIndex = batchStart + i
+          let retryCount = 0
+          const maxRetries = 3
+          let success = false
+          while (!success && retryCount < maxRetries) {
+            try {
+              const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Database operation timeout after 30 seconds')), 30000)
+              })
+              const updateResult = await Promise.race([
+                database.courts.updateCourt(place.id, {
+                  street: place.street,
+                  house_number: place.house_number,
+                  city: place.city,
+                  district: place.district,
+                  county: place.county,
+                  state: place.state,
+                  country: place.country,
+                  postcode: place.postcode,
+                }),
+                timeoutPromise
+              ]) as any
+              const { error } = updateResult
+              if (error) {
+                throw new Error(`Database error: ${error.message || JSON.stringify(error)}`)
+              } else {
+                successCount++
+                succeededPlaces.push(place.id)
+                success = true
+              }
+            } catch (error) {
+              retryCount++
+              if (retryCount >= maxRetries) {
+                errorCount++
+                failedPlaces.push(place.id)
+              } else {
+                await new Promise(resolve => setTimeout(resolve, 500 * retryCount))
+              }
+            }
+          }
+          setGeocodingResults(`💾 Saving batch ${batchNumber}/${totalBatches}... ${overallIndex + 1}/${placesToUpdate.length} (${successCount} successful, ${errorCount} failed)`)
+          if (overallIndex < placesToUpdate.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, DELAY_MS))
+          }
+        }
+      }
+      if (successCount > 0) {
+        await queryClient.invalidateQueries({ queryKey: ['data-tools-places'] })
+        const successfullyUpdatedPlaces = placesToUpdate.filter(p => succeededPlaces.includes(p.id))
+        setEnrichedPlaces(prev => prev.filter(p => !successfullyUpdatedPlaces.some(saved => saved.id === p.id)))
+        setSelectedPlaces(prev => {
+          const newSelected = new Set(prev)
+          successfullyUpdatedPlaces.forEach(place => newSelected.delete(place.id))
+          return newSelected
+        })
+      }
+      setGeocodingResults(`✅ Addresses saved! ${successCount} places updated${errorCount > 0 ? `, ${errorCount} errors` : ''}`)
+      if (failedPlaces.length > 0) console.error('Failed places:', failedPlaces)
+    } catch (error) {
+      setGeocodingResults(`❌ Save failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsSavingAddresses(false)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    const selectedPlacesData = getSelectedPlacesData()
+    if (selectedPlacesData.length === 0) return
+    const confirmed = window.confirm(
+      `⚠️ Are you sure you want to delete ${selectedPlacesData.length} place${selectedPlacesData.length !== 1 ? 's' : ''} and all their associated courts?\n\nThis action cannot be undone!\n\nPlaces to delete:\n${selectedPlacesData.map(p => `• ${p.name}`).join('\n')}`
+    )
+    if (!confirmed) return
+    setIsDeletingPlaces(true)
+    setGeocodingResults(null)
+    try {
+      let successCount = 0
+      let errorCount = 0
+      const failedPlaces: string[] = []
+      const succeededPlaces: string[] = []
+      const BATCH_SIZE = 5
+      const DELAY_MS = 500
+      for (let batchStart = 0; batchStart < selectedPlacesData.length; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, selectedPlacesData.length)
+        const currentBatch = selectedPlacesData.slice(batchStart, batchEnd)
+        const batchNumber = Math.floor(batchStart / BATCH_SIZE) + 1
+        const totalBatches = Math.ceil(selectedPlacesData.length / BATCH_SIZE)
+        for (let i = 0; i < currentBatch.length; i++) {
+          const place = currentBatch[i]
+          const overallIndex = batchStart + i
+          let retryCount = 0
+          const maxRetries = 3
+          let success = false
+          while (!success && retryCount < maxRetries) {
+            try {
+              if (place.courts && place.courts.length > 0) {
+                for (const court of place.courts) {
+                  const courtDeleteResult = await database.courts.deleteCourt(court.id)
+                  if (courtDeleteResult.error) throw new Error(`Failed to delete court ${court.id}: ${courtDeleteResult.error.message}`)
+                }
+              }
+              const placeDeleteResult = await database.courts.deleteCourt(place.id)
+              if (placeDeleteResult.error) throw new Error(`Failed to delete place: ${placeDeleteResult.error.message}`)
+              successCount++
+              succeededPlaces.push(place.id)
+              success = true
+            } catch (error) {
+              retryCount++
+              if (retryCount >= maxRetries) {
+                errorCount++
+                failedPlaces.push(place.id)
+              } else {
+                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
+              }
+            }
+          }
+          setGeocodingResults(`🗑️ Deleting batch ${batchNumber}/${totalBatches}... ${overallIndex + 1}/${selectedPlacesData.length} (${successCount} deleted, ${errorCount} failed)`)
+          if (overallIndex < selectedPlacesData.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, DELAY_MS))
+          }
+        }
+      }
+      if (successCount > 0) {
+        await queryClient.invalidateQueries({ queryKey: ['data-tools-places'] })
+        setEnrichedPlaces(prev => prev.filter(p => !succeededPlaces.includes(p.id)))
+        setSelectedPlaces(prev => {
+          const newSelected = new Set(prev)
+          succeededPlaces.forEach(placeId => newSelected.delete(placeId))
+          return newSelected
+        })
+      }
+      setGeocodingResults(`✅ Deletion complete! ${successCount} places deleted${errorCount > 0 ? `, ${errorCount} errors` : ''}`)
+      if (failedPlaces.length > 0) console.error('Failed places:', failedPlaces)
+    } catch (error) {
+      setGeocodingResults(`❌ Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsDeletingPlaces(false)
+    }
+  }
+
+  const handleSingleGeocode = async (place: PlaceWithCourts) => {
+    setGeocodingPlace(place.id)
+    setGeocodingResults(null)
+    try {
+      if (place.latitude == null || place.longitude == null) {
+        setGeocodingResults(`❌ No coordinates for ${place.name}`)
+        return
+      }
+      const response = await fetch('/api/geocode/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude: Number(place.latitude), longitude: Number(place.longitude), language: 'de' }),
+      })
+      if (response.ok) {
+        const result = await response.json()
+        const addressFields = {
+          street: result.address.street || null,
+          house_number: result.address.house_number || null,
+          city: result.address.city || null,
+          district: result.address.district || place.district || null,
+          county: result.address.county || null,
+          state: result.address.state || null,
+          country: result.address.country || null,
+          postcode: result.address.postcode || null,
+        }
+        const saveRes = await fetch('/api/admin/places/update-address', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ placeId: place.id, address: addressFields }),
+        })
+        if (!saveRes.ok) {
+          const err = await saveRes.json().catch(() => ({}))
+          setGeocodingResults(`❌ Failed to save address for ${place.name}: ${err.error ?? saveRes.status}`)
+        } else {
+          setEnrichedPlaces(prev => {
+            const enrichedPlace = { ...place, ...addressFields }
+            const existing = prev.find(p => p.id === place.id)
+            if (existing) return prev.map(p => p.id === place.id ? enrichedPlace : p)
+            return [...prev, enrichedPlace]
+          })
+          await queryClient.invalidateQueries({ queryKey: ['data-tools-places'] })
+          setGeocodingResults(`✅ Address saved for ${place.name}`)
+        }
+      } else if (response.status === 404) {
+        setGeocodingResults(`⚠️ No address found in OpenStreetMap for ${place.name} (coordinates may be in a park or field)`)
+      } else {
+        const err = await response.json().catch(() => ({}))
+        setGeocodingResults(`❌ Geocoding failed for ${place.name}: ${err.error ?? response.status}`)
+      }
+    } catch (error) {
+      setGeocodingResults(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setGeocodingPlace(null)
+    }
+  }
+
+  const handleSingleSaveAddress = async (place: PlaceWithCourts) => {
+    if (!hasAddressData(place)) return
+    setSavingPlace(place.id)
+    setGeocodingResults(null)
+    try {
+      const { error } = await database.courts.updateCourt(place.id, {
+        street: place.street,
+        house_number: place.house_number,
+        city: place.city,
+        district: place.district,
+        county: place.county,
+        state: place.state,
+        country: place.country,
+        postcode: place.postcode,
+      })
+      if (error) {
+        setGeocodingResults(`❌ Failed to save address for ${place.name}`)
+      } else {
+        await queryClient.invalidateQueries({ queryKey: ['data-tools-places'] })
+        setEnrichedPlaces(prev => prev.filter(p => p.id !== place.id))
+        setGeocodingResults(`✅ Address saved for ${place.name}`)
+      }
+    } catch {
+      setGeocodingResults(`❌ Error saving address for ${place.name}`)
+    } finally {
+      setSavingPlace(null)
+    }
+  }
+
+  const handleSingleDelete = async (place: PlaceWithCourts) => {
+    const confirmed = window.confirm(
+      `⚠️ Are you sure you want to delete "${place.name}" and all its associated courts?\n\nThis action cannot be undone!`
+    )
+    if (!confirmed) return
+    setDeletingPlace(place.id)
+    setGeocodingResults(null)
+    try {
+      if (place.courts && place.courts.length > 0) {
+        for (const court of place.courts) {
+          const courtDeleteResult = await database.courts.deleteCourt(court.id)
+          if (courtDeleteResult.error) throw new Error(`Failed to delete court ${court.id}: ${courtDeleteResult.error.message}`)
+        }
+      }
+      const placeDeleteResult = await database.courts.deleteCourt(place.id)
+      if (placeDeleteResult.error) {
+        setGeocodingResults(`❌ Failed to delete ${place.name}`)
+        return
+      }
+      await queryClient.invalidateQueries({ queryKey: ['data-tools-places'] })
+      setEnrichedPlaces(prev => prev.filter(p => p.id !== place.id))
+      setSelectedPlaces(prev => {
+        const newSelected = new Set(prev)
+        newSelected.delete(place.id)
+        return newSelected
+      })
+      setGeocodingResults(`✅ Successfully deleted ${place.name}`)
+    } catch (error) {
+      setGeocodingResults(`❌ Error deleting ${place.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setDeletingPlace(null)
+    }
+  }
+
+  if (!isActive) return null
+  if (isLoading && !pagedResult) return <div className="text-center py-8">Loading places...</div>
+  if (error) return <div className="text-center py-8 text-red-500">Error loading places: {(error as Error).message}</div>
+
   return (
-    <div className="container px-4 py-6 max-w-xl mx-auto">
+    <div className="space-y-4">
+
+      <div className="space-y-4">
+        {/* Row 1: Source chips + missing address switch */}
+        <div className="flex flex-wrap items-center gap-2">
+          {isFetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          {(meta?.sources ?? []).map(({ name, count }) => {
+            const active = selectedSources.has(name)
+            return (
+              <button
+                key={name}
+                onClick={() => {
+                  setSelectedSources(prev => {
+                    const next = new Set(prev)
+                    if (next.has(name)) next.delete(name)
+                    else next.add(name)
+                    return next
+                  })
+                  setPage(0)
+                  setSelectedPlaces(new Set())
+                }}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  active
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-background text-muted-foreground border-border hover:border-primary hover:text-foreground'
+                }`}
+              >
+                {name} <span className="opacity-70">({count})</span>
+              </button>
+            )
+          })}
+          {selectedSources.size > 0 && (
+            <button
+              onClick={() => { setSelectedSources(new Set()); setPage(0); setSelectedPlaces(new Set()) }}
+              className="text-xs text-muted-foreground underline"
+            >
+              clear
+            </button>
+          )}
+        </div>
+
+        {/* Row 1b: Missing address switch */}
+        <div className="flex items-center gap-2">
+          <Switch
+            id="missing-address"
+            checked={missingAddressOnly}
+            onCheckedChange={(val) => { setMissingAddressOnly(val); setPage(0); setSelectedPlaces(new Set()) }}
+          />
+          <label htmlFor="missing-address" className="text-sm cursor-pointer">
+            📍 Missing Address{meta?.addressStats.coordinatesOnly != null ? ` (${meta.addressStats.coordinatesOnly})` : ''}
+          </label>
+        </div>
+
+        {/* Row 3: Action Buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSelectAll}
+          >
+            {selectedPlaces.size === displayPlaces.length && displayPlaces.length > 0 ? 'Deselect All' : `Select All (${displayPlaces.length})`}
+          </Button>
+          {selectedPlaces.size > 0 && (
+            <span className="text-sm text-muted-foreground">{selectedPlaces.size} selected</span>
+          )}
+          <div className="flex-1" />
+          <Button
+            onClick={handleBulkDelete}
+            disabled={isDeletingPlaces || selectedPlaces.size === 0}
+            variant="destructive"
+            className="flex items-center gap-2"
+          >
+            {isDeletingPlaces ? <><Loader2 className="h-4 w-4 animate-spin" />Deleting...</> : <><Trash2 className="h-4 w-4" />Delete Places ({selectedPlaces.size})</>}
+          </Button>
+
+          <Button
+            onClick={handleBulkGeocode}
+            disabled={isGeocoding || selectedPlaces.size === 0}
+            className="flex items-center gap-2"
+          >
+            {isGeocoding ? <><Loader2 className="h-4 w-4 animate-spin" />Geocoding & Saving...</> : <><MapIcon className="h-4 w-4" />Geocode & Save ({selectedPlaces.size})</>}
+          </Button>
+        </div>
+      </div>
+
+      {geocodingResults && (
+        <div className="p-3 rounded-md bg-muted">
+          <p className="text-sm">{geocodingResults}</p>
+        </div>
+      )}
+
+      {displayPlaces.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-8">
+            <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No places found</h3>
+            <p className="text-muted-foreground">No places match the current filters.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {displayPlaces.map((place: PlaceWithCourts, index: number) => {
+            const availableSports = place.courts?.length > 0
+              ? [...new Set(place.courts.map(court => court.sport))]
+              : (place.sports || [])
+            return (
+              <Card key={place.id}>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        onClick={(event) => {
+                          if (event.shiftKey && lastSelectedIndex !== null) {
+                            const start = Math.min(lastSelectedIndex, index)
+                            const end = Math.max(lastSelectedIndex, index)
+                            setSelectedPlaces(prev => {
+                              const newSelected = new Set(prev)
+                              for (let i = start; i <= end; i++) {
+                                if (i < displayPlaces.length) newSelected.add(displayPlaces[i].id)
+                              }
+                              return newSelected
+                            })
+                          }
+                        }}
+                      >
+                        <Checkbox
+                          checked={selectedPlaces.has(place.id)}
+                          onCheckedChange={(checked) => {
+                            setSelectedPlaces(prev => {
+                              const newSelected = new Set(prev)
+                              if (checked) newSelected.add(place.id)
+                              else newSelected.delete(place.id)
+                              return newSelected
+                            })
+                            setLastSelectedIndex(index)
+                          }}
+                        />
+                      </div>
+                      <span>{place.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                        <Button
+                          onClick={() => handleSingleDelete(place)}
+                          disabled={deletingPlace === place.id}
+                          variant="destructive"
+                          className="h-7 px-2 text-xs"
+                          title="Delete place and all courts"
+                        >
+                          {deletingPlace === place.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                        </Button>
+                        <Button
+                          onClick={() => handleSingleGeocode(place)}
+                          disabled={geocodingPlace === place.id}
+                          variant="default"
+                          className="h-7 px-2 text-xs"
+                          title="Geocode & save address"
+                        >
+                          {geocodingPlace === place.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <MapIcon className="h-3 w-3" />}
+                        </Button>
+                      </div>
+                      <Badge variant="outline">
+                        {place.courts?.length || 0} court{(place.courts?.length || 0) !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                  </CardTitle>
+                  <CardDescription>
+                    📍 {place.latitude}, {place.longitude}
+                    {place.district && ` • ${place.district}`}
+                    {place.neighborhood && ` • ${place.neighborhood}`}
+                  </CardDescription>
+                  {(place.street || place.city || place.country) && (
+                    <CardDescription className="mt-1">
+                      🏠 {[
+                        place.house_number && place.street ? `${place.street} ${place.house_number}` : place.street,
+                        place.city,
+                        place.state,
+                        place.country
+                      ].filter(Boolean).join(', ')}
+                      {place.postcode && ` (${place.postcode})`}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Available Sports:</h4>
+                      <div className="flex flex-wrap gap-1">
+                        {availableSports.length > 0 ? (
+                          availableSports.map((sport) => (
+                            <Badge key={sport} variant="secondary" className="text-xs">{sport}</Badge>
+                          ))
+                        ) : (
+                          <span className="text-sm text-muted-foreground">No sports specified</span>
+                        )}
+                      </div>
+                    </div>
+                    {place.courts && place.courts.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Court Details:</h4>
+                        <div className="space-y-2">
+                          {place.courts.map((court, i) => (
+                            <div key={court.id} className="text-sm bg-muted/50 p-2 rounded">
+                              <div className="font-medium">Court {i + 1}: {court.sport}</div>
+                              <div className="text-muted-foreground">Quantity: {court.quantity}</div>
+                              {court.surface && <div className="text-muted-foreground">Surface: {court.surface}</div>}
+                              {court.notes && <div className="text-muted-foreground">Notes: {court.notes}</div>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {place.description && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Description:</h4>
+                        <p className="text-sm text-muted-foreground">{place.description}</p>
+                      </div>
+                    )}
+                    {(place.street || place.city || place.district || place.country) && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Address Details:</h4>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          {place.street && <div>Street: {place.street}{place.house_number && ` ${place.house_number}`}</div>}
+                          {place.city && <div>City: {place.city}</div>}
+                          {place.district && <div>District: {place.district}</div>}
+                          {place.county && <div>County: {place.county}</div>}
+                          {place.state && <div>State: {place.state}</div>}
+                          {place.country && <div>Country: {place.country}</div>}
+                          {place.postcode && <div>Postal Code: {place.postcode}</div>}
+                        </div>
+                      </div>
+                    )}
+                    {place.image_url && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Court Image:</h4>
+                        <div className="relative w-full h-48 rounded-md overflow-hidden bg-muted">
+                          <img
+                            src={place.image_url}
+                            alt={place.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.style.display = 'none'
+                              target.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-sm text-muted-foreground">❌ Image failed to load</div>'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <div className="pt-2 border-t">
+                      <h4 className="text-sm font-medium mb-2">Metadata:</h4>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <div><span className="font-medium">ID:</span> {place.id}</div>
+                        <div><span className="font-medium">Source:</span> {place.source || 'unknown'}</div>
+                        {place.source_id && <div><span className="font-medium">Source ID:</span> {place.source_id}</div>}
+                        <div><span className="font-medium">Created:</span> {new Date(place.created_at).toLocaleString()}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Address Status:</span>
+                          {(place.street && place.city) ? (
+                            <Badge variant="default" className="text-xs">✅ Enriched</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">📍 Coordinates Only</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <details className="pt-2 border-t">
+                      <summary className="text-sm font-medium cursor-pointer hover:text-primary">🔍 Raw JSON Data</summary>
+                      <div className="mt-2 p-3 bg-muted rounded-md">
+                        <pre className="text-xs text-muted-foreground overflow-x-auto whitespace-pre-wrap break-words">
+                          {JSON.stringify(place, null, 2)}
+                        </pre>
+                      </div>
+                    </details>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4 border-t">
+          <span className="text-sm text-muted-foreground">
+            Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalCount)} of {totalCount}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+            >
+              Previous
+            </Button>
+            <span className="text-sm">Page {page + 1} / {totalPages}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AdminPlacesPage() {
+  const [activeTab, setActiveTab] = useState('pending')
+
+  return (
+    <div className="container px-4 py-6 max-w-4xl mx-auto">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Place Moderation</h1>
         <p className="text-muted-foreground mt-2">
@@ -1190,12 +1956,13 @@ function AdminPlacesPage() {
 
       <ModerationStats />
 
-      <Tabs defaultValue="pending" className="space-y-6">
+      <Tabs defaultValue="pending" onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
+          <TabsTrigger value="data-tools">All</TabsTrigger>
           <TabsTrigger value="pending">Pending Places</TabsTrigger>
           <TabsTrigger value="community-edits">Community Edits</TabsTrigger>
           <TabsTrigger value="reported">Reported</TabsTrigger>
-          <TabsTrigger value="approved">Approved</TabsTrigger>
+          <TabsTrigger value="rejected">Rejected</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending">
@@ -1223,21 +1990,26 @@ function AdminPlacesPage() {
           <ReportedTab />
         </TabsContent>
 
-        <TabsContent value="approved">
+
+        <TabsContent value="rejected">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                Approved Places
+                <XCircle className="h-5 w-5 text-red-600" />
+                Rejected Places
               </CardTitle>
               <CardDescription>
-                Places that have been approved and are visible on the map.
+                Places that were rejected and are not visible on the map.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <PlacesList status="approved" />
+              <PlacesList status="rejected" />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="data-tools">
+          <DataToolsTab isActive={activeTab === 'data-tools'} />
         </TabsContent>
 
       </Tabs>

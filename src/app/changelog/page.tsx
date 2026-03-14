@@ -15,6 +15,7 @@ const CHANGELOG = [
       'Update "Häufige Fragen" page',
       'Performance fixes',
       'Edit /places/id layout',
+      'Url now updates when place-sheet opens',
     ],
   },
   {
@@ -24,7 +25,6 @@ const CHANGELOG = [
     items: [
       'Added place type (Public / Club / School) with filter support on the map',
       'Guests can now add places and suggest edits – without an account, subject to admin approval',
-    
     ],
   },
   {

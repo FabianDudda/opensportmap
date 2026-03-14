@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/providers/auth-provider'
-import { MapPin, Trophy, Plus, User, LogOut, TestTube, Shield, Calendar, LogIn } from 'lucide-react'
+import { MapPin, Trophy, Plus, User, LogOut, Shield, Calendar, LogIn } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import Image from 'next/image'
 import '@/components/map/map-controls.css'
@@ -17,7 +17,6 @@ export default function Header() {
     { name: 'Add Match', href: '/matches/new', icon: Plus, adminOnly: true },
     { name: 'Add Place', href: '/map/new', icon: MapPin },
     { name: 'Events', href: '/events', icon: Calendar, adminOnly: true },
-    { name: 'Test', href: '/test', icon: TestTube, adminOnly: true },
     { name: 'Admin', href: '/admin/places', icon: Shield, adminOnly: true },
     { name: 'Sign In', href: '/auth/signin', icon: LogIn, guestOnly: true },
     { name: 'Profile', href: '/profile', icon: User },

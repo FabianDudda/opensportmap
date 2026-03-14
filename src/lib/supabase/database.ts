@@ -287,6 +287,94 @@ export const database = {
       return database.courts.getAllCourts()
     },
 
+    // Paginated + server-side filtered query for admin data tools
+    getPlacesAdminPaged: async (filters: {
+      city?: string
+      sport?: string
+      sources?: string[]
+      addressStatus?: 'all' | 'enriched' | 'coordinates-only'
+      page: number
+      pageSize: number
+    }): Promise<{ data: PlaceWithCourts[]; count: number }> => {
+      try {
+        let query = supabase
+          .from('places')
+          .select(`
+            *,
+            courts (
+              id,
+              place_id,
+              sport,
+              quantity,
+              surface,
+              notes,
+              created_at
+            )
+          `, { count: 'exact' })
+
+        if (filters.city) query = query.eq('city', filters.city)
+        if (filters.sources && filters.sources.length > 0) query = query.in('source', filters.sources)
+        if (filters.addressStatus === 'enriched') {
+          query = query.not('street', 'is', null).not('city', 'is', null)
+        } else if (filters.addressStatus === 'coordinates-only') {
+          query = query.or('street.is.null,city.is.null')
+        }
+        if (filters.sport) {
+          query = query.contains('sports', [filters.sport])
+        }
+
+        const start = filters.page * filters.pageSize
+        const end = start + filters.pageSize - 1
+        const { data, count, error } = await query
+          .order('created_at', { ascending: false })
+          .range(start, end)
+
+        if (error) throw error
+        return { data: data ?? [], count: count ?? 0 }
+      } catch (error) {
+        console.error('Error fetching admin places:', error)
+        return { data: [], count: 0 }
+      }
+    },
+
+    // Lightweight meta query — counts per city/source/sport + address stats for filter dropdowns
+    getPlacesAdminMeta: async (): Promise<{
+      cities: { name: string; count: number }[]
+      sources: { name: string; count: number }[]
+      sports: { name: string; count: number }[]
+      addressStats: { total: number; enriched: number; coordinatesOnly: number }
+    }> => {
+      try {
+        const data = await fetchAllRecords<{ city: string | null; source: string | null; sports: string[] | null; street: string | null }>(
+          supabase.from('places').select('city, source, sports, street')
+        )
+
+        const cityMap: Record<string, number> = {}
+        const sourceMap: Record<string, number> = {}
+        const sportMap: Record<string, number> = {}
+        let enriched = 0
+
+        for (const p of data ?? []) {
+          if (p.city)   cityMap[p.city]     = (cityMap[p.city]   ?? 0) + 1
+          if (p.source) sourceMap[p.source] = (sourceMap[p.source] ?? 0) + 1
+          for (const s of (p.sports ?? []) as string[]) if (s) sportMap[s] = (sportMap[s] ?? 0) + 1
+          if (p.street && p.city) enriched++
+        }
+
+        const total = (data ?? []).length
+
+        return {
+          cities:  Object.entries(cityMap).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => ({ name, count })),
+          sources: Object.entries(sourceMap).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => ({ name, count })),
+          sports:  Object.entries(sportMap).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => ({ name, count })),
+          addressStats: { total, enriched, coordinatesOnly: total - enriched },
+        }
+      } catch (error) {
+        console.error('Error fetching admin meta:', error)
+        return { cities: [], sources: [], sports: [], addressStats: { total: 0, enriched: 0, coordinatesOnly: 0 } }
+      }
+    },
+
     getPlace: async (placeId: string): Promise<PlaceWithCourts | null> => {
       return database.courts.getCourt(placeId)
     },
@@ -1084,19 +1172,34 @@ export const database = {
 
     // Get moderation stats
     getModerationStats: async () => {
-      const [pendingResult, approvedResult, communityEditsResult, reportsResult] = await Promise.all([
-        supabase.from('places').select('id', { count: 'exact' }).eq('moderation_status', 'pending'),
-        supabase.from('places').select('id', { count: 'exact' }).eq('moderation_status', 'approved'),
-        supabase.from('pending_place_changes').select('id', { count: 'exact' }).eq('status', 'pending'),
-        supabase.from('place_reports').select('id', { count: 'exact' }).eq('status', 'open')
+      const [
+        pendingResult, approvedResult, rejectedResult, totalResult,
+        communityEditsResult, reportsResult,
+        courtsResult, withImagesResult, citiesResult,
+      ] = await Promise.all([
+        supabase.from('places').select('id', { count: 'exact', head: true }).eq('moderation_status', 'pending'),
+        supabase.from('places').select('id', { count: 'exact', head: true }).eq('moderation_status', 'approved'),
+        supabase.from('places').select('id', { count: 'exact', head: true }).eq('moderation_status', 'rejected'),
+        supabase.from('places').select('id', { count: 'exact', head: true }),
+        supabase.from('pending_place_changes').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('place_reports').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+        supabase.from('courts').select('id', { count: 'exact', head: true }),
+        supabase.from('places').select('id', { count: 'exact', head: true }).not('image_url', 'is', null),
+        supabase.from('places').select('city').not('city', 'is', null),
       ])
+
+      const uniqueCities = new Set((citiesResult.data ?? []).map((r: { city: string }) => r.city)).size
 
       return {
         pending: pendingResult.count || 0,
         approved: approvedResult.count || 0,
+        rejected: rejectedResult.count || 0,
         community_edits: communityEditsResult.count || 0,
         reports: reportsResult.count || 0,
-        total: (pendingResult.count || 0) + (approvedResult.count || 0)
+        total: totalResult.count || 0,
+        total_courts: courtsResult.count || 0,
+        with_images: withImagesResult.count || 0,
+        unique_cities: uniqueCities,
       }
     }
   },
