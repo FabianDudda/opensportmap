@@ -11,6 +11,8 @@ const CHANGELOG = [
     current: true,
     items: [
       'Added a "About" page',
+      'Added "Install app" button for android user',
+      'Update "Häufige Fragen" page',
     ],
   },
   {

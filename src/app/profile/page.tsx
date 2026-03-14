@@ -80,14 +80,14 @@ export default function ProfilePage() {
                 <span>Was ist OpenSportMap?</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
               </Link>
-              <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                <span>Feedback geben</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
-              </Link>
               <Link href="/faq" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
                 <span>Häufige Fragen</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+              </Link>
+              <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <span>Feedback geben</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
               </Link>
               <Link href="/impressum" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
@@ -170,14 +170,14 @@ export default function ProfilePage() {
                 <span>Was ist OpenSportMap?</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
               </Link>
-              <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                <span>Feedback geben</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
-              </Link>
               <Link href="/faq" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
                 <span>Häufige Fragen</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+              </Link>
+              <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <span>Feedback geben</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
               </Link>
               <Link href="/impressum" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">

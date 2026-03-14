@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { Geist, Geist_Mono } from "next/font/google"
+import Script from "next/script"
 import "./globals.css"
 import { Analytics } from "@vercel/analytics/next"
 import QueryProvider from "@/components/providers/query-provider"
@@ -71,7 +72,9 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
-        <script
+        <Script
+          id="install-prompt"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__installPrompt=e;});`,
           }}
