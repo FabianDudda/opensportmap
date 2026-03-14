@@ -13,6 +13,8 @@ const CHANGELOG = [
       'Added a "About" page',
       'Added "Install app" button for android user',
       'Update "Häufige Fragen" page',
+      'Performance fixes',
+      'Edit /places/id layout',
     ],
   },
   {

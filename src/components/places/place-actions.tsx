@@ -1,10 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Edit, Share2, Navigation } from 'lucide-react'
+import { Pencil, Flag, Share2 } from 'lucide-react'
 import { useAuth } from '@/components/providers/auth-provider'
 import { PlaceWithCourts } from '@/lib/supabase/types'
-import Link from 'next/link'
+import { useToast } from '@/hooks/use-toast'
+import ReportPlaceBottomSheet from '@/components/map/report-place-bottom-sheet-vaul'
+import { useRouter } from 'next/navigation'
 
 interface PlaceActionsProps {
   place: PlaceWithCourts
@@ -12,48 +15,74 @@ interface PlaceActionsProps {
 
 export default function PlaceActions({ place }: PlaceActionsProps) {
   const { user, profile } = useAuth()
-  
-  const isAdmin = profile?.user_role === 'admin'
-  const canEdit = !!user // Any authenticated user can edit (community-based)
+  const { toast } = useToast()
+  const router = useRouter()
+  const [isReportOpen, setIsReportOpen] = useState(false)
 
   const handleShare = () => {
+    const shareUrl = `${window.location.origin}/places/${place.id}`
     if (navigator.share) {
       navigator.share({
         title: place.name,
         text: `Check out ${place.name}`,
-        url: `${window.location.origin}/places/${place.id}`
+        url: shareUrl,
       }).catch(err => console.log('Share failed:', err))
     } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(`${window.location.origin}/places/${place.id}`)
-        .then(() => console.log('URL copied to clipboard'))
-        .catch(err => console.log('Copy failed:', err))
+      navigator.clipboard.writeText(shareUrl)
+        .then(() => toast({ title: 'Link kopiert!' }))
+        .catch(() => toast({ title: 'Link konnte nicht kopiert werden', variant: 'destructive' }))
     }
   }
 
-  const handleDirections = () => {
-    const url = `https://maps.google.com/?q=${place.latitude},${place.longitude}`
-    window.open(url, '_blank', 'noopener,noreferrer')
+  const handleEdit = () => {
+    if (!user) {
+      router.push(`/auth/signin?redirect=/places/${place.id}/edit`)
+    } else {
+      router.push(`/places/${place.id}/edit`)
+    }
   }
 
   return (
-    <div className="flex gap-2">
-      {canEdit && (
-        <Button variant="outline" asChild>
-          <Link href={`/places/${place.id}/edit`}>
-            <Edit className="h-4 w-4 mr-2" />
-            {isAdmin ? 'Bearbeiten' : 'Bearbeitung vorschlagen'}
-          </Link>
+    <>
+      <ReportPlaceBottomSheet
+        isOpen={isReportOpen}
+        onOpenChange={setIsReportOpen}
+        placeId={place.id}
+        placeName={place.name}
+        userId={user?.id ?? null}
+      />
+
+      <div className="flex items-center gap-3">
+        <Button
+          variant="secondary"
+          size="icon"
+          className="rounded-full"
+          onClick={handleEdit}
+          title={user && profile?.user_role === 'admin' ? 'Ort bearbeiten' : user ? 'Bearbeitung vorschlagen' : 'Anmelden zum Bearbeiten'}
+        >
+          <Pencil className="h-[18px] w-[18px]" />
         </Button>
-      )}
-      <Button variant="outline" onClick={handleShare}>
-        <Share2 className="h-4 w-4 mr-2" />
-        Teilen
-      </Button>
-      <Button variant="outline" onClick={handleDirections}>
-        <Navigation className="h-4 w-4 mr-2" />
-        Route
-      </Button>
-    </div>
+
+        <Button
+          variant="secondary"
+          size="icon"
+          className="rounded-full"
+          onClick={() => setIsReportOpen(true)}
+          title="Platz melden"
+        >
+          <Flag className="h-[18px] w-[18px]" />
+        </Button>
+
+        <Button
+          variant="secondary"
+          size="icon"
+          className="rounded-full"
+          onClick={handleShare}
+          title="Teilen"
+        >
+          <Share2 className="h-[18px] w-[18px]" />
+        </Button>
+      </div>
+    </>
   )
 }

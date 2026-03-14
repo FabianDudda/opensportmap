@@ -2,14 +2,12 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { database } from '@/lib/supabase/database'
 import { PlaceWithCourts } from '@/lib/supabase/types'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { MapPin, ArrowLeft, Share2, Calendar, Users, Navigation, Edit, Plus } from 'lucide-react'
-import { getSportBadgeClasses, sportNames, sportIcons, getPlaceTypeBadgeClasses, placeTypeLabels, placeTypeIcons, PlaceType } from '@/lib/utils/sport-utils'
+import { MapPin, ArrowLeft, Navigation, Image } from 'lucide-react'
+import { sportNames, sportIcons, getPlaceTypeBadgeClasses, placeTypeLabels, placeTypeIcons, PlaceType } from '@/lib/utils/sport-utils'
 import { Metadata } from 'next'
 import PlaceActions from '@/components/places/place-actions'
-import PlaceEventsSection from '@/components/places/place-events-section'
 import PlaceLocationMap from '@/components/places/place-location-map'
 
 interface PlacePageProps {
@@ -28,7 +26,7 @@ async function getPlace(id: string): Promise<PlaceWithCourts | null> {
 export async function generateMetadata({ params }: PlacePageProps): Promise<Metadata> {
   const { id } = await params
   const place = await getPlace(id)
-  
+
   if (!place) {
     return {
       title: 'Ort nicht gefunden | OpenSportMap',
@@ -36,14 +34,13 @@ export async function generateMetadata({ params }: PlacePageProps): Promise<Meta
     }
   }
 
-  // Get available sports from courts
-  const availableSports = place.courts?.length > 0 
-    ? [...new Set(place.courts.map(court => court.sport))]
+  const placeCourts = place.courts ?? []
+  const availableSports = placeCourts.length > 0
+    ? [...new Set(placeCourts.map(court => court.sport))]
     : (place.sports || [])
 
   const sportsText = availableSports.length > 0 ? availableSports.join(', ') : 'Multiple sports'
-  
-  // Build address string
+
   const addressParts = [
     place.street && place.house_number ? `${place.street} ${place.house_number}` : place.street,
     place.city,
@@ -75,21 +72,20 @@ export default async function PlacePage({ params }: PlacePageProps) {
     notFound()
   }
 
-  // Get unique sports from the courts array, fallback to legacy sports array
-  const availableSports = place.courts?.length > 0 
-    ? [...new Set(place.courts.map(court => court.sport))]
+  const courts = place.courts ?? []
+  const availableSports = courts.length > 0
+    ? [...new Set(courts.map(court => court.sport))]
     : (place.sports || [])
 
-  // Build address string
-  const addressParts = [
-    place.street && place.house_number ? `${place.street} ${place.house_number}` : place.street,
-    place.city,
-    place.district,
-    place.state,
-    place.country
-  ].filter(Boolean)
+  const quickAddress = [place.street, place.district || place.city].filter(Boolean).join(', ')
 
-  const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : null
+  // Sports with court counts
+  const sportsWithCounts = courts.length > 0
+    ? courts.reduce((acc, c) => {
+        acc[c.sport] = (acc[c.sport] || 0) + (c.quantity || 1)
+        return acc
+      }, {} as Record<string, number>)
+    : (place.sports?.reduce((acc, sport) => ({ ...acc, [sport]: 1 }), {} as Record<string, number>) || {})
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -113,243 +109,154 @@ export default async function PlacePage({ params }: PlacePageProps) {
   }
 
   return (
-    <div className="container px-4 py-6 max-w-xl mx-auto">
+    <div className="max-w-2xl mx-auto">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {/* Breadcrumb Navigation */}
-      <div className="flex items-center gap-2 mb-6">
-        <Link 
-          href="/"
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Zurück zur Karte
-        </Link>
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <Link
+            href="/"
+            className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            title="Zurück zur Karte"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="text-xl font-semibold truncate">{place.name}</h1>
+        </div>
+        <PlaceActions place={place} />
       </div>
 
-      {/* Place Header */}
-      <div className="mb-8">
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* Place Info */}
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <h1 className="text-3xl font-bold">{place.name}</h1>
-              {place.place_type && (
-                <Badge className={`text-xs ${getPlaceTypeBadgeClasses(place.place_type)}`}>
-                  {placeTypeIcons[place.place_type as PlaceType] || ''} {placeTypeLabels[place.place_type as PlaceType] || place.place_type}
-                </Badge>
-              )}
-            </div>
-            
-            {/* Location */}
-            <div className="flex items-start gap-2 text-muted-foreground mb-4">
-              <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                {fullAddress ? (
-                  <div>{fullAddress}</div>
-                ) : (
-                  <div>Koordinaten: {place.latitude}, {place.longitude}</div>
-                )}
-                {place.postcode && (
-                  <div className="text-xs mt-1">Postleitzahl: {place.postcode}</div>
-                )}
-              </div>
-            </div>
+      {/* Content */}
+      <div className="space-y-4 px-4 pb-8">
 
-            {/* Available Sports */}
-            <div className="mb-4">
-              <h3 className="text-sm font-medium mb-2">Verfügbare Sportarten:</h3>
-              <div className="flex flex-wrap gap-1">
-                {availableSports.length > 0 ? (
-                  availableSports.map((sport) => (
-                    <Badge key={sport} className={`text-xs ${getSportBadgeClasses(sport)}`}>
-                      {sportIcons[sport] || '📍'} {sportNames[sport] || sport}
-                    </Badge>
-                  ))
-                ) : (
-                  <span className="text-sm text-muted-foreground">Keine Sportarten angegeben</span>
-                )}
-              </div>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="flex gap-4 text-sm text-muted-foreground mb-4">
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                {place.courts?.length || 0} {(place.courts?.length || 0) !== 1 ? 'Plätze' : 'Platz'}
-              </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                Hinzugefügt {new Date(place.created_at).toLocaleDateString('de-DE')}
-              </div>
-            </div>
-
-            {/* Description */}
-            {place.description && (
-              <div className="mb-4">
-                <p className="text-muted-foreground">{place.description}</p>
-              </div>
-            )}
-
-            {/* Actions */}
-            <PlaceActions place={place} />
+        {/* Address */}
+        {quickAddress && (
+          <div className="flex flex-col gap-1">
+            <p className="text-base text-muted-foreground">{quickAddress}</p>
           </div>
+        )}
 
-          {/* Place Image */}
-          {place.image_url && (
-            <div className="w-full md:w-80 h-64">
-              <img 
-                src={place.image_url} 
+        {/* Place type badge */}
+        {place.place_type && (
+          <div>
+            <Badge className={`text-xs ${getPlaceTypeBadgeClasses(place.place_type)}`}>
+              {placeTypeIcons[place.place_type as PlaceType] || ''} {placeTypeLabels[place.place_type as PlaceType] || place.place_type}
+            </Badge>
+          </div>
+        )}
+
+        {/* Thumbnail + sports pills */}
+        <div className="flex gap-3 items-start">
+          {place.image_url ? (
+            <div className="shrink-0 w-[88px] h-[88px] rounded-[10px] overflow-hidden">
+              <img
+                src={place.image_url}
                 alt={place.name}
-                className="w-full h-full object-cover rounded-lg"
+                className="w-full h-full object-cover"
               />
+            </div>
+          ) : (
+            <div
+              className="shrink-0 w-[88px] h-[88px] rounded-[10px] border-2 border-dashed border-muted-foreground/30 flex items-center justify-center"
+              style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.03) 4px, rgba(0,0,0,0.03) 5px), repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0,0,0,0.03) 4px, rgba(0,0,0,0.03) 5px)' }}
+            >
+              <Image className="h-5 w-5 text-muted-foreground/40" />
+            </div>
+          )}
+
+          {Object.keys(sportsWithCounts).length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(sportsWithCounts).map(([sport, count]) => (
+                <div
+                  key={sport}
+                  className="flex items-center gap-1 border border-border rounded-full px-3 py-1.5 self-start"
+                >
+                  <span className="text-[16px] leading-none">{sportIcons[sport] || '📍'}</span>
+                  <span className="text-[14px] font-medium text-muted-foreground">{sportNames[sport] || sport}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Courts Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Plätze & Einrichtungen</CardTitle>
-              <CardDescription>
-                Alle Sporteinrichtungen an diesem Ort
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {place.courts && place.courts.length > 0 ? (
-                <div className="space-y-4">
-                  {place.courts.map((court, index) => (
-                    <div key={court.id} className="p-4 rounded-lg border bg-card">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h4 className="font-medium">
-                            {court.sport}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            Anzahl: {court.quantity}
-                          </p>
-                        </div>
-                        <Badge className={`${getSportBadgeClasses(court.sport)}`}>
-                          {sportIcons[court.sport] || '📍'} {sportNames[court.sport] || court.sport}
-                        </Badge>
-                      </div>
-                      
-                      {court.surface && (
-                        <p className="text-sm text-muted-foreground mb-1">
-                          Belag: {court.surface}
-                        </p>
-                      )}
-                      
-                      {court.notes && (
-                        <p className="text-sm text-muted-foreground">
-                          Notizen: {court.notes}
+        {/* Description */}
+        {place.description && (
+          <p className="text-sm text-muted-foreground">{place.description}</p>
+        )}
+
+        {/* Route button */}
+        <a
+          href={`https://maps.google.com/?q=${place.latitude},${place.longitude}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block"
+        >
+          <Button variant="default" className="w-full text-base">
+            <Navigation className="h-4 w-4 mr-1" />
+            Route
+          </Button>
+        </a>
+
+        {/* Courts / facilities */}
+        {courts.length > 0 && (
+          <div className="space-y-2 pt-2">
+            <p className="text-sm font-medium text-muted-foreground">Plätze & Einrichtungen</p>
+            <div className="space-y-2">
+              {courts.map((court) => (
+                <div key={court.id} className="flex items-center justify-between p-3 rounded-xl border bg-card">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[18px]">{sportIcons[court.sport] || '📍'}</span>
+                    <div>
+                      <p className="text-sm font-medium">{sportNames[court.sport] || court.sport}</p>
+                      {(court.surface || court.notes) && (
+                        <p className="text-xs text-muted-foreground">
+                          {[court.surface, court.notes].filter(Boolean).join(' · ')}
                         </p>
                       )}
                     </div>
-                  ))}
+                  </div>
+                  {(court.quantity ?? 1) > 1 && (
+                    <span className="text-sm text-muted-foreground">{court.quantity}×</span>
+                  )}
                 </div>
-              ) : (
-                <p className="text-muted-foreground text-center py-8">
-                  Keine detaillierten Platzinformationen verfügbar
-                </p>
-              )}
-            </CardContent>
-          </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
-          {/* Additional Details */}
-          {(place.features && place.features.length > 0) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Ausstattung & Angebote</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {place.features.map((feature) => (
-                    <Badge key={feature} variant="outline">
-                      {feature}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+        {/* Features */}
+        {place.features && place.features.length > 0 && (
+          <div className="space-y-2 pt-2">
+            <p className="text-sm font-medium text-muted-foreground">Ausstattung</p>
+            <div className="flex flex-wrap gap-2">
+              {place.features.map((feature) => (
+                <Badge key={feature} variant="outline">{feature}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
 
-          {/* Events Section */}
-          <PlaceEventsSection placeId={place.id} placeName={place.name} />
+        {/* Map */}
+        <div className="pt-2">
+          <p className="text-sm font-medium text-muted-foreground mb-2">Standort</p>
+          <PlaceLocationMap
+            latitude={place.latitude}
+            longitude={place.longitude}
+            placeName={place.name}
+            sports={availableSports}
+            height="200px"
+            className="rounded-xl overflow-hidden border"
+          />
+          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            {place.latitude.toFixed(6)}, {place.longitude.toFixed(6)}
+          </p>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Map */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Standort</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <PlaceLocationMap
-                latitude={place.latitude}
-                longitude={place.longitude}
-                placeName={place.name}
-                sports={availableSports}
-                height="256px"
-                className="rounded-b-lg overflow-hidden"
-              />
-            </CardContent>
-          </Card>
-
-          {/* Place Metadata */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Details</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm space-y-2">
-              {place.place_type && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Art:</span>
-                  <Badge className={`text-xs ${getPlaceTypeBadgeClasses(place.place_type)}`}>
-                    {placeTypeIcons[place.place_type as PlaceType] || ''} {placeTypeLabels[place.place_type as PlaceType] || place.place_type}
-                  </Badge>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Quelle:</span>
-                <span>{place.source || 'Unbekannt'}</span>
-              </div>
-              {place.source_id && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Quell-ID:</span>
-                  <span className="font-mono text-xs">{place.source_id}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Hinzugefügt von:</span>
-                <span>{place.added_by_user}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Erstellt:</span>
-                <span>{new Date(place.created_at).toLocaleDateString('de-DE')}</span>
-              </div>
-              {place.import_date && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Importdatum:</span>
-                  <span>{new Date(place.import_date).toLocaleDateString('de-DE')}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Koordinaten:</span>
-                <span className="font-mono text-xs">
-                  {place.latitude.toFixed(6)}, {place.longitude.toFixed(6)}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   )

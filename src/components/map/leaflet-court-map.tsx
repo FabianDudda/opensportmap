@@ -46,6 +46,7 @@ interface LeafletCourtMapProps {
   disableMarkerClick?: boolean
   defaultFavoritesOpen?: boolean
   onFavoritesClose?: () => void
+  onSheetClose?: () => void
   initialCenter?: { lat: number; lng: number }
   initialZoom?: number
   initialPlaceId?: string | null
@@ -411,6 +412,7 @@ export default function LeafletCourtMap({
   disableMarkerClick = false,
   defaultFavoritesOpen = false,
   onFavoritesClose,
+  onSheetClose,
   initialCenter,
   initialZoom,
   initialPlaceId = null,
@@ -477,7 +479,8 @@ export default function LeafletCourtMap({
     // console.log('🗂️ Explicit close requested - clearing selection and closing sheet')
     setSelectedCourt(null)
     setIsBottomSheetOpen(false)
-  }, [])
+    onSheetClose?.()
+  }, [onSheetClose])
 
   const handleExplicitFilterClose = useCallback(() => {
     // console.log('🗂️ Explicit filter close requested')

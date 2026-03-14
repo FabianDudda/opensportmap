@@ -31,6 +31,15 @@ function MapPage() {
   const defaultFavoritesOpen = searchParams.get('favorites') === '1'
   const initialPlaceId = searchParams.get('place')
 
+  const handleCourtSelect = (court: PlaceMarker) => {
+    setSelectedPlace(court)
+    router.replace(`/?place=${court.id}`, { scroll: false })
+  }
+
+  const handleSheetClose = () => {
+    router.replace('/', { scroll: false })
+  }
+
   const savedPosition = typeof window !== 'undefined'
     ? (() => { try { return JSON.parse(sessionStorage.getItem('map-position') || '') } catch { return null } })()
     : null
@@ -67,7 +76,7 @@ function MapPage() {
       <h2 className="sr-only">Interaktive Karte mit über 13.000 Sportplätzen in Deutschland</h2>
       <LeafletCourtMap
         courts={places}
-        onCourtSelect={setSelectedPlace}
+        onCourtSelect={handleCourtSelect}
         height="100dvh"
         selectedSports={selectedSports}
         onSportsChange={setSelectedSports}
@@ -76,6 +85,7 @@ function MapPage() {
         placesCount={visibleCount}
         defaultFavoritesOpen={defaultFavoritesOpen}
         onFavoritesClose={() => router.replace('/')}
+        onSheetClose={handleSheetClose}
         initialCenter={savedPosition ? { lat: savedPosition.lat, lng: savedPosition.lng } : undefined}
         initialZoom={savedPosition?.zoom}
         initialPlaceId={initialPlaceId}
