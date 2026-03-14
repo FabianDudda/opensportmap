@@ -6,13 +6,21 @@ import Link from 'next/link'
 
 const CHANGELOG = [
   {
+    version: '0.2.1-alpha',
+    date: '14.03.2026',
+    current: true,
+    items: [
+      'Added a "About" page',
+    ],
+  },
+  {
     version: '0.2.0-alpha',
     date: '13.03.2026',
-    current: true,
+    current: false,
     items: [
       'Added place type (Public / Club / School) with filter support on the map',
       'Guests can now add places and suggest edits – without an account, subject to admin approval',
-      'fix Leaflet map control memory leak (stable DOM refs + mutation updates)',
+    
     ],
   },
   {

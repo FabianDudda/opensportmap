@@ -4,7 +4,8 @@ import { useAuth } from '@/components/providers/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { User, Mail, Trophy, Calendar, Edit2, Plus, TestTube, Shield, LogOut, ChevronRight, MessageSquare, Info, Bell, Instagram, BookOpen } from 'lucide-react'
+import { User, Mail, Trophy, Calendar, Edit2, Plus, TestTube, Shield, LogOut, ChevronRight, MessageSquare, Info, Bell, Instagram, BookOpen, Sparkles, Download } from 'lucide-react'
+import { useInstallPrompt } from '@/hooks/use-install-prompt'
 import Link from 'next/link'
 
 const NAV_ITEMS = [
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
 
 export default function ProfilePage() {
   const { user, profile, loading, isAdmin, signOut } = useAuth()
+  const { canInstall, promptInstall } = useInstallPrompt()
 
   if (loading) {
     return (
@@ -66,6 +68,18 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="p-0">
             <div className="flex flex-col divide-y">
+              {canInstall && (
+                <button onClick={promptInstall} className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left w-full">
+                  <Download className="h-4 w-4 text-muted-foreground" />
+                  <span>App installieren</span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+                </button>
+              )}
+              <Link href="/about" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+                <Sparkles className="h-4 w-4 text-muted-foreground" />
+                <span>Was ist OpenSportMap?</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+              </Link>
               <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 <span>Feedback geben</span>
@@ -144,6 +158,18 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="p-0">
             <div className="flex flex-col divide-y">
+              {canInstall && (
+                <button onClick={promptInstall} className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left w-full">
+                  <Download className="h-4 w-4 text-muted-foreground" />
+                  <span>App installieren</span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+                </button>
+              )}
+              <Link href="/about" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
+                <Sparkles className="h-4 w-4 text-muted-foreground" />
+                <span>Was ist OpenSportMap?</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+              </Link>
               <Link href="/feedback" className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 <span>Feedback geben</span>
