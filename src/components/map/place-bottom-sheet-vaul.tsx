@@ -7,8 +7,10 @@ import ReportPlaceBottomSheet from './report-place-bottom-sheet-vaul'
 import PlaceTypeInfoSheet from './place-type-info-sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { MapPin, Navigation, Share2, Heart, Pencil, X, Upload, Image, Loader2, Maximize2, Flag, Phone, Mail, Globe } from 'lucide-react'
-import { PlaceWithCourts, PlaceMarker } from '@/lib/supabase/types'
+import { MapPin, Navigation, Share2, Heart, Pencil, X, Upload, Image, Loader2, Maximize2, Flag, Phone, Mail, Globe, ChevronDown } from 'lucide-react'
+import { PlaceWithCourts, PlaceMarker, OpeningHours } from '@/lib/supabase/types'
+import { getOpeningStatus, getCurrentDayKey, DAY_ORDER, DAY_SHORT_DE } from '@/lib/utils/opening-hours'
+import { cn } from '@/lib/utils'
 import { sportNames, sportIcons, getPlaceTypeBadgeClasses, placeTypeLabels, placeTypeIcons, PlaceType } from '@/lib/utils/sport-utils'
 import { Badge } from '@/components/ui/badge'
 import { getDistanceText } from '@/lib/utils/distance'
@@ -43,6 +45,7 @@ export default function PlaceBottomSheetVaul({
   const [isSaveLoginPromptOpen, setIsSaveLoginPromptOpen] = useState(false)
   const [isReportOpen, setIsReportOpen] = useState(false)
   const [isPlaceTypeInfoOpen, setIsPlaceTypeInfoOpen] = useState(false)
+  const [isHoursExpanded, setIsHoursExpanded] = useState(false)
 
   // Fetch full place details on demand when the sheet opens
   const { data: fullPlace, isLoading: isLoadingPlace } = useQuery({
@@ -345,12 +348,8 @@ export default function PlaceBottomSheetVaul({
                 )
               })()}
 
-              {place?.description && (
-                <p className="text-sm text-muted-foreground">{place.description}</p>
-              )}
-
-              {/* Verein: contact */}
-              {place?.place_type === 'verein' && !isLoadingPlace && (
+              {/* Verein/Schule: contact */}
+              {(place?.place_type === 'verein' || place?.place_type === 'schule') && !isLoadingPlace && (
                 <div className="flex flex-col gap-2">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Kontakt</p>
                   {(place?.contact_phone || place?.contact_email || place?.contact_website) ? (
@@ -385,10 +384,76 @@ export default function PlaceBottomSheetVaul({
                         }
                       }}
                     >
-                      <Pencil className="h-3.5 w-3.5" />
-                      <span>Kontaktdaten ergänzen</span>
+                      <span>Hinzufügen</span>
                     </button>
                   )}
+                </div>
+              )}
+
+              {/* Verein/Schule: opening hours */}
+              {(place?.place_type === 'verein' || place?.place_type === 'schule') && !isLoadingPlace && (() => {
+                const hoursData = (place?.opening_hours ?? null) as OpeningHours | null
+                const status = hoursData ? getOpeningStatus(hoursData) : null
+                const todayKey = getCurrentDayKey()
+                return (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Öffnungszeiten</p>
+                    {hoursData ? (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className={cn('h-2 w-2 rounded-full shrink-0', status!.isOpen ? 'bg-green-500' : status!.isUnknown ? 'bg-amber-400' : 'bg-muted-foreground/50')} />
+                            <span className="text-sm text-muted-foreground">{status!.statusText}</span>
+                          </div>
+                          <button
+                            onClick={() => setIsHoursExpanded(prev => !prev)}
+                            className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                          >
+                            <ChevronDown className={cn('h-4 w-4 transition-transform', isHoursExpanded && 'rotate-180')} />
+                          </button>
+                        </div>
+                        {isHoursExpanded && (
+                          <div className="flex flex-col gap-1 pt-1">
+                            {DAY_ORDER.map(key => {
+                              const day = hoursData[key]
+                              const isToday = key === todayKey
+                              return (
+                                <div key={key} className={cn('flex justify-between text-sm', isToday ? 'font-medium text-foreground' : 'text-muted-foreground')}>
+                                  <span>{DAY_SHORT_DE[key]}</span>
+                                  {day === undefined
+                                    ? <span className="text-muted-foreground/40 font-normal">–</span>
+                                    : day.closed || !day.open || !day.close
+                                      ? <span className={isToday ? 'text-muted-foreground font-normal' : ''}>Geschlossen</span>
+                                      : <span>{day.open} – {day.close} Uhr</span>
+                                  }
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <button
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground/60 hover:text-muted-foreground transition-colors self-start"
+                        onClick={() => {
+                          if (!user) {
+                            setIsLoginPromptOpen(true)
+                          } else {
+                            window.location.href = `/places/${selectedCourt.id}/edit`
+                          }
+                        }}
+                      >
+                        <span>Hinzufügen</span>
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {!isLoadingPlace && place?.description && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Beschreibung</p>
+                  <p className="text-sm text-muted-foreground">{place.description}</p>
                 </div>
               )}
 

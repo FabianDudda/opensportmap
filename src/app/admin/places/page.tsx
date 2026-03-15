@@ -6,7 +6,8 @@ import dynamic from 'next/dynamic'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/components/providers/auth-provider'
 import { database } from '@/lib/supabase/database'
-import { PlaceWithCourts, ModerationStatus, PendingPlaceChange } from '@/lib/supabase/types'
+import { PlaceWithCourts, ModerationStatus, PendingPlaceChange, OpeningHours } from '@/lib/supabase/types'
+import OpeningHoursEditor from '@/components/places/opening-hours-editor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -97,6 +98,7 @@ interface PlaceEditForm {
   contact_phone: string
   contact_email: string
   contact_website: string
+  opening_hours: OpeningHours | null
 }
 
 function getSourceLabel(source: string | null | undefined): string {
@@ -288,6 +290,7 @@ function PlaceCard({
       contact_phone: place.contact_phone || '',
       contact_email: place.contact_email || '',
       contact_website: place.contact_website || '',
+      opening_hours: (place.opening_hours as OpeningHours | null) ?? null,
     })
     setIsEditing(true)
   }
@@ -323,6 +326,7 @@ function PlaceCard({
           contact_phone: editForm.contact_phone || null,
           contact_email: editForm.contact_email || null,
           contact_website: editForm.contact_website || null,
+          opening_hours: (editForm.place_type === 'verein' || editForm.place_type === 'schule') ? editForm.opening_hours : null,
         }),
       })
       if (!res.ok) throw new Error('Save failed')
@@ -596,14 +600,57 @@ function PlaceCard({
                 </div>
               )}
 
-              {/* Verein contact & hours */}
-              {(place.contact_phone || place.contact_email || place.contact_website) && (
+              {/* Description */}
+              <div>
+                <Label className="text-xs font-medium text-muted-foreground">Beschreibung</Label>
+                <p className="text-sm mt-0.5">
+                  {place.description || <span className="text-muted-foreground">—</span>}
+                </p>
+              </div>
+
+              {/* Verein/Schule contact */}
+              {(place.place_type === 'verein' || place.place_type === 'schule') && (
                 <div>
                   <Label className="text-xs font-medium text-muted-foreground">Kontakt</Label>
                   <div className="mt-1 text-sm space-y-0.5">
-                    {place.contact_phone && <div>{place.contact_phone}</div>}
-                    {place.contact_email && <div>{place.contact_email}</div>}
-                    {place.contact_website && <div className="text-muted-foreground truncate">{place.contact_website}</div>}
+                    {(place.contact_phone || place.contact_email || place.contact_website) ? (
+                      <>
+                        {place.contact_phone && <div>{place.contact_phone}</div>}
+                        {place.contact_email && <div>{place.contact_email}</div>}
+                        {place.contact_website && <div className="text-muted-foreground truncate">{place.contact_website}</div>}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Verein/Schule opening hours */}
+              {(place.place_type === 'verein' || place.place_type === 'schule') && (
+                <div>
+                  <Label className="text-xs font-medium text-muted-foreground">Öffnungszeiten</Label>
+                  <div className="mt-1 text-sm space-y-0.5">
+                    {place.opening_hours ? (
+                      (() => {
+                        const hours = place.opening_hours as OpeningHours
+                        return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(key => {
+                          const dayLabels: Record<string, string> = { monday: 'Mo', tuesday: 'Di', wednesday: 'Mi', thursday: 'Do', friday: 'Fr', saturday: 'Sa', sunday: 'So' }
+                          const day = hours[key as keyof OpeningHours]
+                          return (
+                            <div key={key} className="flex gap-2">
+                              <span className="text-muted-foreground w-6">{dayLabels[key]}</span>
+                              {day && !day.closed && day.open && day.close
+                                ? <span>{day.open} – {day.close}</span>
+                                : <span className="text-muted-foreground">Geschlossen</span>
+                              }
+                            </div>
+                          )
+                        })
+                      })()
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </div>
                 </div>
               )}
@@ -729,7 +776,7 @@ function PlaceCard({
                     />
                   </div>
 
-                  {(editForm.place_type === 'verein' || editForm.contact_phone || editForm.contact_email || editForm.contact_website) && (
+                  {(editForm.place_type === 'verein' || editForm.place_type === 'schule' || editForm.contact_phone || editForm.contact_email || editForm.contact_website) && (
                     <>
                       <div className="col-span-2">
                         <Label className="text-xs">Kontakt: Telefon</Label>
@@ -759,6 +806,19 @@ function PlaceCard({
                         />
                       </div>
                     </>
+                  )}
+
+                  {(editForm.place_type === 'verein' || editForm.place_type === 'schule') && (
+                    <div className="col-span-2">
+                      <Label className="text-xs">Öffnungszeiten</Label>
+                      <div className="mt-2">
+                        <OpeningHoursEditor
+                          key={place.id}
+                          value={editForm.opening_hours}
+                          onChange={hours => setEditForm(prev => ({ ...prev, opening_hours: hours }))}
+                        />
+                      </div>
+                    </div>
                   )}
 
                   <div>

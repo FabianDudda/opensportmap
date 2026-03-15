@@ -15,7 +15,9 @@ import { reverseGeocode, AddressComponents } from '@/lib/geocoding'
 import { uploadCourtImage, UploadProgress } from '@/lib/supabase/storage'
 import { sportIcons } from '@/lib/utils/sport-utils'
 import { cn } from '@/lib/utils'
-import { MapPin, Plus, Check, Upload, X, Image, Loader2, RefreshCcw, AlertCircle, Phone, Mail, Globe } from 'lucide-react'
+import { MapPin, Plus, Upload, X, Image, Loader2, AlertCircle, Phone, Mail, Globe } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import OpeningHoursEditor from '@/components/places/opening-hours-editor'
 import { OpeningHours } from '@/lib/supabase/types'
 
 const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map'), {
@@ -99,6 +101,7 @@ export default function PlaceForm({
   })
 
   const [name, setName] = useState(initialData?.name || '')
+  const [description, setDescription] = useState(initialData?.description || '')
   const [placeType, setPlaceType] = useState<PlaceType>((initialData?.place_type as PlaceType) || 'öffentlich')
 
   const [selectedSports, setSelectedSports] = useState<SportType[]>(() => {
@@ -147,6 +150,9 @@ export default function PlaceForm({
   const [phoneError, setPhoneError] = useState('')
   const [websiteError, setWebsiteError] = useState('')
   const hasExistingContact = !!(initialData?.contact_phone || initialData?.contact_email || initialData?.contact_website)
+  const [openingHours, setOpeningHours] = useState<OpeningHours | null>(
+    (initialData?.opening_hours as OpeningHours | null) ?? null
+  )
 
   const handleMapClick = useCallback(async (lng: number, lat: number) => {
     setLocation({ lat, lng })
@@ -224,7 +230,7 @@ export default function PlaceForm({
     if (selectedSports.length === 0) { toast({ title: 'Mindestens eine Sportart auswählen', variant: 'destructive' }); return }
     if (!location) { toast({ title: 'Standort erforderlich', description: 'Tippe auf die Karte, um einen Standort zu setzen.', variant: 'destructive' }); return }
 
-    if (placeType === 'verein') {
+    if (placeType === 'verein' || placeType === 'schule') {
       let hasContactError = false
       if (contactPhone.trim() && /\D/.test(contactPhone.trim())) {
         setPhoneError('Nur Ziffern erlaubt'); hasContactError = true
@@ -261,7 +267,7 @@ export default function PlaceForm({
 
     await onSubmit({
       name: name.trim(),
-      description: '',
+      description: description.trim(),
       placeType,
       selectedSports,
       courts,
@@ -269,10 +275,10 @@ export default function PlaceForm({
       address: Object.values(address).some(v => v) ? address : {},
       imageFile,
       imageUrl: finalImageUrl,
-      contactPhone: placeType === 'verein' ? contactPhone.trim() : '',
-      contactEmail: placeType === 'verein' ? contactEmail.trim() : '',
-      contactWebsite: placeType === 'verein' ? contactWebsite.trim() : '',
-      openingHours: null,
+      contactPhone: (placeType === 'verein' || placeType === 'schule') ? contactPhone.trim() : '',
+      contactEmail: (placeType === 'verein' || placeType === 'schule') ? contactEmail.trim() : '',
+      contactWebsite: (placeType === 'verein' || placeType === 'schule') ? contactWebsite.trim() : '',
+      openingHours: (placeType === 'verein' || placeType === 'schule') ? openingHours : null,
     })
   }
 
@@ -290,13 +296,60 @@ export default function PlaceForm({
         </div>
       )}
 
-      {/* Name */}
+      {/* 1. Name */}
       <div className="space-y-2">
         <Label htmlFor="pf-name">Ortsname *</Label>
         <Input id="pf-name" placeholder="z.B. Stadtpark Tennisplätze" value={name} onChange={e => setName(e.target.value)} required />
       </div>
 
-      {/* Place Type */}
+      {/* 2. Location + Address */}
+      <div className="space-y-2">
+        <Label>Standort *</Label>
+        <p className="text-xs text-muted-foreground">Tippe auf die Karte, um den genauen Standort zu setzen.</p>
+        <div className="border rounded-lg overflow-hidden">
+          <LeafletCourtMap
+            courts={allPlaces.filter(p => p.id !== initialData?.id)}
+            onMapClick={handleMapClick}
+            height="260px"
+            allowAddCourt={true}
+            selectedLocation={location}
+            placesCount={allPlaces.length}
+            showFilter={false}
+            showFavorite={false}
+            disableMarkerClick={true}
+            initialCenter={initialData ? { lat: initialData.latitude, lng: initialData.longitude } : undefined}
+          />
+        </div>
+        {location ? (
+          isDetectingAddress ? (
+            <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-200">
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+              <span>Adresse wird erkannt...</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg border border-green-200">
+              <MapPin className="h-4 w-4 shrink-0" />
+              <span>
+                <span className="font-medium">Standort gesetzt: </span>
+                {(() => {
+                  const parts = [
+                    [address.street, address.house_number].filter(Boolean).join(' '),
+                    [address.postcode, address.city].filter(Boolean).join(' '),
+                  ].filter(Boolean)
+                  return parts.length > 0 ? parts.join(', ') : `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`
+                })()}
+              </span>
+            </div>
+          )
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
+            <MapPin className="h-4 w-4 shrink-0" />
+            <span className="font-medium">Tippe auf die Karte, um den Standort zu setzen</span>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Place Type */}
       <div className="space-y-2">
         <Label>Art des Ortes *</Label>
         <div className="grid grid-cols-3 gap-2">
@@ -319,34 +372,7 @@ export default function PlaceForm({
         </div>
       </div>
 
-      {/* Verein: Contact */}
-      {placeType === 'verein' && (
-        <div className="space-y-2">
-          <Label>Kontakt (Optional)</Label>
-          <div className="space-y-2">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                <Input placeholder="Telefon" value={contactPhone} onChange={e => { setContactPhone(e.target.value); setPhoneError('') }} className={phoneError ? 'border-destructive' : ''} />
-              </div>
-              {phoneError && <p className="text-xs text-destructive pl-6">{phoneError}</p>}
-            </div>
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-              <Input type="email" placeholder="E-Mail" value={contactEmail} onChange={e => setContactEmail(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
-                <Input placeholder="Website (https://...)" value={contactWebsite} onChange={e => { setContactWebsite(e.target.value); setWebsiteError('') }} className={websiteError ? 'border-destructive' : ''} />
-              </div>
-              {websiteError && <p className="text-xs text-destructive pl-6">{websiteError}</p>}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sports */}
+      {/* 4. Sports */}
       <div className="space-y-2">
         <Label>Verfügbare Sportarten *</Label>
         <div className="grid grid-cols-3 gap-2">
@@ -404,7 +430,7 @@ export default function PlaceForm({
         </div>
       )}
 
-      {/* Image */}
+      {/* 5. Image */}
       <div className="space-y-2">
         <Label>Platzbild (Optional)</Label>
         <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
@@ -432,94 +458,56 @@ export default function PlaceForm({
         </div>
       </div>
 
-      {/* Location */}
-      <div className="space-y-2">
-        <Label>Standort *</Label>
-        <p className="text-xs text-muted-foreground">Tippe auf die Karte, um den genauen Standort zu setzen.</p>
-        <div className="border rounded-lg overflow-hidden">
-          <LeafletCourtMap
-            courts={allPlaces.filter(p => p.id !== initialData?.id)}
-            onMapClick={handleMapClick}
-            height="260px"
-            allowAddCourt={true}
-            selectedLocation={location}
-            placesCount={allPlaces.length}
-            showFilter={false}
-            showFavorite={false}
-            disableMarkerClick={true}
-            initialCenter={initialData ? { lat: initialData.latitude, lng: initialData.longitude } : undefined}
-          />
-        </div>
-        {location ? (
-          <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg border border-green-200">
-            <MapPin className="h-4 w-4 shrink-0" />
-            <span><span className="font-medium">Standort gesetzt:</span> {location.lat.toFixed(5)}, {location.lng.toFixed(5)}</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
-            <MapPin className="h-4 w-4 shrink-0" />
-            <span className="font-medium">Tippe auf die Karte, um den Standort zu setzen</span>
-          </div>
-        )}
-      </div>
-
-      {/* Address */}
-      {location && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label>Adresse</Label>
-            {Object.values(address).some(v => v) && (
-              <Button type="button" variant="outline" size="sm" onClick={() => { setAddress({}); setAddressAutoDetected(false) }}>
-                <RefreshCcw className="h-3 w-3 mr-1" />Löschen
-              </Button>
-            )}
-          </div>
-          {isDetectingAddress && (
-            <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-200">
-              <Loader2 className="h-4 w-4 animate-spin" /><span>Adresse wird erkannt...</span>
+      {/* 6. Contact (verein/schule) */}
+      {(placeType === 'verein' || placeType === 'schule') && (
+        <div className="space-y-2">
+          <Label>Kontakt (Optional)</Label>
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Input placeholder="Telefon" value={contactPhone} onChange={e => { setContactPhone(e.target.value); setPhoneError('') }} className={phoneError ? 'border-destructive' : ''} />
+              </div>
+              {phoneError && <p className="text-xs text-destructive pl-6">{phoneError}</p>}
             </div>
-          )}
-          {addressAutoDetected && !isDetectingAddress && (
-            <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg border border-green-200">
-              <Check className="h-4 w-4" /><span>Adresse automatisch erkannt.</span>
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 space-y-1">
-              <Label htmlFor="pf-street" className="text-xs">Straße</Label>
-              <Input id="pf-street" placeholder="Straße & Hausnummer"
-                value={address.street && address.house_number ? `${address.street} ${address.house_number}` : address.street || ''}
-                onChange={e => {
-                  const parts = e.target.value.trim().split(' ')
-                  const num = parts[parts.length - 1]
-                  if (parts.length > 1 && /^\d+[a-zA-Z]?$/.test(num)) {
-                    updateAddressField('street', parts.slice(0, -1).join(' '))
-                    updateAddressField('house_number', num)
-                  } else {
-                    updateAddressField('street', e.target.value)
-                  }
-                }}
-              />
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Input type="email" placeholder="E-Mail" value={contactEmail} onChange={e => setContactEmail(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="pf-city" className="text-xs">Stadt</Label>
-              <Input id="pf-city" placeholder="Stadt" value={address.city || ''} onChange={e => updateAddressField('city', e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="pf-postcode" className="text-xs">Postleitzahl</Label>
-              <Input id="pf-postcode" placeholder="PLZ" value={address.postcode || ''} onChange={e => updateAddressField('postcode', e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="pf-state" className="text-xs">Bundesland</Label>
-              <Input id="pf-state" placeholder="Bundesland" value={address.state || ''} onChange={e => updateAddressField('state', e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="pf-country" className="text-xs">Land</Label>
-              <Input id="pf-country" placeholder="Land" value={address.country || ''} onChange={e => updateAddressField('country', e.target.value)} />
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Input placeholder="Website (https://...)" value={contactWebsite} onChange={e => { setContactWebsite(e.target.value); setWebsiteError('') }} className={websiteError ? 'border-destructive' : ''} />
+              </div>
+              {websiteError && <p className="text-xs text-destructive pl-6">{websiteError}</p>}
             </div>
           </div>
         </div>
       )}
+
+      {/* 7. Opening Hours (verein/schule) */}
+      {(placeType === 'verein' || placeType === 'schule') && (
+        <div className="space-y-2">
+          <Label>Öffnungszeiten (Optional)</Label>
+          <OpeningHoursEditor
+            key={initialData?.id ?? 'new'}
+            value={openingHours}
+            onChange={setOpeningHours}
+          />
+        </div>
+      )}
+
+      {/* 8. Description */}
+      <div className="space-y-2">
+        <Label htmlFor="pf-description">Beschreibung (Optional)</Label>
+        <Textarea
+          id="pf-description"
+          placeholder="z.B. Öffentlicher Platz mit guter Beleuchtung, direkt am Park..."
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          rows={3}
+        />
+      </div>
 
       {/* Submit */}
       <Button type="submit" className="w-full" disabled={isLoading || isUploadingImage}>

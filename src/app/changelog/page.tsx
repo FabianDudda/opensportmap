@@ -6,9 +6,18 @@ import Link from 'next/link'
 
 const CHANGELOG = [
   {
+    version: '0.2.2-alpha',
+    date: '15.03.2026',
+    current: true,
+    items: [
+      'Added contact details, opening hours and description for places',
+      'rework add-place and edit-place form for better ux',
+    ],
+  },
+  {
     version: '0.2.1-alpha',
     date: '14.03.2026',
-    current: true,
+    current: false,
     items: [
       'Added a "About" page',
       'Added "Install app" button for android user',

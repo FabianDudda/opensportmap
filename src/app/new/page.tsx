@@ -8,17 +8,19 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import OpeningHoursEditor from '@/components/places/opening-hours-editor'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { sportIcons } from '@/lib/utils/sport-utils'
 import { useToast } from '@/hooks/use-toast'
-import { SportType, PlaceWithCourts } from '@/lib/supabase/types'
+import { SportType, PlaceWithCourts, OpeningHours } from '@/lib/supabase/types'
 import { PlaceType, placeTypeLabels, placeTypeIcons } from '@/lib/utils/sport-utils'
 import { database } from '@/lib/supabase/database'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { reverseGeocode, AddressComponents } from '@/lib/geocoding'
 import { uploadCourtImage, UploadProgress } from '@/lib/supabase/storage'
-import { MapPin, Plus, Check, Upload, X, Image, Loader2, RefreshCcw, Heart, ArrowLeft, Phone, Mail, Globe } from 'lucide-react'
+import { MapPin, Plus, Upload, X, Image, Loader2, Heart, ArrowLeft, Phone, Mail, Globe } from 'lucide-react'
 import Link from 'next/link'
 
 const LeafletCourtMap = dynamic(() => import('@/components/map/leaflet-court-map'), {
@@ -97,6 +99,8 @@ function AddPlacePage() {
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
 
+  const [description, setDescription] = useState('')
+  const [openingHours, setOpeningHours] = useState<OpeningHours | null>(null)
   const [contactPhone, setContactPhone] = useState('')
   const [contactEmail, setContactEmail] = useState('')
   const [contactWebsite, setContactWebsite] = useState('')
@@ -118,6 +122,7 @@ function AddPlacePage() {
       contact_phone?: string | null
       contact_email?: string | null
       contact_website?: string | null
+      opening_hours?: OpeningHours | null
     }) => {
       const { data: place, error: placeError } = await database.courts.addCourt({
         name: placeData.name,
@@ -143,7 +148,7 @@ function AddPlacePage() {
         contact_phone: placeData.contact_phone || null,
         contact_email: placeData.contact_email || null,
         contact_website: placeData.contact_website || null,
-        opening_hours: null,
+        opening_hours: placeData.opening_hours ?? null,
       })
       if (placeError || !place) throw new Error(placeError?.message || 'Failed to create place')
 
@@ -241,7 +246,7 @@ function AddPlacePage() {
     if (selectedSports.length === 0) { toast({ title: 'Mindestens eine Sportart auswählen', variant: 'destructive' }); return }
     if (!location) { toast({ title: 'Standort erforderlich', description: 'Tippe auf die Karte, um einen Standort zu setzen.', variant: 'destructive' }); return }
 
-    if (placeType === 'verein') {
+    if (placeType === 'verein' || placeType === 'schule') {
       let hasContactError = false
       if (contactPhone.trim() && /\D/.test(contactPhone.trim())) {
         setPhoneError('Nur Ziffern erlaubt'); hasContactError = true
@@ -281,12 +286,14 @@ function AddPlacePage() {
       latitude: location.lat,
       longitude: location.lng,
       sports: selectedSports,
+      description: description.trim() || null,
       image_url: imageUrl,
       courts,
       address: Object.values(address).some(v => v) ? address : undefined,
-      contact_phone: placeType === 'verein' ? contactPhone.trim() || null : null,
-      contact_email: placeType === 'verein' ? contactEmail.trim() || null : null,
-      contact_website: placeType === 'verein' ? contactWebsite.trim() || null : null,
+      contact_phone: (placeType === 'verein' || placeType === 'schule') ? contactPhone.trim() || null : null,
+      contact_email: (placeType === 'verein' || placeType === 'schule') ? contactEmail.trim() || null : null,
+      contact_website: (placeType === 'verein' || placeType === 'schule') ? contactWebsite.trim() || null : null,
+      opening_hours: (placeType === 'verein' || placeType === 'schule') ? openingHours : null,
     }
 
     if (isGuestMode) {
@@ -375,13 +382,62 @@ function AddPlacePage() {
           {/* Honeypot – hidden from real users, catches bots */}
           <input type="text" name="website" tabIndex={-1} aria-hidden="true" className="hidden" />
 
-          {/* Name */}
+          {/* 1. Name */}
           <div className="space-y-2">
             <Label htmlFor="ap-name">Ortsname *</Label>
             <Input id="ap-name" placeholder="z.B. Stadtpark Tennisplätze" value={name} onChange={e => setName(e.target.value)} required />
           </div>
 
-          {/* Place Type */}
+          {/* 2. Location + Address */}
+          <div className="space-y-2">
+            <Label>Standort *</Label>
+            <p className="text-xs text-muted-foreground">Tippe auf die Karte, um den genauen Standort zu setzen.</p>
+            <div className="border rounded-lg overflow-hidden">
+              <LeafletCourtMap
+                courts={places as PlaceWithCourts[]}
+                onMapClick={handleMapClick}
+                height="260px"
+                allowAddCourt={true}
+                selectedLocation={location}
+                placesCount={places.length}
+                showFilter={false}
+                showFavorite={false}
+                disableMarkerClick={true}
+                initialCenter={mapInitialCenter}
+                initialZoom={mapInitialZoom}
+                embedded={true}
+              />
+            </div>
+            {location ? (
+              isDetectingAddress ? (
+                <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-200">
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                  <span>Adresse wird erkannt...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg border border-green-200">
+                  <MapPin className="h-4 w-4 shrink-0" />
+                  <span>
+                    <span className="font-medium">Standort gesetzt: </span>
+                    {(() => {
+                      const parts = [
+                        [address.street, address.house_number].filter(Boolean).join(' '),
+                        [address.postcode, address.city].filter(Boolean).join(' '),
+                      ].filter(Boolean)
+                      return parts.length > 0 ? parts.join(', ') : `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`
+                    })()}
+                  </span>
+                </div>
+              )
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                <MapPin className="h-4 w-4 shrink-0" />
+                <span className="font-medium">Tippe auf die Karte, um den Standort zu setzen</span>
+              </div>
+            )}
+          </div>
+
+          {/* 3. Place Type */}
           <div className="space-y-2">
             <Label>Art des Ortes *</Label>
             <div className="grid grid-cols-3 gap-2">
@@ -404,34 +460,7 @@ function AddPlacePage() {
             </div>
           </div>
 
-          {/* Verein: Contact */}
-          {placeType === 'verein' && (
-            <div className="space-y-2">
-              <Label>Kontakt (Optional)</Label>
-              <div className="space-y-2">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <Input placeholder="Telefon" value={contactPhone} onChange={e => { setContactPhone(e.target.value); setPhoneError('') }} className={phoneError ? 'border-destructive' : ''} />
-                  </div>
-                  {phoneError && <p className="text-xs text-destructive pl-6">{phoneError}</p>}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <Input type="email" placeholder="E-Mail" value={contactEmail} onChange={e => setContactEmail(e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <Input placeholder="Website (https://...)" value={contactWebsite} onChange={e => { setContactWebsite(e.target.value); setWebsiteError('') }} className={websiteError ? 'border-destructive' : ''} />
-                  </div>
-                  {websiteError && <p className="text-xs text-destructive pl-6">{websiteError}</p>}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Sports */}
+          {/* 4. Sports */}
           <div className="space-y-2">
             <Label>Verfügbare Sportarten *</Label>
             <div className="grid grid-cols-3 gap-2">
@@ -489,7 +518,7 @@ function AddPlacePage() {
             </div>
           )}
 
-          {/* Image */}
+          {/* 5. Image */}
           <div className="space-y-2">
             <Label>Platzbild (Optional)</Label>
             <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
@@ -516,96 +545,56 @@ function AddPlacePage() {
             </div>
           </div>
 
-          {/* Location */}
-          <div className="space-y-2">
-            <Label>Standort *</Label>
-            <p className="text-xs text-muted-foreground">Tippe auf die Karte, um den genauen Standort zu setzen.</p>
-            <div className="border rounded-lg overflow-hidden">
-              <LeafletCourtMap
-                courts={places as PlaceWithCourts[]}
-                onMapClick={handleMapClick}
-                height="260px"
-                allowAddCourt={true}
-                selectedLocation={location}
-                placesCount={places.length}
-                showFilter={false}
-                showFavorite={false}
-                disableMarkerClick={true}
-                initialCenter={mapInitialCenter}
-                initialZoom={mapInitialZoom}
-                embedded={true}
-              />
-            </div>
-            {location ? (
-              <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg border border-green-200">
-                <MapPin className="h-4 w-4 shrink-0" />
-                <span><span className="font-medium">Standort gesetzt:</span> {location.lat.toFixed(5)}, {location.lng.toFixed(5)}</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                <MapPin className="h-4 w-4 shrink-0" />
-                <span className="font-medium">Tippe auf die Karte, um den Standort zu setzen</span>
-              </div>
-            )}
-          </div>
-
-          {/* Address */}
-          {location && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Adresse</Label>
-                {Object.values(address).some(v => v) && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => { setAddress({}); setAddressAutoDetected(false) }}>
-                    <RefreshCcw className="h-3 w-3 mr-1" />Löschen
-                  </Button>
-                )}
-              </div>
-              {isDetectingAddress && (
-                <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-200">
-                  <Loader2 className="h-4 w-4 animate-spin" /><span>Adresse wird erkannt...</span>
+          {/* 6. Contact (verein/schule) */}
+          {(placeType === 'verein' || placeType === 'schule') && (
+            <div className="space-y-2">
+              <Label>Kontakt (Optional)</Label>
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <Input placeholder="Telefon" value={contactPhone} onChange={e => { setContactPhone(e.target.value); setPhoneError('') }} className={phoneError ? 'border-destructive' : ''} />
+                  </div>
+                  {phoneError && <p className="text-xs text-destructive pl-6">{phoneError}</p>}
                 </div>
-              )}
-              {addressAutoDetected && !isDetectingAddress && (
-                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg border border-green-200">
-                  <Check className="h-4 w-4" /><span>Adresse automatisch erkannt.</span>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 space-y-1">
-                  <Label htmlFor="ap-street" className="text-xs">Straße</Label>
-                  <Input id="ap-street" placeholder="Straße & Hausnummer"
-                    value={address.street && address.house_number ? `${address.street} ${address.house_number}` : address.street || ''}
-                    onChange={e => {
-                      const parts = e.target.value.trim().split(' ')
-                      const num = parts[parts.length - 1]
-                      if (parts.length > 1 && /^\d+[a-zA-Z]?$/.test(num)) {
-                        updateAddressField('street', parts.slice(0, -1).join(' '))
-                        updateAddressField('house_number', num)
-                      } else {
-                        updateAddressField('street', e.target.value)
-                      }
-                    }}
-                  />
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Input type="email" placeholder="E-Mail" value={contactEmail} onChange={e => setContactEmail(e.target.value)} />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="ap-city" className="text-xs">Stadt</Label>
-                  <Input id="ap-city" placeholder="Stadt" value={address.city || ''} onChange={e => updateAddressField('city', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="ap-postcode" className="text-xs">Postleitzahl</Label>
-                  <Input id="ap-postcode" placeholder="PLZ" value={address.postcode || ''} onChange={e => updateAddressField('postcode', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="ap-state" className="text-xs">Bundesland</Label>
-                  <Input id="ap-state" placeholder="Bundesland" value={address.state || ''} onChange={e => updateAddressField('state', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="ap-country" className="text-xs">Land</Label>
-                  <Input id="ap-country" placeholder="Land" value={address.country || ''} onChange={e => updateAddressField('country', e.target.value)} />
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <Input placeholder="Website (https://...)" value={contactWebsite} onChange={e => { setContactWebsite(e.target.value); setWebsiteError('') }} className={websiteError ? 'border-destructive' : ''} />
+                  </div>
+                  {websiteError && <p className="text-xs text-destructive pl-6">{websiteError}</p>}
                 </div>
               </div>
             </div>
           )}
+
+          {/* 7. Opening Hours (verein/schule) */}
+          {(placeType === 'verein' || placeType === 'schule') && (
+            <div className="space-y-2">
+              <Label>Öffnungszeiten (Optional)</Label>
+              <OpeningHoursEditor
+                key="new"
+                value={openingHours}
+                onChange={setOpeningHours}
+              />
+            </div>
+          )}
+
+          {/* 8. Description */}
+          <div className="space-y-2">
+            <Label htmlFor="ap-description">Beschreibung (Optional)</Label>
+            <Textarea
+              id="ap-description"
+              placeholder="z.B. Öffentlicher Platz mit guter Beleuchtung, direkt am Park..."
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={3}
+            />
+          </div>
 
           {/* Submit */}
           <Button type="submit" className="w-full" disabled={createCourtMutation.isPending || isUploadingImage}>
